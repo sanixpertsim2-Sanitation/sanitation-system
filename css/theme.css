@@ -1,0 +1,96 @@
+/* ==============================
+   SANITATION HUB — GLOBAL THEME
+   ============================== */
+
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    linear-gradient(135deg, #020c1b, #041b33),
+    url("../images/factory-bg.jpg");
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
+}
+
+/* Page container */
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 40px 20px;
+}
+
+/* Headings */
+h1, h2 {
+  text-align: center;
+  color: #7fd6ff;
+  letter-spacing: 1px;
+}
+
+h3 {
+  margin-top: 30px;
+  color: #9be3ff;
+}
+
+/* Glass card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 18px;
+  padding: 25px;
+  margin-bottom: 25px;
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 0 30px rgba(0, 150, 255, 0.15);
+}
+
+/* Inputs */
+input, select, textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  margin-top: 6px;
+  margin-bottom: 15px;
+  font-size: 15px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+/* Futuristic submit button */
+.submit-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #ffffff;
+
+  background: linear-gradient(
+    135deg,
+    rgba(0,170,255,0.9),
+    rgba(0,90,200,0.9)
+  );
+
+  box-shadow:
+    0 0 15px rgba(0,170,255,0.8),
+    inset 0 0 20px rgba(255,255,255,0.25);
+
+  transition: 0.3s ease;
+  animation: glowPulse 2s infinite;
+}
+
+.submit-btn:hover {
+  transform: scale(1.03);
+}
+
+@keyframes

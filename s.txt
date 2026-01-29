@@ -1,0 +1,31 @@
+$storageFile = "C:\Sanitation Hub\sanitation-status.json"
+
+# Create file if missing
+if (!(Test-Path $storageFile)) {
+    "{}" | Out-File $storageFile
+}
+
+$data = Get-Content $storageFile | ConvertFrom-Json
+
+if ($data.postcleanTime) {
+
+    $now = Get-Date
+    $submitted = Get-Date $data.postcleanTime
+    $hours = ($now - $submitted).TotalHours
+
+    if ($hours -ge 48 -and $data.lineReleased -ne "YES") {
+
+        Send-MailMessage `
+        -To "sanixpertsadmin@sanixperts.ca" `
+        -From "sanixpertsadmin@sanixperts.ca" `
+        -Subject "Sanitation Alert – Area Lead Release Pending" `
+        -Body "Post-cleaning completed but Area Lead release not done within 48 hours." `
+        -SmtpServer "smtp.office365.com" `
+        -Port 587 `
+        -UseSsl `
+        -Credential (Get-Credential)
+
+        # RESET SYSTEM
+        Remove-Item $storageFile -Force
+    }
+}

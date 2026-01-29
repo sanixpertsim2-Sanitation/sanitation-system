@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Damage Report</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.section {
+  background: rgba(255,255,255,0.08);
+  border-radius: 18px;
+  padding: 22px;
+  margin-bottom: 25px;
+  box-shadow: 0 0 25px rgba(255,100,100,.25);
+}
+
+.section h3 {
+  color: #ffb3b3;
+  margin-bottom: 15px;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  margin-top: 8px;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 18px;
+  background: linear-gradient(135deg,#ff3b3b,#b30000);
+  border: none;
+  border-radius: 16px;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 0 25px rgba(255,0,0,.6);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">MACY – Cupcake Line</h1>
+<h3>Damage / Red Tag Report</h3>
+
+<div class="section">
+
+  <label>Area *</label>
+  <input type="text" id="area" placeholder="e.g. Conveyor, Guard, Frame">
+
+  <label>Description *</label>
+  <textarea id="desc" placeholder="Describe damage or issue..."></textarea>
+
+  <label>Severity *</label>
+  <select id="severity">
+    <option value="">Select</option>
+    <option value="Minor">🟢 Minor</option>
+    <option value="Moderate">🟡 Moderate</option>
+    <option value="Critical">🔴 Critical</option>
+  </select>
+
+  <label>Status *</label>
+  <select id="status">
+    <option value="">Select</option>
+    <option value="Open">Open</option>
+    <option value="Closed">Closed</option>
+  </select>
+
+  <label>Upload Photo *</label>
+  <input type="file" id="photo" accept="image/*">
+
+</div>
+
+<button class="submit-btn" onclick="submitDamage()">Submit Damage Report</button>
+
+</div>
+
+<script>
+function submitDamage() {
+
+  const area = document.getElementById("area").value.trim();
+  const desc = document.getElementById("desc").value.trim();
+  const severity = document.getElementById("severity").value;
+  const status = document.getElementById("status").value;
+  const photo = document.getElementById("photo").files.length;
+
+  if (!area || !desc || !severity || !status) {
+    alert("All fields are required");
+    return;
+  }
+
+  // Validation rules
+  if ((severity === "Moderate" || severity === "Critical") && photo === 0) {
+    alert("Photo required for Moderate or Critical damage");
+    return;
+  }
+
+  const damageData = {
+    area,
+    desc,
+    severity,
+    status,
+    date: new Date().toLocaleString()
+  };
+
+  localStorage.setItem("damageReport", JSON.stringify(damageData));
+
+  alert("Damage Report Saved Successfully ✅");
+
+  window.location.href = "area.html";
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sanitation Verification Report</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>Sanitation Verification Report</h1>
+  <h3 class="page-title">
+  MACY – <span id="areaName">Area</span>
+</h3>
+
+  <hr>
+
+  <div id="reportContent"></div>
+
+  <button onclick="window.print()" class="primary-btn">
+    🖨️ Print / Save PDF
+  </button>
+
+</div>
+
+<script>
+const pre = JSON.parse(localStorage.getItem("precleanData"));
+const post = JSON.parse(localStorage.getItem("postcleanData"));
+const damage = JSON.parse(localStorage.getItem("damageData"));
+const release = JSON.parse(localStorage.getItem("areaLeadRelease"));
+
+let html = "";
+
+html += `<h3>Employee Information</h3>`;
+html += `<p><b>Name:</b> ${pre?.employee || "-"}</p>`;
+html += `<p><b>Pre-Cleaning Time:</b> ${pre?.datetime || "-"}</p>`;
+html += `<p><b>Post-Cleaning Time:</b> ${post?.datetime || "-"}</p>`;
+
+html += `<hr><h3>Pre-Cleaning Checklist</h3>`;
+
+(pre?.checklist || []).forEach(item => {
+  html += `
+    <div style="margin-bottom:10px;">
+      <b>${item.question}</b><br>
+      Result: ${item.result}<br>
+      Comment: ${item.comment || "—"}<br>
+      Photo: ${item.photo || "—"}
+    </div>
+  `;
+});
+
+html += `<hr><h3>Post-Cleaning</h3>`;
+html += `<p>Bags Used: ${pre?.bagsUsed}</p>`;
+html += `<p>Bags Retrieved: ${post?.bagsRetrieved}</p>`;
+
+html += `<hr><h3>Damage Report</h3>`;
+
+(damage || []).forEach(d => {
+  html += `
+    <div>
+      ${d.issue} — ${d.severity}
+    </div>
+  `;
+});
+
+html += `<hr><h3>Area Lead Release</h3>`;
+html += `<p>Released By: ${release?.leadName}</p>`;
+html += `<p>Date: ${release?.releasedAt}</p>`;
+
+document.getElementById("reportContent").innerHTML = html;
+</script>
+<script>
+window.onload = function () {
+  const area =
+    localStorage.getItem("selectedArea") || "Area";
+  document.getElementById("areaName").innerText = area;
+};
+</script>
+</body>
+</html>

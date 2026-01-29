@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Daily Sanitation KPI Trend</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+table {
+  width:100%;
+  border-collapse: collapse;
+  margin-top: 25px;
+}
+
+th, td {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+th {
+  background: rgba(255,255,255,0.08);
+}
+
+.green { color:#22c55e; }
+.red { color:#ef4444; }
+.yellow { color:#facc15; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">Daily Sanitation KPI Trend</h1>
+<h3>MACY – Cupcake Line</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Cleaning Duration (min)</th>
+      <th>Total Damages</th>
+      <th>Critical Damages</th>
+      <th>Release Status</th>
+    </tr>
+  </thead>
+  <tbody id="kpiTable"></tbody>
+</table>
+
+</div>
+
+<script>
+const data = JSON.parse(localStorage.getItem("dailyKPI")) || [];
+const tbody = document.getElementById("kpiTable");
+
+data.slice(-14).forEach(row => {
+  tbody.innerHTML += `
+    <tr>
+      <td>${row.date}</td>
+      <td>${row.duration}</td>
+      <td>${row.damageCount}</td>
+      <td class="${row.criticalCount>0?'red':'green'}">
+        ${row.criticalCount}
+      </td>
+      <td class="${row.released?'green':'red'}">
+        ${row.released ? "Released" : "Blocked"}
+      </td>
+    </tr>
+  `;
+});
+</script>
+
+</body>
+</html>

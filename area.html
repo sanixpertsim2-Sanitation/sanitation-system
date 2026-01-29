@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Select Area</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.area-btn {
+  width: 100%;
+  padding: 18px;
+  margin-top: 15px;
+  font-size: 18px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg,#00aaff,#0066ff);
+  color: white;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1 class="page-title">
+  MACY – <span id="areaName"></span>
+</h1>
+  <h3>Select Area</h3>
+
+  <button class="area-btn" onclick="selectArea('MACY_PRODUCTION')">Production</button>
+  <button class="area-btn" onclick="selectArea('MACY_Decoration')">Decoration</button>
+  <button class="area-btn" onclick="selectArea('MACY_Spiral')">Spiral</button>
+  <button class="area-btn" onclick="selectArea('MACY_Oven')">Oven</button>
+  <button class="area-btn" onclick="selectArea('MACY_Palletizer')">Palletizer</button>
+</div>
+
+<script>
+function selectArea(area) {
+
+  // Save selected area
+  localStorage.setItem("selectedArea", area);
+
+  // Only MACY Production is active now
+  if (area === "MACY_PRODUCTION") {
+    window.location.href = "macy-production-control.html";
+  } else {
+    alert("This area will be activated soon.");
+  }
+}
+</script>
+</body>
+</html>

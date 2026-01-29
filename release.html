@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Area Lead Line Release</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1 class="page-title">
+  MACY – <span id="areaName">Area</span>
+</h1>
+  <h3 class="page-title">
+  MACY – <span id="areaName">Area</span>
+</h3>
+
+  <div class="card">
+
+    <label>Area Lead Name *</label>
+    <input type="text" id="leadName" placeholder="Enter Area Lead name">
+
+    <label>Area Lead PIN *</label>
+    <input type="password" id="leadPin" placeholder="Enter PIN">
+
+    <button class="primary-btn" onclick="releaseLine()">
+      ✅ Official Line Release
+    </button>
+
+  </div>
+
+</div>
+
+<script>
+function releaseLine() {
+
+  const name = document.getElementById("leadName").value.trim();
+  const pin  = document.getElementById("leadPin").value.trim();
+
+  const savedPIN = localStorage.getItem("areaLeadPIN");
+
+  if (!name || !pin) {
+    alert("⚠ Please enter Area Lead name and PIN");
+    return;
+  }
+
+  if (!savedPIN) {
+    alert("❌ Area Lead PIN not configured");
+    return;
+  }
+
+  if (pin !== savedPIN) {
+    alert("❌ Invalid Area Lead PIN");
+    return;
+  }
+
+  // ===============================
+  // SAVE RELEASE RECORD (DASHBOARD)
+  // ===============================
+  let history = JSON.parse(localStorage.getItem("releaseHistory")) || [];
+
+  history.push({
+    line: "MACY – Cupcake Line",
+    areaLead: name,
+    releasedAt: new Date().toLocaleString()
+  });
+
+  localStorage.setItem("releaseHistory", JSON.stringify(history));
+
+  // ===============================
+  // FULL SYSTEM RESET
+  // ===============================
+  localStorage.removeItem("precleanData");
+  localStorage.removeItem("postcleanData");
+  localStorage.removeItem("damageReport");
+  localStorage.removeItem("precleanDone");
+  localStorage.removeItem("postcleanDone");
+  localStorage.removeItem("areaLocked");
+  localStorage.removeItem("releaseStartTime");
+  localStorage.removeItem("mailSent");
+
+  alert("✅ Line officially released for production");
+
+  window.location.href = "dashboard.html";
+}
+</script>
+<script>
+window.onload = function () {
+  const area =
+    localStorage.getItem("selectedArea") || "Area";
+  document.getElementById("areaName").innerText = area;
+};
+</script>
+</body>
+</html>

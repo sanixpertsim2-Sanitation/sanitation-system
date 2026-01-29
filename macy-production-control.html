@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY Production – Control</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.status {
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.blue { background:#1e3a8a; }
+.yellow { background:#92400e; }
+.orange { background:#9a3412; }
+.green { background:#065f46; }
+
+.action-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 17px;
+  border-radius: 14px;
+  border: none;
+  margin-top: 15px;
+  background: linear-gradient(135deg,#00aaff,#0066ff);
+  color: white;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">MACY – Production Line</h1>
+<h3>Sanitation Control Panel</h3>
+
+<div id="statusBox"></div>
+<div id="actionBox"></div>
+
+</div>
+
+<script>
+function goPre() {
+  window.location.href = "macy-production-preclean.html";
+}
+function goPost() {
+  window.location.href = "macy-production-postclean.html";
+}
+function goDamage() {
+  window.location.href = "macy-production-damage.html";
+}
+function goRelease() {
+  window.location.href = "macy-production-release.html";
+}
+
+function renderControl() {
+
+  const pre = localStorage.getItem("macyProdPrecleanDone");
+  const post = localStorage.getItem("macyProdPostcleanDone");
+  const released = localStorage.getItem("macyProdReleased");
+  const handoverReq = localStorage.getItem("macyProdHandoverRequired");
+  const handoverDone = localStorage.getItem("macyProdHandoverDone");
+  const status = document.getElementById("statusBox");
+  const action = document.getElementById("actionBox");
+
+  /* LINE RELEASED */
+  if (released === "YES") {
+    status.innerHTML = `
+      <div class="status green">
+        🟢 LINE RELEASED FOR PRODUCTION
+      </div>`;
+    return;
+  }
+/* HANDOVER PENDING */
+if (handoverReq === "YES" && handoverDone !== "YES") {
+
+  status.innerHTML = `
+    <div class="status orange">
+      🔁 LINE UNDER HANDOVER<br><br>
+      Awaiting next-shift completion
+    </div>
+  `;
+
+  action.innerHTML = `
+    <button class="action-btn" onclick="window.location.href='macy-production-handover.html'">
+      Continue Handover
+    </button>
+  `;
+
+  return;
+}
+
+  /* POST CLEAN DONE */
+  if (post === "YES") {
+    status.innerHTML = `
+      <div class="status orange">
+        🟠 Post-cleaning completed
+      </div>`;
+    action.innerHTML = `
+      <button class="action-btn" onclick="goRelease()">
+        Area Lead Verification
+      </button>`;
+    return;
+  }
+
+  /* PRE CLEAN DONE */
+  if (pre === "YES") {
+    status.innerHTML = `
+      <div class="status yellow">
+        🟡 Pre-cleaning completed
+      </div>`;
+    action.innerHTML = `
+      <button class="action-btn" onclick="goDamage()">Damage Report</button>
+      <button class="action-btn" onclick="goPost()">Start Post-Cleaning</button>
+    `;
+    return;
+  }
+
+  /* NOT STARTED */
+  status.innerHTML = `
+    <div class="status blue">
+      🔵 Sanitation not started
+    </div>`;
+  action.innerHTML = `
+    <button class="action-btn" onclick="goPre()">
+      Start Pre-Cleaning
+    </button>`;
+}
+
+renderControl();
+</script>
+
+</body>
+</html>

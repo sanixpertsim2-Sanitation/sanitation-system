@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sanitation Live Control Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+body {
+  background: radial-gradient(circle at top, #020617, #000);
+}
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  gap: 18px;
+  margin: 25px 0;
+}
+
+.kpi {
+  background: rgba(255,255,255,0.08);
+  padding: 22px;
+  border-radius: 20px;
+  text-align: center;
+  font-size: 18px;
+  backdrop-filter: blur(12px);
+}
+
+.kpi span {
+  display:block;
+  font-size:28px;
+  font-weight:700;
+  margin-top:6px;
+}
+
+.green{color:#22c55e;}
+.yellow{color:#facc15;}
+.red{color:#ef4444;}
+
+.progress-box {
+  background: rgba(255,255,255,0.06);
+  border-radius: 25px;
+  overflow: hidden;
+  margin-top: 25px;
+}
+
+.progress-bar {
+  height: 28px;
+  width: 0%;
+  background: linear-gradient(90deg,#22c55e,#16a34a);
+  transition: width 1s ease;
+}
+
+.fullscreen-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 25px;
+  padding: 14px 24px;
+  border-radius: 20px;
+  border:none;
+  font-size:16px;
+  background:#2563eb;
+  color:white;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">Sanitation Control Dashboard</h1>
+<h3>Give & Go Bakery – IM2</h3>
+
+<!-- KPI TILES -->
+<div class="kpi-row">
+  <div class="kpi">Stage<span id="kpiStage">–</span></div>
+  <div class="kpi">Open Damages<span id="kpiDamage">0</span></div>
+  <div class="kpi">Critical Issues<span id="kpiCritical">0</span></div>
+  <div class="kpi">Line Status<span id="kpiRelease">–</span></div>
+  <div class="kpi">Time Since Start<span id="kpiTime">–</span></div>
+</div>
+
+<!-- GRAPHICAL PROGRESS -->
+<div class="progress-box">
+  <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<!-- FULLSCREEN -->
+<button class="fullscreen-btn" onclick="openFull()">📺 Full Screen</button>
+
+</div>
+
+<script>
+function openFull(){
+  document.documentElement.requestFullscreen();
+}
+
+function loadDashboard(){
+
+  const pre = localStorage.getItem("precleanDone");
+  const post = localStorage.getItem("postcleanDone");
+  const released = localStorage.getItem("lineReleased");
+  const start = localStorage.getItem("releaseStartTime");
+
+  const damages = JSON.parse(localStorage.getItem("damageReport")) || [];
+  const openDamages = damages.filter(d => d.status !== "Closed");
+  const critical = openDamages.filter(d => d.severity === "Critical");
+
+  let stage = "Not Started";
+  let progress = 0;
+
+  if(pre){ stage="Pre-Clean Completed"; progress=20; }
+  if(post){ stage="Post-Clean Completed"; progress=40; }
+  if(openDamages.length===0 && post){ stage="Damage Clear"; progress=60; }
+  if(post && openDamages.length===0){ stage="Awaiting Area Lead"; progress=80; }
+  if(released){ stage="Released"; progress=100; }
+
+  document.getElementById("kpiStage").innerText = stage;
+  document.getElementById("kpiDamage").innerText = openDamages.length;
+  document.getElementById("kpiCritical").innerText = critical.length;
+  document.getElementById("kpiRelease").innerText =
+    released ? "RELEASED" : "LOCKED";
+
+  if(start){
+    const mins = Math.floor((Date.now() - Number(start)) / 60000);
+    document.getElementById("kpiTime").innerText = mins + " min";
+  }
+
+  document.getElementById("progressBar").style.width = progress + "%";
+}
+
+loadDashboard();
+setInterval(loadDashboard, 5000);
+</script>
+
+</body>
+</html>

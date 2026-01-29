@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY Production – Handover Tasks</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.section {
+  background: rgba(255,255,255,0.08);
+  padding: 22px;
+  border-radius: 18px;
+  margin-bottom: 25px;
+}
+
+.task {
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 18px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+
+.task h4 {
+  color: #7dd3fc;
+  margin-bottom: 10px;
+}
+
+img {
+  width: 100%;
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+.photo-time {
+  font-size: 12px;
+  color: #93c5fd;
+  margin-top: 5px;
+}
+
+textarea, input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  margin-top: 8px;
+}
+
+button {
+  width: 100%;
+  padding: 18px;
+  font-size: 18px;
+  border-radius: 18px;
+  border: none;
+  background: linear-gradient(135deg,#22c55e,#16a34a);
+  color: white;
+  cursor: pointer;
+  margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">Handover Tasks</h1>
+<h3>MACY Production – Findings Resolution</h3>
+
+<div id="taskContainer"></div>
+
+<button id="releaseBtn" class="hidden" onclick="finalRelease()">
+  ✅ RELEASE LINE
+</button>
+
+</div>
+
+<script>
+const findings =
+  JSON.parse(localStorage.getItem("macyProdFindings") || "[]");
+
+const container = document.getElementById("taskContainer");
+const releaseBtn = document.getElementById("releaseBtn");
+
+let completed = new Set();
+
+function stampPhoto(input) {
+  const time = new Date().toLocaleString();
+  input.setAttribute("data-time", time);
+  input.nextElementSibling.innerText = "🕒 " + time;
+}
+
+function render() {
+
+  if (findings.length === 0) {
+    container.innerHTML =
+      "<p>No handover tasks found.</p>";
+    return;
+  }
+
+  findings.forEach((f, index) => {
+
+    const div = document.createElement("div");
+    div.className = "section task";
+
+    div.innerHTML = `
+      <h4>Finding ${index + 1}</h4>
+
+      <b>Issue:</b>
+      <p>${f.question}</p>
+
+      <b>Area Lead Comment:</b>
+      <p>${f.comment || "—"}</p>
+
+      <b>Lead Photo:</b>
+      <img src="${f.photo}">
+      <div class="photo-time">🕒 ${f.photoTime}</div>
+
+      <hr>
+
+      <label>Sanitation action taken *</label>
+      <textarea id="comment-${index}"
+        placeholder="Explain what action was taken"></textarea>
+
+      <label>Upload fix photo *</label>
+      <input type="file" accept="image/*" capture="environment"
+        onchange="stampPhoto(this)">
+      <div class="photo-time"></div>
+
+      <button onclick="completeTask(${index})">
+        ✔ Mark as Completed
+      </button>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+function completeTask(i) {
+
+  const comment =
+    document.getElementById(`comment-${i}`).value.trim();
+
+  const input =
+    document.querySelectorAll("input[type=file]")[i];
+
+  if (!comment || !input.files.length) {
+    alert("Comment and photo required.");
+    return;
+  }
+
+  completed.add(i);
+
+  if (completed.size === findings.length) {
+    releaseBtn.classList.remove("hidden");
+  }
+
+  alert(`Finding ${i + 1} completed.`);
+}
+
+function finalRelease() {
+
+  localStorage.setItem("macyProdReleased", "YES");
+  localStorage.setItem(
+    "macyProdReleaseTime",
+    new Date().toLocaleString()
+  );
+
+  alert("✅ All findings closed. Line released.");
+
+  window.location.href = "macy-production-control.html";
+}
+
+render();
+</script>
+
+</body>
+</html>

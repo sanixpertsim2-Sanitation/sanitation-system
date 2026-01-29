@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Post-Cleaning Verification</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.section {
+  background: rgba(255,255,255,0.08);
+  padding: 22px;
+  border-radius: 18px;
+  margin-bottom: 25px;
+}
+
+.question {
+  margin-bottom: 20px;
+}
+
+select, textarea, input {
+  width: 100%;
+  padding: 11px;
+  border-radius: 12px;
+  border: none;
+  margin-top: 8px;
+}
+
+.hidden {
+  display: none;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 18px;
+  font-size: 18px;
+  border-radius: 18px;
+  border: none;
+  background: linear-gradient(135deg,#00c6ff,#0072ff);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 0 25px rgba(0,180,255,.6);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">
+  MACY – <span id="areaName">Area</span>
+</h1>
+<h3>Post-Cleaning Verification</h3>
+
+<!-- ===================== -->
+<!-- BAG RECONCILIATION -->
+<!-- ===================== -->
+<div class="section">
+
+  <h3>Bag Reconciliation</h3>
+
+  <label>Number of bags retrieved *</label>
+  <input type="number" id="bagsRetrieved" min="0">
+
+  <!-- Hidden mismatch handling -->
+  <div id="bagIssue" class="hidden">
+    <label>Explain reason for mismatch *</label>
+    <textarea id="bagComment" placeholder="Reason required"></textarea>
+
+    <label>Upload photo *</label>
+    <input type="file" id="bagPhoto" accept="image/*">
+  </div>
+
+</div>
+
+<!-- ===================== -->
+<!-- POST CLEANING CHECK -->
+<!-- ===================== -->
+<div class="section">
+
+  <h3>Post-Cleaning Verification</h3>
+
+  <div class="question">
+    <label>Conveyor cleaned and free from residue *</label>
+    <select onchange="handleNA(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>N/A</option>
+    </select>
+    <textarea class="hidden" placeholder="Comment required"></textarea>
+    <input type="file" class="hidden" accept="image/*">
+  </div>
+
+  <div class="question">
+    <label>All guards reinstalled correctly *</label>
+    <select onchange="handleNA(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>N/A</option>
+    </select>
+    <textarea class="hidden" placeholder="Comment required"></textarea>
+    <input type="file" class="hidden" accept="image/*">
+  </div>
+
+  <div class="question">
+    <label>Frames and structure cleaned *</label>
+    <select onchange="handleNA(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>N/A</option>
+    </select>
+    <textarea class="hidden" placeholder="Comment required"></textarea>
+    <input type="file" class="hidden" accept="image/*">
+  </div>
+
+</div>
+
+<button class="submit-btn" onclick="submitPostCleaning()">
+  Submit Post-Cleaning
+</button>
+
+</div>
+
+<script>
+/* ============================
+   TOGGLE COMMENT + PHOTO
+============================ */
+function handleNA(selectEl) {
+
+  const questionDiv = selectEl.closest(".question");
+  const textarea = questionDiv.querySelector("textarea");
+  const file = questionDiv.querySelector("input[type='file']");
+  const timeBox = questionDiv.querySelector(".photo-time");
+
+  if (
+    selectEl.value === "Not Acceptable" ||
+    selectEl.value === "N/A"
+  ) {
+    textarea.classList.remove("hidden");
+    file.classList.remove("hidden");
+  } else {
+    textarea.classList.add("hidden");
+    file.classList.add("hidden");
+    textarea.value = "";
+    file.value = "";
+    if (timeBox) timeBox.innerText = "";
+  }
+
+  file.onchange = () => {
+    if (timeBox) {
+      timeBox.innerText =
+        "🕒 Photo taken at: " +
+        new Date().toLocaleString();
+    }
+  };
+}
+
+async function captureImageWithTime(input) {
+
+  const file = input.files[0];
+  if (!file) return null;
+
+  return new Promise((resolve) => {
+
+    const reader = new FileReader();
+
+    reader.onload = function () {
+      resolve({
+        fileName: file.name,
+        type: file.type,
+        base64: reader.result,
+        timestamp: new Date().toLocaleString()
+      });
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ============================
+   POST-CLEANING SUBMIT
+============================ */
+function submitPostCleaning() {
+
+  const bagsUsed = parseInt(
+    localStorage.getItem("macyProdPrecleanBagsUsed") || "0"
+  );
+
+  const bagsRetrieved =
+    document.getElementById("bagsRetrieved").value;
+
+  if (!bagsRetrieved) {
+    alert("Please enter number of bags retrieved.");
+    return;
+  }
+
+  // ❌ STRICT BAG MATCH
+  if (parseInt(bagsRetrieved) !== bagsUsed) {
+    alert(
+      "❌ Bag count mismatch.\n\n" +
+      "Submission is blocked.\n\n" +
+      "All bags must be retrieved."
+    );
+    return;
+  }
+
+  const questions = document.querySelectorAll(".question");
+
+  for (let q of questions) {
+
+    const select = q.querySelector("select");
+    const comment = q.querySelector("textarea");
+    const photoInput = q.querySelector("input[type='file']");
+let photoData = null;
+
+    if (!select.value) {
+      alert("Please complete all verification checks.");
+      return;
+    }
+
+    if (
+  select.value === "Not Acceptable" ||
+  select.value === "N/A"
+) {
+
+  if (!comment.value.trim() || !photoInput.files.length) {
+    alert("Photo and comment required.");
+    return;
+  }
+
+  photoData = await captureImageWithTime(photoInput);
+}
+  }
+
+  // ✅ SAVE POST CLEAN STATUS
+  localStorage.setItem("macyProdPostcleanDone", "YES");
+  localStorage.setItem(
+    "macyProdPostcleanTime",
+    new Date().toLocaleString()
+  );
+
+  // 🔁 HANDOVER DECISION
+  const handover = confirm(
+    "Is handover required for next shift?"
+  );
+const postCleanPayload = {
+  line: "MACY Production",
+  stage: "Post-Cleaning",
+  time: new Date().toLocaleString(),
+  bagsUsed: bagsUsed,
+  bagsRetrieved: bagsRetrieved,
+  verification: [],
+};
+
+questions.forEach((q, index) => {
+
+  const select = q.querySelector("select");
+  const comment = q.querySelector("textarea");
+  const photoInput = q.querySelector("input[type='file']");
+
+  postCleanPayload.verification.push({
+    question: q.querySelector("label").innerText,
+    result: select.value,
+    comment: comment.value.trim(),
+    imageTime:
+      photoInput.files.length
+        ? new Date().toLocaleString()
+        : null
+  });
+});
+
+localStorage.setItem(
+  "macyProdPostcleanData",
+  JSON.stringify(postCleanPayload)
+);
+
+  if (handover) {
+    localStorage.setItem("macyProdHandoverRequired", "YES");
+    window.location.href = "macy-production-handover.html";
+  } else {
+    localStorage.setItem("macyProdHandoverRequired", "NO");
+    window.location.href = "macy-production-control.html";
+  }
+}
+</script>
+<script>
+window.onload = function () {
+
+  const area =
+    localStorage.getItem("selectedArea") || "Area";
+
+  const label = document.getElementById("areaName");
+
+  if (label) {
+    label.innerText = area;
+  }
+
+};
+</script>
+
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY – Line Control</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.status-banner {
+  padding: 18px;
+  border-radius: 14px;
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.blue { background:#1e3a8a; }
+.yellow { background:#92400e; }
+.red { background:#7f1d1d; }
+.green { background:#064e3b; }
+
+.action-btn {
+  width: 100%;
+  padding: 15px;
+  margin-top: 15px;
+  font-size: 17px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg,#00aaff,#0077ff);
+  color: white;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1 class="page-title">MACY – Cupcake Line</h1>
+<h3>Sanitation Control</h3>
+
+<div id="actions"></div>
+
+</div>
+
+<script>
+function goPre(){ window.location.href="preclean.html"; }
+function goPost(){ window.location.href="postclean.html"; }
+function goDamage(){ window.location.href="damage.html"; }
+function goRelease(){ window.location.href="release.html"; }
+
+function renderActions(){
+
+  const pre = localStorage.getItem("precleanDone");
+  const post = localStorage.getItem("postcleanDone");
+  const released = localStorage.getItem("lineReleased");
+
+  const box = document.getElementById("actions");
+
+  // LINE RELEASED
+  if(released==="YES"){
+    box.innerHTML = `
+      <div class="status-banner green">
+        🟢 LINE RELEASED FOR PRODUCTION<br>
+        Area Lead: ${localStorage.getItem("releasedBy")}<br>
+        ${localStorage.getItem("releaseTime")}
+      </div>`;
+    return;
+  }
+
+  // WAITING FOR AREA LEAD
+  if(post==="YES"){
+    box.innerHTML = `
+      <div class="status-banner yellow">
+        🔒 Sanitation completed<br>
+        Awaiting Area Lead verification
+      </div>
+
+      <button class="action-btn" onclick="goRelease()">
+        👤 Area Lead Release
+      </button>`;
+    return;
+  }
+
+  // SANITATION IN PROGRESS
+  box.innerHTML = `
+    <button class="action-btn" onclick="goPre()">Pre-Cleaning</button>
+    <button class="action-btn" onclick="goDamage()">Damage Report</button>
+    <button class="action-btn" onclick="goPost()">Post-Cleaning</button>
+  `;
+}
+
+renderActions();
+</script>
+
+</body>
+</html>

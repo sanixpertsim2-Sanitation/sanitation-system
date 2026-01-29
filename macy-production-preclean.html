@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY – Production Pre-Cleaning</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.section {
+  background: rgba(255,255,255,0.07);
+  border-radius: 18px;
+  padding: 22px;
+  margin-bottom: 25px;
+  box-shadow: 0 0 25px rgba(0,150,255,.25);
+}
+
+.section h3 {
+  color: #7fd6ff;
+  margin-bottom: 15px;
+}
+
+.question {
+  margin-bottom: 18px;
+}
+
+select, input, textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  margin-top: 6px;
+}
+
+textarea {
+  min-height: 60px;
+}
+
+.hidden {
+  display: none;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 18px;
+  background: linear-gradient(135deg,#00b3ff,#0066ff);
+  border: none;
+  border-radius: 16px;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 0 25px rgba(0,140,255,.7);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">MACY – Production</h1>
+<h3>Pre-Cleaning Verification</h3>
+
+<!-- GENERAL INFO -->
+<div class="section">
+  <h3>General Information</h3>
+
+  <label>Employee Name *</label>
+  <input type="text" id="employeeName">
+
+  <label>Date & Time</label>
+  <input type="text" id="dateTime" readonly>
+
+  <label>Number of bags used *</label>
+  <input type="number" id="bagsUsed">
+</div>
+
+<!-- CHECKLIST -->
+<div class="section">
+  <h3>Production Area Checklist</h3>
+
+  <!-- Question template -->
+  <div class="question">
+    No product residue present
+    <select onchange="toggleExtra(this)">
+      <option value="">Select</option>
+      <option value="Acceptable">Acceptable</option>
+      <option value="Not Acceptable">Not Acceptable</option>
+      <option value="NA">N/A</option>
+    </select>
+
+    <div class="extra hidden">
+      <input type="file" class="hidden" accept="image/*" onchange="stampPhoto(this)">
+<p class="photo-time"></p>
+<p class="photo-time"></p>
+      <textarea placeholder="Comment required..."></textarea>
+    </div>
+  </div>
+
+  <div class="question">
+    Conveyor belts accessible
+    <select onchange="toggleExtra(this)">
+      <option value="">Select</option>
+      <option value="Acceptable">Acceptable</option>
+      <option value="Not Acceptable">Not Acceptable</option>
+      <option value="NA">N/A</option>
+    </select>
+    <div class="extra hidden">
+      <input type="file" class="hidden" accept="image/*" onchange="stampPhoto(this)">
+<p class="photo-time"></p>
+      <textarea placeholder="Comment required..."></textarea>
+    </div>
+  </div>
+
+  <div class="question">
+    Frames and structure accessible
+    <select onchange="toggleExtra(this)">
+      <option value="">Select</option>
+      <option value="Acceptable">Acceptable</option>
+      <option value="Not Acceptable">Not Acceptable</option>
+      <option value="NA">N/A</option>
+    </select>
+    <div class="extra hidden">
+      <input type="file" class="hidden" accept="image/*" onchange="stampPhoto(this)">
+<p class="photo-time"></p>
+      <textarea placeholder="Comment required..."></textarea>
+    </div>
+  </div>
+
+  <div class="question">
+    Guards and covers removed
+    <select onchange="toggleExtra(this)">
+      <option value="">Select</option>
+      <option value="Acceptable">Acceptable</option>
+      <option value="Not Acceptable">Not Acceptable</option>
+      <option value="NA">N/A</option>
+    </select>
+    <div class="extra hidden">
+      <input type="file" accept="image/*">
+      <textarea placeholder="Comment required..."></textarea>
+    </div>
+  </div>
+
+  <div class="question">
+    Motors protected
+    <select onchange="toggleExtra(this)">
+      <option value="">Select</option>
+      <option value="Acceptable">Acceptable</option>
+      <option value="Not Acceptable">Not Acceptable</option>
+      <option value="NA">N/A</option>
+    </select>
+    <div class="extra hidden">
+      <input type="file" class="hidden" accept="image/*" onchange="stampPhoto(this)">
+<p class="photo-time"></p>
+      <textarea placeholder="Comment required..."></textarea>
+    </div>
+  </div>
+
+</div>
+
+<button class="submit-btn" onclick="submitPreCleaning()">
+  Submit Pre-Cleaning
+</button>
+
+</div>
+
+<script>
+/* =====================================================
+   MACY PRODUCTION – PRE CLEAN VALIDATION SYSTEM
+===================================================== */
+
+const ADMIN_PIN = "0735";
+const LOCK_HOURS = 48;
+
+/* AUTO DATE TIME */
+(function () {
+  const dt = document.getElementById("dateTime");
+  if (dt) dt.value = new Date().toLocaleString();
+})();
+
+/* LOCK CHECK */
+(function () {
+  const done = localStorage.getItem("macyProdPrecleanDone");
+  const time = localStorage.getItem("macyProdPrecleanTimestamp");
+
+  if (done === "YES" && time) {
+    const diff =
+      (Date.now() - Number(time)) / (1000 * 60 * 60);
+
+    if (diff < LOCK_HOURS) {
+      document.body.innerHTML = `
+        <div style="height:100vh;display:flex;flex-direction:column;
+        justify-content:center;align-items:center;background:#0f172a;
+        color:white;text-align:center;padding:30px">
+          <h1>🔒 Pre-Cleaning Locked</h1>
+          <p>Submitted at:<br>
+          <b>${new Date(Number(time)).toLocaleString()}</b></p>
+          <p>Auto unlock after 48 hours</p>
+          <button onclick="adminUnlock()" style="
+            margin-top:25px;padding:14px 30px;border:none;
+            border-radius:12px;background:#2563eb;
+            color:white;font-size:16px">
+            Admin Unlock
+          </button>
+        </div>`;
+    } else {
+      localStorage.removeItem("macyProdPrecleanDone");
+      localStorage.removeItem("macyProdPrecleanTimestamp");
+    }
+  }
+})();
+
+/* ADMIN UNLOCK */
+function adminUnlock() {
+  const pin = prompt("Enter Admin PIN");
+  if (pin === ADMIN_PIN) {
+    localStorage.removeItem("macyProdPrecleanDone");
+    localStorage.removeItem("macyProdPrecleanTimestamp");
+    alert("Admin unlocked successfully");
+    location.reload();
+  } else {
+    alert("Incorrect PIN");
+  }
+}
+
+/* TOGGLE PHOTO + COMMENT */
+function toggleExtra(select) {
+  const extra = select.parentElement.querySelector(".extra");
+  if (select.value === "Not Acceptable" || select.value === "NA") {
+    extra.classList.remove("hidden");
+  } else {
+    extra.classList.add("hidden");
+  }
+}
+window.onload = function () {
+
+  if (localStorage.getItem("macyProdPrecleanDone") === "YES") {
+
+    document.body.innerHTML = `
+      <div style="
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:center;
+        height:100vh;
+        background:#0f172a;
+        color:white;
+        font-family:Arial;
+        text-align:center;
+      ">
+        <h1>✅ Pre-Cleaning Already Submitted</h1>
+        <p>Redirecting to Production Control…</p>
+      </div>
+    `;
+
+    setTimeout(() => {
+      window.location.href = "macy-production-control.html";
+    }, 2000);
+  }
+};
+
+/* ===============================
+   MACY PRODUCTION — PRE CLEAN SUBMIT
+================================ */
+
+function submitPreCleaning() {
+
+  const emp = document.getElementById("employeeName").value.trim();
+  const bags = document.getElementById("bagsUsed").value.trim();
+
+  if (!emp) {
+    alert("Employee name is mandatory.");
+    return;
+  }
+
+  if (!bags) {
+    alert("Number of bags used is mandatory.");
+    return;
+  }
+
+  const questions = document.querySelectorAll(".question");
+
+  for (let i = 0; i < questions.length; i++) {
+
+    const select = questions[i].querySelector("select");
+
+    if (!select.value) {
+      alert(`Please answer question ${i + 1}`);
+      return;
+    }
+
+    // If NOT acceptable → photo + comment required
+    if (select.value !== "Acceptable") {
+
+      const extra = questions[i].querySelector(".extra");
+      const photo = extra.querySelector("input").files.length;
+      const comment = extra.querySelector("textarea").value.trim();
+
+      if (!photo || !comment) {
+        alert(`Photo and comment required for question ${i + 1}`);
+        return;
+      }
+    }
+  }
+<hr style="margin:30px 0; opacity:0.3;">
+
+<button
+  onclick="adminUnlock()"
+  style="
+    background:#111827;
+    color:#94a3b8;
+    border:none;
+    width:100%;
+    padding:10px;
+    border-radius:10px;
+    font-size:13px;
+  ">
+  🔐 Admin Unlock
+</button>
+<script>
+function adminUnlock() {
+
+  const pin = prompt("Enter Admin PIN");
+
+  const ADMIN_PIN = "0735"; // 🔐 you can change anytime
+
+  if (pin === ADMIN_PIN) {
+
+    localStorage.removeItem("macyProdPrecleanDone");
+
+    localStorage.setItem(
+      "macyProdAdminUnlockTime",
+      new Date().toLocaleString()
+    );
+
+    alert("✅ Admin Unlock Successful");
+
+    location.reload();
+
+  } else {
+    alert("❌ Invalid PIN");
+  }
+}
+</script>
+
+  /* ===============================
+     SAVE PRE-CLEAN DATA
+  ================================ */
+
+  localStorage.setItem("macyProdPrecleanDone", "YES");
+  localStorage.setItem("macyProdPrecleanEmployee", emp);
+  localStorage.setItem("macyProdPrecleanBagsUsed", bags);
+  localStorage.setItem(
+    "macyProdPrecleanTime",
+    new Date().toLocaleString()
+  );
+
+  alert("✅ Pre-Cleaning Submitted Successfully");
+
+  /* REDIRECT TO CONTROL PANEL */
+  window.location.href = "macy-production-control.html";
+}
+
+<script>
+function stampPhoto(input) {
+
+  const now = new Date().toLocaleString();
+
+  const timeBox = input.parentElement.querySelector(".photo-time");
+
+  if (timeBox) {
+    timeBox.innerText = "🕒 Photo taken at: " + now;
+  }
+
+  input.setAttribute("data-time", now);
+}
+<script>
+function stampPhoto(input) {
+  const now = new Date().toLocaleString();
+  input.setAttribute("data-time", now);
+
+  const timeBox = input.parentElement.querySelector(".photo-time");
+  if (timeBox) {
+    timeBox.innerText = "🕒 Photo taken at: " + now;
+  }
+}
+</script>
+</script>
+</body>
+</html>

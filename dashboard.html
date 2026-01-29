@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sanitation Release Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+table {
+  width:100%;
+  border-collapse: collapse;
+  margin-top:20px;
+}
+
+th, td {
+  border-bottom:1px solid rgba(255,255,255,0.2);
+  padding:12px;
+  text-align:left;
+}
+
+th {
+  background:#1e293b;
+}
+
+tr:hover {
+  background:rgba(255,255,255,0.05);
+}
+
+.green {
+  color:#22c55e;
+  font-weight:600;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Sanitation Release Dashboard</h1>
+<h3>Today’s Line Releases</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Line</th>
+      <th>Status</th>
+      <th>Area Lead</th>
+      <th>Release Time</th>
+    </tr>
+  </thead>
+  <tbody id="releaseTable"></tbody>
+</table>
+
+</div>
+
+<script>
+const table = document.getElementById("releaseTable");
+const releases = JSON.parse(localStorage.getItem("releaseHistory")) || [];
+
+const today = new Date().toLocaleDateString();
+
+releases.forEach(r => {
+  const date = new Date(r.time).toLocaleDateString();
+
+  if (date === today) {
+    const row = `
+      <tr>
+        <td>${r.line}</td>
+        <td class="green">Released</td>
+        <td>${r.lead}</td>
+        <td>${r.time}</td>
+      </tr>
+    `;
+    table.innerHTML += row;
+  }
+});
+</script>
+
+</body>
+</html>
