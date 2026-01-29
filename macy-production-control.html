@@ -53,10 +53,10 @@ function goPre() {
   window.location.href = "macy-production-preclean.html";
 }
 function goPost() {
-  window.location.href = "macy-production-postclean.html";
+  window.location.href = "postclean.html";
 }
 function goDamage() {
-  window.location.href = "macy-production-damage.html";
+  window.location.href = "damage.html";
 }
 function goRelease() {
   window.location.href = "macy-production-release.html";
@@ -67,43 +67,29 @@ function renderControl() {
   const pre = localStorage.getItem("macyProdPrecleanDone");
   const post = localStorage.getItem("macyProdPostcleanDone");
   const released = localStorage.getItem("macyProdReleased");
-  const handoverReq = localStorage.getItem("macyProdHandoverRequired");
-  const handoverDone = localStorage.getItem("macyProdHandoverDone");
+
   const status = document.getElementById("statusBox");
   const action = document.getElementById("actionBox");
 
-  /* LINE RELEASED */
+  console.log("PRE:", pre);
+  console.log("POST:", post);
+  console.log("RELEASE:", released);
+
+  // 🟢 RELEASED
   if (released === "YES") {
     status.innerHTML = `
       <div class="status green">
-        🟢 LINE RELEASED FOR PRODUCTION
+        🟢 LINE RELEASED
       </div>`;
+    action.innerHTML = "";
     return;
   }
-/* HANDOVER PENDING */
-if (handoverReq === "YES" && handoverDone !== "YES") {
 
-  status.innerHTML = `
-    <div class="status orange">
-      🔁 LINE UNDER HANDOVER<br><br>
-      Awaiting next-shift completion
-    </div>
-  `;
-
-  action.innerHTML = `
-    <button class="action-btn" onclick="window.location.href='macy-production-handover.html'">
-      Continue Handover
-    </button>
-  `;
-
-  return;
-}
-
-  /* POST CLEAN DONE */
+  // 🟠 POST CLEAN DONE
   if (post === "YES") {
     status.innerHTML = `
       <div class="status orange">
-        🟠 Post-cleaning completed
+        🟠 Post-clean completed
       </div>`;
     action.innerHTML = `
       <button class="action-btn" onclick="goRelease()">
@@ -112,20 +98,23 @@ if (handoverReq === "YES" && handoverDone !== "YES") {
     return;
   }
 
-  /* PRE CLEAN DONE */
+  // 🟡 PRE CLEAN DONE
   if (pre === "YES") {
     status.innerHTML = `
       <div class="status yellow">
-        🟡 Pre-cleaning completed
+        🟡 Pre-clean completed
       </div>`;
     action.innerHTML = `
-      <button class="action-btn" onclick="goDamage()">Damage Report</button>
-      <button class="action-btn" onclick="goPost()">Start Post-Cleaning</button>
-    `;
+      <button class="action-btn" onclick="goDamage()">
+        Damage Report
+      </button>
+      <button class="action-btn" onclick="goPost()">
+        Start Post-Cleaning
+      </button>`;
     return;
   }
 
-  /* NOT STARTED */
+  // 🔵 NOT STARTED
   status.innerHTML = `
     <div class="status blue">
       🔵 Sanitation not started
@@ -142,3 +131,4 @@ renderControl();
 </body>
 
 </html>
+
