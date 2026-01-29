@@ -175,6 +175,12 @@ button {
 </div>
 
 <script>
+const damages =
+  JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
+
+const unresolved =
+  damages.filter(d => d.status !== "Resolved");
+  
 const AREA_LEAD_PIN = "0735";
 
 /* PHOTO TIMESTAMP */
@@ -244,6 +250,13 @@ function readPhotoBase64(input, callback) {
 
 function submitRelease() {
 
+  if (unresolved.length > 0) {
+  alert(
+    "⚠️ There are unresolved damages.\n\n" +
+    "Please close them from handover before release."
+  );
+  return;
+}
   const name = document.getElementById("leadName").value.trim();
   const pin = document.getElementById("leadPin").value.trim();
 
@@ -390,3 +403,4 @@ document.querySelectorAll(".question").forEach((q) => {
 
 </body>
 </html>
+
