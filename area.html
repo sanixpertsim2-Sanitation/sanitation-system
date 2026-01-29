@@ -26,6 +26,13 @@
 <div class="container">
   <h1 class="page-title">
   MACY – <span id="areaName"></span>
+    window.onload = function () {
+  const area = localStorage.getItem("selectedArea");
+  const el = document.getElementById("areaName");
+  if (el && area) {
+    el.innerText = area.replace("MACY_", "");
+  }
+};
 </h1>
   <h3>Select Area</h3>
 
@@ -42,13 +49,23 @@ function selectArea(area) {
   // Save selected area
   localStorage.setItem("selectedArea", area);
 
-  // Only MACY Production is active now
   if (area === "MACY_PRODUCTION") {
+
+    // ✅ CLEAN ENTRY POINT (very important)
+    localStorage.removeItem("macyProdReleased");
+    localStorage.removeItem("macyProdPostcleanDone");
+    localStorage.removeItem("macyProdHandoverDone");
+
+    // DO NOT remove preclean here
+    // because if preclean is already done,
+    // control page must continue flow
+
     window.location.href = "macy-production-control.html";
+
   } else {
     alert("This area will be activated soon.");
   }
 }
-</script>
 </body>
 </html>
+
