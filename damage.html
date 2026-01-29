@@ -76,47 +76,47 @@
 
 <script>
 
-/* PHOTO TIMESTAMP */
+/* =========================
+   PHOTO TIMESTAMP
+========================= */
 let photoTimestamp = "";
 
-function stampPhoto(input){
+function stampPhoto() {
   photoTimestamp = new Date().toLocaleString();
   document.getElementById("photoTime").innerText =
     "🕒 Photo taken at: " + photoTimestamp;
 }
 
-/* GET STORAGE */
-function getDamages(){
+/* =========================
+   STORAGE HELPERS
+========================= */
+function getDamages() {
   return JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
 }
 
-/* SAVE STORAGE */
-function saveDamages(data){
-  const existing =
-  JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
-
-damageData.id = Date.now().toString();
-damageData.status = "Open";
-damageData.reportedTime = new Date().toLocaleString();
-
-existing.push(damageData);
-
-localStorage.setItem(
-  "macyDamageReports",
-  JSON.stringify(existing)
-);
-
+function saveDamages(list) {
+  localStorage.setItem(
+    "macyDamageReports",
+    JSON.stringify(list)
+  );
 }
 
-/* SUBMIT */
-function submitDamage(){
+/* =========================
+   SUBMIT DAMAGE
+========================= */
+function submitDamage() {
 
-  const area = area.value.trim();
-  const desc = desc.value.trim();
-  const sev = severity.value;
+  const areaVal =
+    document.getElementById("area").value.trim();
 
-  if(!area || !desc || !sev || !photoTimestamp){
-    alert("All fields & photo required");
+  const descVal =
+    document.getElementById("desc").value.trim();
+
+  const sevVal =
+    document.getElementById("severity").value;
+
+  if (!areaVal || !descVal || !sevVal || !photoTimestamp) {
+    alert("All fields and photo are required");
     return;
   }
 
@@ -124,27 +124,32 @@ function submitDamage(){
 
   damages.push({
     id: "DR-" + Date.now(),
-    area,
-    description: desc,
-    severity: sev,
+    area: areaVal,
+    description: descVal,
+    severity: sevVal,
     status: "Open",
     photoTime: photoTimestamp,
-    createdAt: Date.now(),
+    createdAt: new Date().toLocaleString(),
     resolvedAt: null
   });
 
   saveDamages(damages);
 
-  alert("✅ Damage recorded");
+  alert("✅ Damage recorded successfully");
 
   location.reload();
 }
 
-/* RESOLVE */
-function resolveDamage(id){
+/* =========================
+   RESOLVE DAMAGE
+========================= */
+function resolveDamage(id) {
+
   const damages = getDamages();
+
   const d = damages.find(x => x.id === id);
-  if(d){
+
+  if (d) {
     d.status = "Resolved";
     d.resolvedAt = new Date().toLocaleString();
     saveDamages(damages);
@@ -152,35 +157,52 @@ function resolveDamage(id){
   }
 }
 
-/* SORT + DISPLAY */
-function renderList(){
+/* =========================
+   SORT + DISPLAY
+========================= */
+function renderList() {
 
   const list = document.getElementById("damageList");
   const damages = getDamages();
 
-  const priority = { Critical:1, Moderate:2, Minor:3 };
+  const priority = {
+    Critical: 1,
+    Moderate: 2,
+    Minor: 3
+  };
 
-  damages.sort((a,b)=>{
-    if(a.status !== b.status)
+  damages.sort((a, b) => {
+    if (a.status !== b.status)
       return a.status === "Open" ? -1 : 1;
+
     return priority[a.severity] - priority[b.severity];
   });
 
   list.innerHTML = "";
 
-  damages.forEach(d=>{
+  damages.forEach(d => {
+
     const div = document.createElement("div");
     div.className = `card ${d.severity.toLowerCase()}`;
+
     div.innerHTML = `
       <b>${d.area}</b> — ${d.severity}<br>
       ${d.description}<br>
       <span class="small">Reported: ${d.photoTime}</span><br>
       <span class="small">Status: ${d.status}</span>
-      ${d.status==="Open"
-        ? `<button class="btn resolve" onclick="resolveDamage('${d.id}')">Mark Resolved</button>`
-        : `<div class="small">Resolved at: ${d.resolvedAt}</div>`
+
+      ${
+        d.status === "Open"
+          ? `<button class="btn resolve"
+               onclick="resolveDamage('${d.id}')">
+               Mark Resolved
+             </button>`
+          : `<div class="small">
+               Resolved at: ${d.resolvedAt}
+             </div>`
       }
     `;
+
     list.appendChild(div);
   });
 }
@@ -191,4 +213,5 @@ renderList();
 
 </body>
 </html>
+
 
