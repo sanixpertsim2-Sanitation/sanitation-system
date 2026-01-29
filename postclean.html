@@ -118,7 +118,14 @@ select, textarea, input {
   </div>
 
 </div>
-
+<!-- ===================== -->
+<!-- DAMAGE ACKNOWLEDGMENT -->
+<!-- ===================== -->
+<div class="section" id="damageSection">
+  <h3>⚠️ Open Damage Acknowledgment</h3>
+  <div id="damageList"></div>
+</div>
+  
 <button class="submit-btn" onclick="submitPostCleaning()">
   Submit Post-Cleaning
 </button>
@@ -180,12 +187,108 @@ async function captureImageWithTime(input) {
     reader.readAsDataURL(file);
   });
 }
+/* ============================
+   LOAD OPEN DAMAGES
+============================ */
+function loadOpenDamages() {
 
+  const damages =
+    JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
+
+  const openDamages =
+    damages.filter(d => d.status === "Open");
+
+  const container = document.getElementById("damageList");
+  const section = document.getElementById("damageSection");
+
+  if (!openDamages.length) {
+    section.style.display = "none";
+    return;
+  }
+
+  container.innerHTML = "";
+
+  openDamages.forEach(d => {
+
+    const div = document.createElement("div");
+    div.className = "question";
+
+    div.innerHTML = `
+      <b>${d.area}</b> — ${d.severity}<br>
+      ${d.description}
+      <textarea placeholder="Acknowledgment comment required"></textarea>
+      <input type="file"
+             accept="image/*"
+             capture="environment">
+      <p class="photo-time"></p>
+    `;
+
+    const file = div.querySelector("input");
+    const timeBox = div.querySelector(".photo-time");
+
+    file.onchange = () => {
+      timeBox.innerText =
+        "🕒 Photo taken at: " +
+        new Date().toLocaleString();
+    };
+
+    container.appendChild(div);
+  });
+}
 /* ============================
    POST-CLEANING SUBMIT
 ============================ */
 function submitPostCleaning() {
+// ===============================
+// DAMAGE ACKNOWLEDGMENT CHECK
+// ===============================
 
+const damages =
+  JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
+
+const openDamages =
+  damages.filter(d => d.status === "Open");
+
+if (openDamages.length > 0) {
+
+  const blocks =
+    document.querySelectorAll("#damageList .question");
+
+  for (let i = 0; i < blocks.length; i++) {
+
+    const comment =
+      blocks[i].querySelector("textarea").value.trim();
+
+    const photo =
+      blocks[i].querySelector("input[type='file']").files.length;
+
+    if (!comment || !photo) {
+      alert(
+        "⚠️ All open damages must be acknowledged\n" +
+        "with photo and comment before post-cleaning."
+      );
+      return;
+    }
+
+    // save acknowledgment
+    openDamages[i].ackComment = comment;
+    openDamages[i].ackPhotoTime =
+      new Date().toLocaleString();
+    openDamages[i].ackBy = "Employee";
+  }
+
+  // update storage
+  localStorage.setItem(
+    "macyDamageReports",
+    JSON.stringify(damages)
+  );
+
+  // flag for handover & lead
+  localStorage.setItem(
+    "macyDamagePendingReview",
+    "YES"
+  );
+}
   const bagsUsed = parseInt(
     localStorage.getItem("macyProdPrecleanBagsUsed") || "0"
   );
@@ -298,9 +401,10 @@ window.onload = function () {
   if (label) {
     label.innerText = area;
   }
-
+loadOpenDamages();
 };
 </script>
 
 </body>
 </html>
+
