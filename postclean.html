@@ -41,6 +41,16 @@ select, textarea, input {
   cursor: pointer;
   box-shadow: 0 0 25px rgba(0,180,255,.6);
 }
+.handover-note {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-left: 4px solid #facc15;
+  background: rgba(250, 204, 21, 0.08);
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 13px;
+  font-style: italic;
+  border-radius: 10px;
+}
 </style>
 </head>
 
@@ -124,6 +134,11 @@ select, textarea, input {
 <div class="section" id="damageSection">
   <h3>⚠️ Open Damage Acknowledgment</h3>
   <div id="damageList"></div>
+</div>
+<div class="handover-note">
+  <b>Handover (Not Fixed)</b><br>
+  Issue could not be resolved in this shift.<br>
+  Next shift or maintenance team must take action.
 </div>
   
 <button class="submit-btn" onclick="submitPostCleaning()">
@@ -235,6 +250,23 @@ function loadOpenDamages() {
     container.appendChild(div);
   });
 }
+function validateDamageStatus() {
+
+  const damages =
+    JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
+
+  const open = damages.filter(d => d.status === "Open");
+
+  if (open.length > 0) {
+    alert(
+      "⚠️ Some damage reports are still OPEN.\n\n" +
+      "Please mark them as Completed or Handover before submitting post-clean."
+    );
+    return false;
+  }
+
+  return true;
+}
 /* ============================
    POST-CLEANING SUBMIT
 ============================ */
@@ -242,7 +274,7 @@ function submitPostCleaning() {
 // ===============================
 // DAMAGE ACKNOWLEDGMENT CHECK
 // ===============================
-
+if (!validateDamageStatus()) return;
 const damages =
   JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
 
@@ -407,4 +439,5 @@ loadOpenDamages();
 
 </body>
 </html>
+
 
