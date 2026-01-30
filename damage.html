@@ -199,7 +199,10 @@ function renderList() {
 ====================== */
 function markCompleted(id) {
 
-  const who = prompt("Who fixed it? (Maintenance / Sanitation / Name)");
+  const who = prompt(
+    "Completed by:\nMaintenance / Sanitation / Production / Contractor"
+  );
+
   if (!who) return;
 
   const damages = getDamages();
@@ -218,7 +221,13 @@ function markCompleted(id) {
 ====================== */
 function markHandover(id) {
 
-  const note = prompt("Handover note (issue not fixed)");
+  const note = prompt(
+    "Handover reason:\n" +
+    "• Not fixed yet\n" +
+    "• Partially fixed\n" +
+    "• Maintenance next shift"
+  );
+
   if (!note) return;
 
   const damages = getDamages();
@@ -259,6 +268,7 @@ renderList();
 
 </body>
 </html>
+
 
 
 
