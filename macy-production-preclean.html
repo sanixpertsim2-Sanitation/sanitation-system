@@ -169,9 +169,7 @@ textarea {
    PHOTO TIMESTAMP
 ========================= */
 function stampPhoto(input) {
-
   const now = new Date().toLocaleString();
-
   input.setAttribute("data-time", now);
 
   const timeBox = input.parentElement.querySelector(".photo-time");
@@ -179,12 +177,15 @@ function stampPhoto(input) {
     timeBox.innerText = "🕒 Photo taken at: " + now;
   }
 }
+
 /* =====================================================
-   MACY PRODUCTION – PRE CLEAN VALIDATION SYSTEM
+   MACY PRODUCTION – PRE CLEAN CONTROL
 ===================================================== */
 
 const ADMIN_PIN = "0735";
 const LOCK_HOURS = 48;
+
+let pressTimer = null;
 
 /* AUTO DATE TIME */
 (function () {
@@ -192,31 +193,51 @@ const LOCK_HOURS = 48;
   if (dt) dt.value = new Date().toLocaleString();
 })();
 
-/* LOCK CHECK */
+/* ===============================
+   LOCK CHECK
+=============================== */
 (function () {
+
   const done = localStorage.getItem("macyProdPrecleanDone");
   const time = localStorage.getItem("macyProdPrecleanTimestamp");
 
   if (done === "YES" && time) {
+
     const diff =
       (Date.now() - Number(time)) / (1000 * 60 * 60);
 
     if (diff < LOCK_HOURS) {
+
       document.body.innerHTML = `
-        <div style="height:100vh;display:flex;flex-direction:column;
-        justify-content:center;align-items:center;background:#0f172a;
-        color:white;text-align:center;padding:30px">
+        <div style="
+          height:100vh;
+          display:flex;
+          flex-direction:column;
+          justify-content:center;
+          align-items:center;
+          background:#0f172a;
+          color:white;
+          text-align:center;
+          padding:30px">
+
           <h1>🔒 Pre-Cleaning Locked</h1>
-          <p>Submitted at:<br>
-          <b>${new Date(Number(time)).toLocaleString()}</b></p>
-          <p>Auto unlock after 48 hours</p>
-          <button onclick="adminUnlock()" style="
-            margin-top:25px;padding:14px 30px;border:none;
-            border-radius:12px;background:#2563eb;
-            color:white;font-size:16px">
-            Admin Unlock
-          </button>
-        </div>`;
+
+          <p>
+            Submitted at:<br>
+            <b>${new Date(Number(time)).toLocaleString()}</b>
+          </p>
+
+          <p style="opacity:.7">
+            Auto unlock after 48 hours
+          </p>
+
+          <p style="margin-top:20px;font-size:13px;opacity:.4">
+            Long press to unlock (admin only)
+          </p>
+        </div>
+      `;
+
+      enableAdminLongPress();
     } else {
       localStorage.removeItem("macyProdPrecleanDone");
       localStorage.removeItem("macyProdPrecleanTimestamp");
@@ -224,28 +245,71 @@ const LOCK_HOURS = 48;
   }
 })();
 
-/* ADMIN UNLOCK */
-function adminUnlock() {
-  const pin = prompt("Enter Admin PIN");
-  if (pin === ADMIN_PIN) {
-    localStorage.removeItem("macyProdPrecleanDone");
-    localStorage.removeItem("macyProdPrecleanTimestamp");
-    alert("Admin unlocked successfully");
-    location.reload();
-  } else {
-    alert("Incorrect PIN");
+/* ===============================
+   HIDDEN ADMIN LONG PRESS
+=============================== */
+function enableAdminLongPress() {
+
+  function startPress() {
+    pressTimer = setTimeout(() => {
+
+      const pin = prompt("🔐 Admin Unlock\n\nEnter PIN");
+
+      if (pin === ADMIN_PIN) {
+
+        localStorage.removeItem("macyProdPrecleanDone");
+        localStorage.removeItem("macyProdPrecleanTimestamp");
+
+        const logs =
+          JSON.parse(localStorage.getItem("macyAdminLogs") || "[]");
+
+        logs.push({
+          action: "Pre-clean Admin Unlock",
+          time: new Date().toLocaleString()
+        });
+
+        localStorage.setItem(
+          "macyAdminLogs",
+          JSON.stringify(logs)
+        );
+
+        alert("✅ Admin unlocked successfully");
+        location.reload();
+
+      } else {
+        alert("❌ Incorrect PIN");
+      }
+
+    }, 3000); // 3 seconds
   }
+
+  function cancelPress() {
+    clearTimeout(pressTimer);
+  }
+
+  document.addEventListener("mousedown", startPress);
+  document.addEventListener("mouseup", cancelPress);
+
+  document.addEventListener("touchstart", startPress);
+  document.addEventListener("touchend", cancelPress);
 }
 
-/* TOGGLE PHOTO + COMMENT */
+/* ===============================
+   TOGGLE PHOTO + COMMENT
+=============================== */
 function toggleExtra(select) {
   const extra = select.parentElement.querySelector(".extra");
+
   if (select.value === "Not Acceptable" || select.value === "NA") {
     extra.classList.remove("hidden");
   } else {
     extra.classList.add("hidden");
   }
 }
+
+/* ===============================
+   REDIRECT IF ALREADY DONE
+=============================== */
 window.onload = function () {
 
   if (localStorage.getItem("macyProdPrecleanDone") === "YES") {
@@ -259,9 +323,8 @@ window.onload = function () {
         height:100vh;
         background:#0f172a;
         color:white;
-        font-family:Arial;
-        text-align:center;
-      ">
+        text-align:center">
+
         <h1>✅ Pre-Cleaning Already Submitted</h1>
         <p>Redirecting to Production Control…</p>
       </div>
@@ -274,13 +337,15 @@ window.onload = function () {
 };
 
 /* ===============================
-   MACY PRODUCTION — PRE CLEAN SUBMIT
-================================ */
-
+   PRE CLEAN SUBMIT
+=============================== */
 function submitPreCleaning() {
 
-  const emp = document.getElementById("employeeName").value.trim();
-  const bags = document.getElementById("bagsUsed").value.trim();
+  const emp =
+    document.getElementById("employeeName").value.trim();
+
+  const bags =
+    document.getElementById("bagsUsed").value.trim();
 
   if (!emp) {
     alert("Employee name is mandatory.");
@@ -303,7 +368,6 @@ function submitPreCleaning() {
       return;
     }
 
-    // If NOT acceptable → photo + comment required
     if (select.value !== "Acceptable") {
 
       const extra = questions[i].querySelector(".extra");
@@ -317,11 +381,6 @@ function submitPreCleaning() {
     }
   }
 
-
-  /* ===============================
-     SAVE PRE-CLEAN DATA
-  ================================ */
-
   localStorage.setItem("macyProdPrecleanDone", "YES");
   localStorage.setItem("macyProdPrecleanEmployee", emp);
   localStorage.setItem("macyProdPrecleanBagsUsed", bags);
@@ -333,9 +392,9 @@ function submitPreCleaning() {
 }
 
 </script>
-
 </body>
 </html>
+
 
 
 
