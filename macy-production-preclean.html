@@ -220,8 +220,7 @@ function stampPhoto(input) {
     background:#0f172a;
     color:white;
     text-align:center;
-    padding:30px;
-    position:relative">
+    padding:30px">
 
     <h1>🔒 Pre-Cleaning Locked</h1>
 
@@ -233,42 +232,20 @@ function stampPhoto(input) {
     <p style="opacity:.7">
       Auto unlock after 48 hours
     </p>
-function enableAdminCornerUnlock() {
 
-  const trigger = document.getElementById("adminTrigger");
-  if (!trigger) return;
-
-  let tapCount = 0;
-  let timer = null;
-
-  trigger.addEventListener("click", () => {
-
-    tapCount++;
-
-    if (tapCount === 1) {
-      timer = setTimeout(() => {
-        tapCount = 0;
-      }, 2000);
-    }
-
-    if (tapCount >= 3) {
-      clearTimeout(timer);
-      tapCount = 0;
-      adminUnlock();
-    }
-  });
-}
-    <!-- 🔐 hidden admin trigger -->
-    <div id="adminTrigger"
-         style="
-           position:absolute;
-           top:0;
-           right:0;
-           width:60px;
-           height:60px;
-           opacity:0;
-         ">
-    </div>
+    <button
+      onclick="adminUnlock()"
+      style="
+        margin-top:30px;
+        padding:10px 22px;
+        border:none;
+        border-radius:10px;
+        background:#1e293b;
+        color:#94a3b8;
+        font-size:13px;
+        opacity:0.25">
+      Admin Unlock
+    </button>
 
   </div>
 `;
@@ -384,5 +361,6 @@ function submitPreCleaning() {
 
 </body>
 </html>
+
 
 
