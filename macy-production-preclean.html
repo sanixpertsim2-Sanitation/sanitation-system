@@ -33,13 +33,9 @@ select, input, textarea {
   margin-top: 6px;
 }
 
-textarea {
-  min-height: 60px;
-}
+textarea { min-height: 60px; }
 
-.hidden {
-  display: none;
-}
+.hidden { display: none; }
 
 .submit-btn {
   width: 100%;
@@ -51,6 +47,22 @@ textarea {
   color: white;
   cursor: pointer;
   box-shadow: 0 0 25px rgba(0,140,255,.7);
+}
+
+/* LOCK OVERLAY */
+#precleanLockOverlay {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(2,6,23,.94);
+  z-index:9999;
+  color:white;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  padding:30px;
 }
 </style>
 </head>
@@ -84,14 +96,13 @@ textarea {
     No product residue present
     <select onchange="toggleExtra(this)">
       <option value="">Select</option>
-      <option value="Acceptable">Acceptable</option>
-      <option value="Not Acceptable">Not Acceptable</option>
-      <option value="NA">N/A</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>NA</option>
     </select>
     <div class="extra hidden">
-      <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-      <p class="photo-time"></p>
-      <textarea placeholder="Comment required..."></textarea>
+      <input type="file" accept="image/*" capture="environment">
+      <textarea placeholder="Comment required"></textarea>
     </div>
   </div>
 
@@ -99,59 +110,13 @@ textarea {
     Conveyor belts accessible
     <select onchange="toggleExtra(this)">
       <option value="">Select</option>
-      <option value="Acceptable">Acceptable</option>
-      <option value="Not Acceptable">Not Acceptable</option>
-      <option value="NA">N/A</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>NA</option>
     </select>
     <div class="extra hidden">
-      <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-      <p class="photo-time"></p>
-      <textarea placeholder="Comment required..."></textarea>
-    </div>
-  </div>
-
-  <div class="question">
-    Frames and structure accessible
-    <select onchange="toggleExtra(this)">
-      <option value="">Select</option>
-      <option value="Acceptable">Acceptable</option>
-      <option value="Not Acceptable">Not Acceptable</option>
-      <option value="NA">N/A</option>
-    </select>
-    <div class="extra hidden">
-      <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-      <p class="photo-time"></p>
-      <textarea placeholder="Comment required..."></textarea>
-    </div>
-  </div>
-
-  <div class="question">
-    Guards and covers removed
-    <select onchange="toggleExtra(this)">
-      <option value="">Select</option>
-      <option value="Acceptable">Acceptable</option>
-      <option value="Not Acceptable">Not Acceptable</option>
-      <option value="NA">N/A</option>
-    </select>
-    <div class="extra hidden">
-      <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-      <p class="photo-time"></p>
-      <textarea placeholder="Comment required..."></textarea>
-    </div>
-  </div>
-
-  <div class="question">
-    Motors protected
-    <select onchange="toggleExtra(this)">
-      <option value="">Select</option>
-      <option value="Acceptable">Acceptable</option>
-      <option value="Not Acceptable">Not Acceptable</option>
-      <option value="NA">N/A</option>
-    </select>
-    <div class="extra hidden">
-      <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-      <p class="photo-time"></p>
-      <textarea placeholder="Comment required..."></textarea>
+      <input type="file" accept="image/*" capture="environment">
+      <textarea placeholder="Comment required"></textarea>
     </div>
   </div>
 
@@ -163,26 +128,47 @@ textarea {
 
 </div>
 
+<!-- 🔒 LOCK OVERLAY -->
+<div id="precleanLockOverlay">
+  <h1>🔒 Pre-Cleaning Locked</h1>
+  <p id="lockTime" style="margin-top:10px;opacity:.85"></p>
+  <p style="opacity:.6">Supervisor unlock required</p>
+
+  <button onclick="adminUnlock()"
+    style="
+      margin-top:25px;
+      padding:12px 28px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.25);
+      background:transparent;
+      color:#cbd5f5;
+      font-size:14px;
+      cursor:pointer;
+      opacity:.7;">
+    🔐 Admin Unlock
+  </button>
+</div>
+
 <script>
-/* =====================
-   CONFIG
-===================== */
+/* ================= CONFIG ================= */
 const ADMIN_PIN = "0735";
 const LOCK_HOURS = 48;
 
-/* =====================
-   AUTO DATE
-===================== */
-window.addEventListener("load", () => {
-  const dt = document.getElementById("dateTime");
-  if (dt) dt.value = new Date().toLocaleString();
+/* AUTO DATE */
+document.getElementById("dateTime").value =
+  new Date().toLocaleString();
 
-  checkPrecleanLock();
-});
+/* TOGGLE EXTRA */
+function toggleExtra(select) {
+  const extra = select.parentElement.querySelector(".extra");
+  if (select.value !== "Acceptable") {
+    extra.classList.remove("hidden");
+  } else {
+    extra.classList.add("hidden");
+  }
+}
 
-/* =====================
-   LOCK CHECK
-===================== */
+/* LOCK CHECK */
 function checkPrecleanLock() {
 
   const done = localStorage.getItem("macyProdPrecleanDone");
@@ -195,18 +181,19 @@ function checkPrecleanLock() {
 
   if (diff < LOCK_HOURS) {
 
-    document.getElementById("precleanLockScreen").style.display = "flex";
+    document.getElementById("precleanLockOverlay").style.display = "flex";
 
     document.getElementById("lockTime").innerHTML =
       "Submitted at:<br><b>" +
       new Date(Number(time)).toLocaleString() +
       "</b>";
+
+    document.querySelector(".submit-btn").disabled = true;
+    document.querySelector(".submit-btn").style.opacity = "0.4";
   }
 }
 
-/* =====================
-   ADMIN UNLOCK
-===================== */
+/* ADMIN UNLOCK */
 function adminUnlock() {
 
   const pin = prompt("🔐 Supervisor Unlock\n\nEnter Admin PIN");
@@ -224,119 +211,27 @@ function adminUnlock() {
   }
 }
 
-/* =====================
-   PHOTO TIMESTAMP
-===================== */
-function stampPhoto(input) {
-  const now = new Date().toLocaleString();
-  input.setAttribute("data-time", now);
-
-  const box = input.parentElement.querySelector(".photo-time");
-  if (box) box.innerText = "🕒 Photo taken at: " + now;
-}
-
-/* =====================
-   TOGGLE EXTRA
-===================== */
-function toggleExtra(select) {
-  const extra = select.parentElement.querySelector(".extra");
-  if (select.value === "Not Acceptable" || select.value === "NA") {
-    extra.classList.remove("hidden");
-  } else {
-    extra.classList.add("hidden");
-  }
-}
-
-/* =====================
-   SUBMIT
-===================== */
+/* SUBMIT */
 function submitPreCleaning() {
 
   const emp = document.getElementById("employeeName").value.trim();
   const bags = document.getElementById("bagsUsed").value.trim();
 
   if (!emp || !bags) {
-    alert("Employee name and bag count are mandatory.");
+    alert("Employee name and bag count required");
     return;
-  }
-
-  const questions = document.querySelectorAll(".question");
-
-  for (let i = 0; i < questions.length; i++) {
-
-    const select = questions[i].querySelector("select");
-
-    if (!select.value) {
-      alert(`Please answer question ${i + 1}`);
-      return;
-    }
-
-    if (select.value !== "Acceptable") {
-
-      const extra = questions[i].querySelector(".extra");
-      const photo = extra.querySelector("input").files.length;
-      const comment = extra.querySelector("textarea").value.trim();
-
-      if (!photo || !comment) {
-        alert(`Photo and comment required for question ${i + 1}`);
-        return;
-      }
-    }
   }
 
   localStorage.setItem("macyProdPrecleanDone", "YES");
   localStorage.setItem("macyProdPrecleanTimestamp", Date.now());
-  localStorage.setItem("macyProdPrecleanEmployee", emp);
-  localStorage.setItem("macyProdPrecleanBagsUsed", bags);
 
-  alert("✅ Pre-Cleaning Submitted Successfully");
+  alert("✅ Pre-cleaning submitted");
+
   window.location.href = "macy-production-control.html";
 }
+
+window.onload = checkPrecleanLock;
 </script>
-<!-- 🔒 PRE-CLEAN LOCK SCREEN -->
-<div id="precleanLockScreen"
-     style="
-       display:none;
-       position:fixed;
-       inset:0;
-       background:#0f172a;
-       color:white;
-       z-index:9999;
-       text-align:center;
-       padding:30px;
-       display:flex;
-       flex-direction:column;
-       justify-content:center;
-       align-items:center">
 
-  <h1>🔒 Pre-Cleaning Locked</h1>
-
-  <p id="lockTime" style="opacity:.85"></p>
-
-  <p style="opacity:.6">
-    Auto unlock after 48 hours
-  </p>
-
-  <button
-    onclick="adminUnlock()"
-    style="
-      margin-top:30px;
-      padding:12px 28px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.25);
-      background:transparent;
-      color:rgba(255,255,255,.5);
-      font-size:14px;
-      opacity:.4">
-    ADMIN UNLOCK
-  </button>
-
-  <p style="font-size:12px;opacity:.35;margin-top:12px">
-    Supervisor access only
-  </p>
-</div>
 </body>
 </html>
-
-
-
