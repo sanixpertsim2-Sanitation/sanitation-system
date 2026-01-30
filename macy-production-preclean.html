@@ -220,7 +220,10 @@ let pressTimer = null;
           text-align:center;
           padding:30px">
 
-          <h1>🔒 Pre-Cleaning Locked</h1>
+          <h1 id="adminUnlockTarget"
+    style="user-select:none;-webkit-user-select:none;">
+  🔒 Pre-Cleaning Locked
+</h1>
 
           <p>
             Submitted at:<br>
@@ -250,39 +253,46 @@ let pressTimer = null;
 =============================== */
 function enableAdminLongPress() {
 
-  function startPress() {
-    pressTimer = setTimeout(() => {
+  const target =
+    document.getElementById("adminUnlockTarget");
 
-      const pin = prompt("🔐 Admin Unlock\n\nEnter PIN");
+  if (!target) return;
 
-      if (pin === ADMIN_PIN) {
+  let pressTimer;
 
-        localStorage.removeItem("macyProdPrecleanDone");
-        localStorage.removeItem("macyProdPrecleanTimestamp");
+  target.addEventListener("touchstart", () => {
+    pressTimer = setTimeout(triggerAdminUnlock, 3000);
+  });
 
-        const logs =
-          JSON.parse(localStorage.getItem("macyAdminLogs") || "[]");
+  target.addEventListener("touchend", () => {
+    clearTimeout(pressTimer);
+  });
 
-        logs.push({
-          action: "Pre-clean Admin Unlock",
-          time: new Date().toLocaleString()
-        });
+  target.addEventListener("mousedown", () => {
+    pressTimer = setTimeout(triggerAdminUnlock, 3000);
+  });
 
-        localStorage.setItem(
-          "macyAdminLogs",
-          JSON.stringify(logs)
-        );
+  target.addEventListener("mouseup", () => {
+    clearTimeout(pressTimer);
+  });
+}
 
-        alert("✅ Admin unlocked successfully");
-        location.reload();
+function triggerAdminUnlock() {
 
-      } else {
-        alert("❌ Incorrect PIN");
-      }
+  const pin = prompt("🔐 Admin Unlock\n\nEnter Admin PIN");
 
-    }, 3000); // 3 seconds
+  if (pin === ADMIN_PIN) {
+
+    localStorage.removeItem("macyProdPrecleanDone");
+    localStorage.removeItem("macyProdPrecleanTimestamp");
+
+    alert("✅ Admin unlocked successfully");
+    location.reload();
+
+  } else {
+    alert("❌ Incorrect PIN");
   }
-
+}
   function cancelPress() {
     clearTimeout(pressTimer);
   }
@@ -394,6 +404,7 @@ function submitPreCleaning() {
 </script>
 </body>
 </html>
+
 
 
 
