@@ -56,12 +56,16 @@
     <option value="Minor">🟢 Minor</option>
   </select>
 
-  <input type="file"
-         accept="image/*"
-         capture="environment"
-         onchange="stampPhoto(this)">
+  
+  <label class="upload-btn">
+  📷 Capture Damage Photo
+  <input type="file" accept="image/*" capture="environment"
+         onchange="handleDamagePhoto(this)" hidden>
+</label>
 
-  <p class="small" id="photoTime"></p>
+<img id="preview" style="width:100%;border-radius:12px;display:none;margin-top:10px">
+<p class="small" id="photoTime"></p>
+
 
   <button class="btn resolve" onclick="submitDamage()">Submit Damage</button>
 </div>
@@ -71,20 +75,45 @@
   <h3>Damage List</h3>
   <div id="damageList"></div>
 </div>
-
+<div style="max-height:300px;overflow-y:auto">
+  <table style="width:100%;color:white;font-size:14px">
+    <thead>
+      <tr>
+        <th>Area</th>
+        <th>Severity</th>
+        <th>Status</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody id="damageTable"></tbody>
+  </table>
 </div>
-
+</div>
+  
 <script>
+let damagePhotoBase64 = "";
 
-<script>
-let photoTimestamp = "";
+/* ======================
+   PHOTO HANDLER
+====================== */
+function handleDamagePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
 
-function stampPhoto() {
-  photoTimestamp = new Date().toLocaleString();
-  document.getElementById("photoTime").innerText =
-    "🕒 Photo taken at: " + photoTimestamp;
+  const reader = new FileReader();
+  reader.onload = () => {
+    damagePhotoBase64 = reader.result;
+    document.getElementById("preview").src = reader.result;
+    document.getElementById("preview").style.display = "block";
+    document.getElementById("photoTime").innerText =
+      "🕒 " + new Date().toLocaleString();
+  };
+  reader.readAsDataURL(file);
 }
 
+/* ======================
+   STORAGE HELPERS
+====================== */
 function getDamages() {
   return JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
 }
@@ -94,15 +123,15 @@ function saveDamages(list) {
 }
 
 /* ======================
-   SUBMIT NEW DAMAGE
+   SUBMIT DAMAGE
 ====================== */
 function submitDamage() {
 
-  const area = document.getElementById("area").value.trim();
-  const desc = document.getElementById("desc").value.trim();
-  const sev = document.getElementById("severity").value;
+  const areaVal = document.getElementById("area").value.trim();
+  const descVal = document.getElementById("desc").value.trim();
+  const sevVal = document.getElementById("severity").value;
 
-  if (!area || !desc || !sev || !photoTimestamp) {
+  if (!areaVal || !descVal || !sevVal || !damagePhotoBase64) {
     alert("All fields and photo are required");
     return;
   }
@@ -111,25 +140,23 @@ function submitDamage() {
 
   damages.push({
     id: "DR-" + Date.now(),
-    area,
-    description: desc,
-    severity: sev,
-    status: "Open",
-    reportedTime: photoTimestamp,
-    completedBy: null,
-    completedTime: null,
-    handoverNotes: null
+    area: areaVal,
+    description: descVal,
+    severity: sevVal,
+    photo: damagePhotoBase64,
+    reportedAt: new Date().toLocaleString(),
+    status: "Open"
   });
 
   saveDamages(damages);
 
-  alert("✅ Damage reported");
+  alert("✅ Damage submitted");
 
-  window.history.back(); // ✅ GO BACK
+  history.back();
 }
 
 /* ======================
-   RENDER DAMAGE LIST
+   RENDER LIST
 ====================== */
 function renderList() {
 
@@ -147,12 +174,8 @@ function renderList() {
 
     if (d.status === "Open") {
       actionHTML = `
-        <button class="btn resolve" onclick="markCompleted('${d.id}')">
-          ✅ Completed
-        </button>
-        <button class="btn" onclick="markHandover('${d.id}')">
-          🔁 Handover
-        </button>
+        <button class="btn resolve" onclick="markCompleted('${d.id}')">✅ Completed</button>
+        <button class="btn" onclick="markHandover('${d.id}')">🔁 Handover</button>
       `;
     } else {
       actionHTML = `<div class="small">Status: ${d.status}</div>`;
@@ -161,12 +184,14 @@ function renderList() {
     div.innerHTML = `
       <b>${d.area}</b> — ${d.severity}<br>
       ${d.description}<br>
-      <span class="small">Reported: ${d.reportedTime}</span><br>
+      <span class="small">Reported: ${d.reportedAt}</span><br>
       ${actionHTML}
     `;
 
     list.appendChild(div);
   });
+
+  renderDamageTable();
 }
 
 /* ======================
@@ -174,16 +199,14 @@ function renderList() {
 ====================== */
 function markCompleted(id) {
 
-  const name =
-    prompt("Who fixed it? (Maintenance / Sanitation / Name)");
-
-  if (!name) return;
+  const who = prompt("Who fixed it? (Maintenance / Sanitation / Name)");
+  if (!who) return;
 
   const damages = getDamages();
   const d = damages.find(x => x.id === id);
 
   d.status = "Completed";
-  d.completedBy = name;
+  d.completedBy = who;
   d.completedTime = new Date().toLocaleString();
 
   saveDamages(damages);
@@ -195,30 +218,48 @@ function markCompleted(id) {
 ====================== */
 function markHandover(id) {
 
-  const notes = prompt(
-    "Enter handover note:\n(Example: Conveyor motor guard loose)"
-  );
-
-  if (!notes) return;
+  const note = prompt("Handover note (issue not fixed)");
+  if (!note) return;
 
   const damages = getDamages();
   const d = damages.find(x => x.id === id);
 
   d.status = "Handover";
-  d.handoverNotes = notes;
+  d.handoverNotes = note;
   d.handoverTime = new Date().toLocaleString();
 
   saveDamages(damages);
   renderList();
 }
 
-renderList();
-</script>
+/* ======================
+   TABLE
+====================== */
+function renderDamageTable() {
 
+  const table = document.getElementById("damageTable");
+  const damages = getDamages();
+
+  table.innerHTML = "";
+
+  damages.forEach(d => {
+    table.innerHTML += `
+      <tr>
+        <td>${d.area}</td>
+        <td>${d.severity}</td>
+        <td>${d.status}</td>
+        <td>${d.reportedAt}</td>
+      </tr>
+    `;
+  });
+}
+
+renderList();
 </script>
 
 </body>
 </html>
+
 
 
 
