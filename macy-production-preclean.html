@@ -203,40 +203,56 @@ function stampPhoto(input) {
     if (diff < LOCK_HOURS) {
 
       document.body.innerHTML = `
-        <div style="
-          height:100vh;
-          display:flex;
-          flex-direction:column;
-          justify-content:center;
-          align-items:center;
-          background:#0f172a;
-          color:white;
-          text-align:center;
-          padding:30px">
+  <div style="
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:#0f172a;
+    color:white;
+    text-align:center;
+    padding:30px">
 
-          <h1>🔒 Pre-Cleaning Locked</h1>
+    <h1 style="margin-bottom:10px">
+      🔒 Pre-Cleaning Locked
+    </h1>
 
-          <p>
-            Submitted at:<br>
-            <b>${new Date(Number(time)).toLocaleString()}</b>
-          </p>
+    <p style="opacity:.8">
+      Submitted at:<br>
+      <b>${new Date(Number(time)).toLocaleString()}</b>
+    </p>
 
-          <p style="opacity:.7">
-            Auto unlock after 48 hours
-          </p>
+    <p style="opacity:.6;margin-top:10px">
+      Auto unlock after 48 hours
+    </p>
 
-          <button onclick="adminUnlock()"
-            style="
-              margin-top:30px;
-              padding:12px 26px;
-              border:none;
-              border-radius:12px;
-              background:#1e293b;
-              color:#cbd5f5;
-              font-size:15px;">
-            Admin Unlock
-          </button>
-        </div>`;
+    <button
+      onclick="adminUnlock()"
+      style="
+        margin-top:35px;
+        padding:12px 28px;
+        border-radius:14px;
+        border:1px solid rgba(255,255,255,.25);
+        background:transparent;
+        color:rgba(255,255,255,.45);
+        font-size:14px;
+        letter-spacing:1px;
+        cursor:pointer;
+        opacity:0.35;
+      ">
+      ADMIN UNLOCK
+    </button>
+
+    <p style="
+      margin-top:12px;
+      font-size:12px;
+      opacity:.35">
+      Supervisor access only
+    </p>
+
+  </div>
+`;
     }
   }
 })();
@@ -319,3 +335,4 @@ function submitPreCleaning() {
 
 </body>
 </html>
+
