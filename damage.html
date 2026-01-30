@@ -76,9 +76,7 @@
 
 <script>
 
-/* =========================
-   PHOTO TIMESTAMP
-========================= */
+<script>
 let photoTimestamp = "";
 
 function stampPhoto() {
@@ -87,35 +85,24 @@ function stampPhoto() {
     "🕒 Photo taken at: " + photoTimestamp;
 }
 
-/* =========================
-   STORAGE HELPERS
-========================= */
 function getDamages() {
   return JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
 }
 
 function saveDamages(list) {
-  localStorage.setItem(
-    "macyDamageReports",
-    JSON.stringify(list)
-  );
+  localStorage.setItem("macyDamageReports", JSON.stringify(list));
 }
 
-/* =========================
-   SUBMIT DAMAGE
-========================= */
+/* ======================
+   SUBMIT NEW DAMAGE
+====================== */
 function submitDamage() {
 
-  const areaVal =
-    document.getElementById("area").value.trim();
+  const area = document.getElementById("area").value.trim();
+  const desc = document.getElementById("desc").value.trim();
+  const sev = document.getElementById("severity").value;
 
-  const descVal =
-    document.getElementById("desc").value.trim();
-
-  const sevVal =
-    document.getElementById("severity").value;
-
-  if (!areaVal || !descVal || !sevVal || !photoTimestamp) {
+  if (!area || !desc || !sev || !photoTimestamp) {
     alert("All fields and photo are required");
     return;
   }
@@ -124,94 +111,114 @@ function submitDamage() {
 
   damages.push({
     id: "DR-" + Date.now(),
-    area: areaVal,
-    description: descVal,
-    severity: sevVal,
+    area,
+    description: desc,
+    severity: sev,
     status: "Open",
-    photoTime: photoTimestamp,
-    createdAt: new Date().toLocaleString(),
-    resolvedAt: null
+    reportedTime: photoTimestamp,
+    completedBy: null,
+    completedTime: null,
+    handoverNotes: null
   });
 
   saveDamages(damages);
 
-  alert("✅ Damage recorded successfully");
+  alert("✅ Damage reported");
 
-  location.reload();
+  window.history.back(); // ✅ GO BACK
 }
 
-/* =========================
-   RESOLVE DAMAGE
-========================= */
-function resolveDamage(id) {
-
-  const damages = getDamages();
-
-  const d = damages.find(x => x.id === id);
-
-  if (d) {
-    d.status = "Resolved";
-    d.resolvedAt = new Date().toLocaleString();
-    saveDamages(damages);
-    renderList();
-  }
-}
-
-/* =========================
-   SORT + DISPLAY
-========================= */
+/* ======================
+   RENDER DAMAGE LIST
+====================== */
 function renderList() {
 
   const list = document.getElementById("damageList");
   const damages = getDamages();
-
-  const priority = {
-    Critical: 1,
-    Moderate: 2,
-    Minor: 3
-  };
-
-  damages.sort((a, b) => {
-    if (a.status !== b.status)
-      return a.status === "Open" ? -1 : 1;
-
-    return priority[a.severity] - priority[b.severity];
-  });
 
   list.innerHTML = "";
 
   damages.forEach(d => {
 
     const div = document.createElement("div");
-    div.className = `card ${d.severity.toLowerCase()}`;
+    div.className = "card " + d.severity.toLowerCase();
+
+    let actionHTML = "";
+
+    if (d.status === "Open") {
+      actionHTML = `
+        <button class="btn resolve" onclick="markCompleted('${d.id}')">
+          ✅ Completed
+        </button>
+        <button class="btn" onclick="markHandover('${d.id}')">
+          🔁 Handover
+        </button>
+      `;
+    } else {
+      actionHTML = `<div class="small">Status: ${d.status}</div>`;
+    }
 
     div.innerHTML = `
       <b>${d.area}</b> — ${d.severity}<br>
       ${d.description}<br>
-      <span class="small">Reported: ${d.photoTime}</span><br>
-      <span class="small">Status: ${d.status}</span>
-
-      ${
-        d.status === "Open"
-          ? `<button class="btn resolve"
-               onclick="resolveDamage('${d.id}')">
-               Mark Resolved
-             </button>`
-          : `<div class="small">
-               Resolved at: ${d.resolvedAt}
-             </div>`
-      }
+      <span class="small">Reported: ${d.reportedTime}</span><br>
+      ${actionHTML}
     `;
 
     list.appendChild(div);
   });
 }
 
+/* ======================
+   COMPLETED
+====================== */
+function markCompleted(id) {
+
+  const name =
+    prompt("Who fixed it? (Maintenance / Sanitation / Name)");
+
+  if (!name) return;
+
+  const damages = getDamages();
+  const d = damages.find(x => x.id === id);
+
+  d.status = "Completed";
+  d.completedBy = name;
+  d.completedTime = new Date().toLocaleString();
+
+  saveDamages(damages);
+  renderList();
+}
+
+/* ======================
+   HANDOVER
+====================== */
+function markHandover(id) {
+
+  const notes = prompt(
+    "Enter handover note:\n(Example: Conveyor motor guard loose)"
+  );
+
+  if (!notes) return;
+
+  const damages = getDamages();
+  const d = damages.find(x => x.id === id);
+
+  d.status = "Handover";
+  d.handoverNotes = notes;
+  d.handoverTime = new Date().toLocaleString();
+
+  saveDamages(damages);
+  renderList();
+}
+
 renderList();
+</script>
 
 </script>
 
 </body>
 </html>
+
 
 
