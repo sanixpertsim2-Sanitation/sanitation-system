@@ -52,6 +52,12 @@ textarea {
   cursor: pointer;
   box-shadow: 0 0 25px rgba(0,140,255,.7);
 }
+
+/* ✅ iPhone tap reliability */
+#adminUnlockTarget {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
 </style>
 </head>
 
@@ -80,7 +86,7 @@ textarea {
 <div class="section">
   <h3>Production Area Checklist</h3>
 
-  <!-- Question template -->
+  <!-- QUESTIONS -->
   <div class="question">
     No product residue present
     <select onchange="toggleExtra(this)">
@@ -89,10 +95,9 @@ textarea {
       <option value="Not Acceptable">Not Acceptable</option>
       <option value="NA">N/A</option>
     </select>
-
     <div class="extra hidden">
       <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-<p class="photo-time"></p>
+      <p class="photo-time"></p>
       <textarea placeholder="Comment required..."></textarea>
     </div>
   </div>
@@ -107,7 +112,7 @@ textarea {
     </select>
     <div class="extra hidden">
       <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-    <p class="photo-time"></p>
+      <p class="photo-time"></p>
       <textarea placeholder="Comment required..."></textarea>
     </div>
   </div>
@@ -122,7 +127,7 @@ textarea {
     </select>
     <div class="extra hidden">
       <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-<p class="photo-time"></p>
+      <p class="photo-time"></p>
       <textarea placeholder="Comment required..."></textarea>
     </div>
   </div>
@@ -136,7 +141,8 @@ textarea {
       <option value="NA">N/A</option>
     </select>
     <div class="extra hidden">
-      <input type="file" accept="image/*"  capture="environment" onchange="stampPhoto(this)">
+      <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
+      <p class="photo-time"></p>
       <textarea placeholder="Comment required..."></textarea>
     </div>
   </div>
@@ -151,7 +157,7 @@ textarea {
     </select>
     <div class="extra hidden">
       <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-<p class="photo-time"></p>
+      <p class="photo-time"></p>
       <textarea placeholder="Comment required..."></textarea>
     </div>
   </div>
@@ -163,8 +169,8 @@ textarea {
 </button>
 
 </div>
-<script>
 
+<script>
 /* =========================
    CONFIG
 ========================= */
@@ -178,18 +184,14 @@ function stampPhoto(input) {
   const now = new Date().toLocaleString();
   input.setAttribute("data-time", now);
 
-  const timeBox =
-    input.parentElement.querySelector(".photo-time");
-
-  if (timeBox) {
-    timeBox.innerText = "🕒 Photo taken at: " + now;
-  }
+  const box = input.parentElement.querySelector(".photo-time");
+  if (box) box.innerText = "🕒 Photo taken at: " + now;
 }
 
 /* =========================
-   AUTO DATE TIME
+   AUTO DATE
 ========================= */
-(function () {
+(() => {
   const dt = document.getElementById("dateTime");
   if (dt) dt.value = new Date().toLocaleString();
 })();
@@ -197,18 +199,14 @@ function stampPhoto(input) {
 /* =========================
    LOCK CHECK
 ========================= */
-(function () {
+(() => {
 
-  const done =
-    localStorage.getItem("macyProdPrecleanDone");
-
-  const time =
-    localStorage.getItem("macyProdPrecleanTimestamp");
+  const done = localStorage.getItem("macyProdPrecleanDone");
+  const time = localStorage.getItem("macyProdPrecleanTimestamp");
 
   if (done === "YES" && time) {
 
-    const diff =
-      (Date.now() - Number(time)) / (1000 * 60 * 60);
+    const diff = (Date.now() - Number(time)) / (1000 * 60 * 60);
 
     if (diff < LOCK_HOURS) {
 
@@ -224,22 +222,17 @@ function stampPhoto(input) {
           text-align:center;
           padding:30px">
 
-          <h1 id="adminUnlockTarget"
-              style="user-select:none;-webkit-user-select:none;">
-            🔒 Pre-Cleaning Locked
-          </h1>
+          <h1 id="adminUnlockTarget">🔒 Pre-Cleaning Locked</h1>
 
           <p>
             Submitted at:<br>
             <b>${new Date(Number(time)).toLocaleString()}</b>
           </p>
 
-          <p style="opacity:.7">
-            Auto unlock after 48 hours
-          </p>
+          <p style="opacity:.7">Auto unlock after 48 hours</p>
 
           <p style="font-size:13px;opacity:.4;margin-top:20px">
-            Long press to unlock (admin only)
+            Tap 5 times to unlock (admin only)
           </p>
         </div>
       `;
@@ -250,30 +243,25 @@ function stampPhoto(input) {
 })();
 
 /* =========================
-   LONG PRESS UNLOCK
+   5 TAP ADMIN UNLOCK
 ========================= */
-/* ===============================
-   ADMIN 5-TAP UNLOCK (MOBILE SAFE)
-================================ */
-
 let tapCount = 0;
 let tapTimer = null;
 
 function enableAdminTapUnlock() {
 
-  const target =
-    document.getElementById("adminUnlockTarget");
-
+  const target = document.getElementById("adminUnlockTarget");
   if (!target) return;
 
   target.addEventListener("click", () => {
 
     tapCount++;
 
+    target.style.opacity = "0.6";
+    setTimeout(() => target.style.opacity = "1", 120);
+
     if (tapCount === 1) {
-      tapTimer = setTimeout(() => {
-        tapCount = 0;
-      }, 2000);
+      tapTimer = setTimeout(() => tapCount = 0, 2000);
     }
 
     if (tapCount >= 5) {
@@ -289,17 +277,13 @@ function enableAdminTapUnlock() {
 ========================= */
 function adminUnlock() {
 
-  const pin =
-    prompt("🔐 Admin Unlock\n\nEnter Admin PIN");
+  const pin = prompt("🔐 Admin Unlock\n\nEnter Admin PIN");
 
   if (pin === ADMIN_PIN) {
-
     localStorage.removeItem("macyProdPrecleanDone");
     localStorage.removeItem("macyProdPrecleanTimestamp");
-
     alert("✅ Admin unlocked successfully");
     location.reload();
-
   } else {
     alert("❌ Incorrect PIN");
   }
@@ -309,14 +293,8 @@ function adminUnlock() {
    TOGGLE EXTRA
 ========================= */
 function toggleExtra(select) {
-
-  const extra =
-    select.parentElement.querySelector(".extra");
-
-  if (
-    select.value === "Not Acceptable" ||
-    select.value === "NA"
-  ) {
+  const extra = select.parentElement.querySelector(".extra");
+  if (select.value === "Not Acceptable" || select.value === "NA") {
     extra.classList.remove("hidden");
   } else {
     extra.classList.add("hidden");
@@ -324,33 +302,22 @@ function toggleExtra(select) {
 }
 
 /* =========================
-   SUBMIT PRE CLEAN
+   SUBMIT
 ========================= */
 function submitPreCleaning() {
 
-  const emp =
-    document.getElementById("employeeName").value.trim();
+  const emp = document.getElementById("employeeName").value.trim();
+  const bags = document.getElementById("bagsUsed").value.trim();
 
-  const bags =
-    document.getElementById("bagsUsed").value.trim();
-
-  if (!emp) {
-    alert("Employee name is mandatory.");
+  if (!emp || !bags) {
+    alert("Employee name and bag count are mandatory.");
     return;
   }
 
-  if (!bags) {
-    alert("Number of bags used is mandatory.");
-    return;
-  }
-
-  const questions =
-    document.querySelectorAll(".question");
+  const questions = document.querySelectorAll(".question");
 
   for (let i = 0; i < questions.length; i++) {
-
-    const select =
-      questions[i].querySelector("select");
+    const select = questions[i].querySelector("select");
 
     if (!select.value) {
       alert(`Please answer question ${i + 1}`);
@@ -358,52 +325,27 @@ function submitPreCleaning() {
     }
 
     if (select.value !== "Acceptable") {
-
-      const extra =
-        questions[i].querySelector(".extra");
-
-      const photo =
-        extra.querySelector("input").files.length;
-
-      const comment =
-        extra.querySelector("textarea").value.trim();
+      const extra = questions[i].querySelector(".extra");
+      const photo = extra.querySelector("input").files.length;
+      const comment = extra.querySelector("textarea").value.trim();
 
       if (!photo || !comment) {
-        alert(
-          `Photo and comment required for question ${i + 1}`
-        );
+        alert(`Photo and comment required for question ${i + 1}`);
         return;
       }
     }
   }
 
   localStorage.setItem("macyProdPrecleanDone", "YES");
-  localStorage.setItem(
-    "macyProdPrecleanTimestamp",
-    Date.now()
-  );
-  localStorage.setItem(
-    "macyProdPrecleanEmployee",
-    emp
-  );
-  localStorage.setItem(
-    "macyProdPrecleanBagsUsed",
-    bags
-  );
+  localStorage.setItem("macyProdPrecleanTimestamp", Date.now());
+  localStorage.setItem("macyProdPrecleanEmployee", emp);
+  localStorage.setItem("macyProdPrecleanBagsUsed", bags);
 
   alert("✅ Pre-Cleaning Submitted Successfully");
 
-  window.location.href =
-    "macy-production-control.html";
+  window.location.href = "macy-production-control.html";
 }
-
 </script>
+
 </body>
 </html>
-
-
-
-
-
-
-
