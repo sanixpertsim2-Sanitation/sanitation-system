@@ -244,7 +244,7 @@ function stampPhoto(input) {
         </div>
       `;
 
-      enableAdminLongPress();
+      enableAdminTapUnlock();
     }
   }
 })();
@@ -252,28 +252,36 @@ function stampPhoto(input) {
 /* =========================
    LONG PRESS UNLOCK
 ========================= */
-function enableAdminLongPress() {
+/* ===============================
+   ADMIN 5-TAP UNLOCK (MOBILE SAFE)
+================================ */
+
+let tapCount = 0;
+let tapTimer = null;
+
+function enableAdminTapUnlock() {
 
   const target =
     document.getElementById("adminUnlockTarget");
 
   if (!target) return;
 
-  let timer = null;
+  target.addEventListener("click", () => {
 
-  const start = () => {
-    timer = setTimeout(adminUnlock, 3000);
-  };
+    tapCount++;
 
-  const cancel = () => {
-    if (timer) clearTimeout(timer);
-  };
+    if (tapCount === 1) {
+      tapTimer = setTimeout(() => {
+        tapCount = 0;
+      }, 2000);
+    }
 
-  target.addEventListener("touchstart", start);
-  target.addEventListener("touchend", cancel);
-
-  target.addEventListener("mousedown", start);
-  target.addEventListener("mouseup", cancel);
+    if (tapCount >= 5) {
+      tapCount = 0;
+      clearTimeout(tapTimer);
+      adminUnlock();
+    }
+  });
 }
 
 /* =========================
@@ -392,6 +400,7 @@ function submitPreCleaning() {
 </script>
 </body>
 </html>
+
 
 
 
