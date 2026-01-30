@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Post-Cleaning Verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="css/style.css">
 
 <style>
@@ -41,12 +42,13 @@ select, textarea, input {
   cursor: pointer;
   box-shadow: 0 0 25px rgba(0,180,255,.6);
 }
+
 .handover-note {
   margin-top: 10px;
   padding: 12px 14px;
   border-left: 4px solid #facc15;
-  background: rgba(250, 204, 21, 0.08);
-  color: rgba(255, 255, 255, 0.65);
+  background: rgba(250,204,21,0.08);
+  color: rgba(255,255,255,.65);
   font-size: 13px;
   font-style: italic;
   border-radius: 10px;
@@ -61,6 +63,7 @@ select, textarea, input {
 <h1 class="page-title">
   MACY – <span id="areaName">Area</span>
 </h1>
+
 <h3>Post-Cleaning Verification</h3>
 
 <!-- ===================== -->
@@ -73,19 +76,10 @@ select, textarea, input {
   <label>Number of bags retrieved *</label>
   <input type="number" id="bagsRetrieved" min="0">
 
-  <!-- Hidden mismatch handling -->
-  <div id="bagIssue" class="hidden">
-    <label>Explain reason for mismatch *</label>
-    <textarea id="bagComment" placeholder="Reason required"></textarea>
-
-    <label>Upload photo *</label>
-    <input type="file" id="bagPhoto" accept="image/*">
-  </div>
-
 </div>
 
 <!-- ===================== -->
-<!-- POST CLEANING CHECK -->
+<!-- POST CLEAN QUESTIONS -->
 <!-- ===================== -->
 <div class="section">
 
@@ -100,7 +94,7 @@ select, textarea, input {
       <option>N/A</option>
     </select>
     <textarea class="hidden" placeholder="Comment required"></textarea>
-    <input type="file" class="hidden" accept="image/*">
+    <input type="file" class="hidden" accept="image/*" capture="environment">
   </div>
 
   <div class="question">
@@ -112,7 +106,7 @@ select, textarea, input {
       <option>N/A</option>
     </select>
     <textarea class="hidden" placeholder="Comment required"></textarea>
-    <input type="file" class="hidden" accept="image/*">
+    <input type="file" class="hidden" accept="image/*" capture="environment">
   </div>
 
   <div class="question">
@@ -124,23 +118,22 @@ select, textarea, input {
       <option>N/A</option>
     </select>
     <textarea class="hidden" placeholder="Comment required"></textarea>
-    <input type="file" class="hidden" accept="image/*">
+    <input type="file" class="hidden" accept="image/*" capture="environment">
   </div>
 
 </div>
+
 <!-- ===================== -->
-<!-- DAMAGE ACKNOWLEDGMENT -->
+<!-- DAMAGE STATUS INFO -->
 <!-- ===================== -->
-<div class="section" id="damageSection">
-  <h3>⚠️ Open Damage Acknowledgment</h3>
-  <div id="damageList"></div>
+<div class="section" id="damageWarning" style="display:none">
+  <h3>⚠️ Damage Status</h3>
+  <div class="handover-note">
+    Open damage reports exist.<br>
+    Please complete or handover all damages before submitting post-cleaning.
+  </div>
 </div>
-<div class="handover-note">
-  <b>Handover (Not Fixed)</b><br>
-  Issue could not be resolved in this shift.<br>
-  Next shift or maintenance team must take action.
-</div>
-  
+
 <button class="submit-btn" onclick="submitPostCleaning()">
   Submit Post-Cleaning
 </button>
@@ -149,14 +142,13 @@ select, textarea, input {
 
 <script>
 /* ============================
-   TOGGLE COMMENT + PHOTO
+   TOGGLE COMMENT + CAMERA
 ============================ */
 function handleNA(selectEl) {
 
-  const questionDiv = selectEl.closest(".question");
-  const textarea = questionDiv.querySelector("textarea");
-  const file = questionDiv.querySelector("input[type='file']");
-  const timeBox = questionDiv.querySelector(".photo-time");
+  const q = selectEl.closest(".question");
+  const textarea = q.querySelector("textarea");
+  const file = q.querySelector("input[type='file']");
 
   if (
     selectEl.value === "Not Acceptable" ||
@@ -169,158 +161,34 @@ function handleNA(selectEl) {
     file.classList.add("hidden");
     textarea.value = "";
     file.value = "";
-    if (timeBox) timeBox.innerText = "";
   }
-
-  file.onchange = () => {
-    if (timeBox) {
-      timeBox.innerText =
-        "🕒 Photo taken at: " +
-        new Date().toLocaleString();
-    }
-  };
 }
 
-async function captureImageWithTime(input) {
-
-  const file = input.files[0];
-  if (!file) return null;
-
-  return new Promise((resolve) => {
-
-    const reader = new FileReader();
-
-    reader.onload = function () {
-      resolve({
-        fileName: file.name,
-        type: file.type,
-        base64: reader.result,
-        timestamp: new Date().toLocaleString()
-      });
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
 /* ============================
-   LOAD OPEN DAMAGES
+   DAMAGE STATUS CHECK
 ============================ */
-function loadOpenDamages() {
+function hasOpenDamage() {
 
   const damages =
     JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
 
-  const openDamages =
-    damages.filter(d => d.status === "Open");
+  return damages.some(d => d.status === "Open");
+}
 
-  const container = document.getElementById("damageList");
-  const section = document.getElementById("damageSection");
+/* ============================
+   SUBMIT POST CLEAN
+============================ */
+function submitPostCleaning() {
 
-  if (!openDamages.length) {
-    section.style.display = "none";
+  if (hasOpenDamage()) {
+    document.getElementById("damageWarning").style.display = "block";
+    alert(
+      "⚠️ Open damage reports found.\n\n" +
+      "Please mark all damages as Completed or Handover first."
+    );
     return;
   }
 
-  container.innerHTML = "";
-
-  openDamages.forEach(d => {
-
-    const div = document.createElement("div");
-    div.className = "question";
-
-    div.innerHTML = `
-      <b>${d.area}</b> — ${d.severity}<br>
-      ${d.description}
-      <textarea placeholder="Acknowledgment comment required"></textarea>
-      <input type="file"
-             accept="image/*"
-             capture="environment">
-      <p class="photo-time"></p>
-    `;
-
-    const file = div.querySelector("input");
-    const timeBox = div.querySelector(".photo-time");
-
-    file.onchange = () => {
-      timeBox.innerText =
-        "🕒 Photo taken at: " +
-        new Date().toLocaleString();
-    };
-
-    container.appendChild(div);
-  });
-}
-function validateDamageStatus() {
-
-  const damages =
-    JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
-
-  const open = damages.filter(d => d.status === "Open");
-
-  if (open.length > 0) {
-    alert(
-      "⚠️ Some damage reports are still OPEN.\n\n" +
-      "Please mark them as Completed or Handover before submitting post-clean."
-    );
-    return false;
-  }
-
-  return true;
-}
-/* ============================
-   POST-CLEANING SUBMIT
-============================ */
-function submitPostCleaning() {
-// ===============================
-// DAMAGE ACKNOWLEDGMENT CHECK
-// ===============================
-if (!validateDamageStatus()) return;
-const damages =
-  JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
-
-const openDamages =
-  damages.filter(d => d.status === "Open");
-
-if (openDamages.length > 0) {
-
-  const blocks =
-    document.querySelectorAll("#damageList .question");
-
-  for (let i = 0; i < blocks.length; i++) {
-
-    const comment =
-      blocks[i].querySelector("textarea").value.trim();
-
-    const photo =
-      blocks[i].querySelector("input[type='file']").files.length;
-
-    if (!comment || !photo) {
-      alert(
-        "⚠️ All open damages must be acknowledged\n" +
-        "with photo and comment before post-cleaning."
-      );
-      return;
-    }
-
-    // save acknowledgment
-    openDamages[i].ackComment = comment;
-    openDamages[i].ackPhotoTime =
-      new Date().toLocaleString();
-    openDamages[i].ackBy = "Employee";
-  }
-
-  // update storage
-  localStorage.setItem(
-    "macyDamageReports",
-    JSON.stringify(damages)
-  );
-
-  // flag for handover & lead
-  localStorage.setItem(
-    "macyDamagePendingReview",
-    "YES"
-  );
-}
   const bagsUsed = parseInt(
     localStorage.getItem("macyProdPrecleanBagsUsed") || "0"
   );
@@ -333,11 +201,9 @@ if (openDamages.length > 0) {
     return;
   }
 
-  // ❌ STRICT BAG MATCH
   if (parseInt(bagsRetrieved) !== bagsUsed) {
     alert(
       "❌ Bag count mismatch.\n\n" +
-      "Submission is blocked.\n\n" +
       "All bags must be retrieved."
     );
     return;
@@ -349,8 +215,7 @@ if (openDamages.length > 0) {
 
     const select = q.querySelector("select");
     const comment = q.querySelector("textarea");
-    const photoInput = q.querySelector("input[type='file']");
-let photoData = null;
+    const photo = q.querySelector("input[type='file']");
 
     if (!select.value) {
       alert("Please complete all verification checks.");
@@ -358,86 +223,36 @@ let photoData = null;
     }
 
     if (
-  select.value === "Not Acceptable" ||
-  select.value === "N/A"
-) {
-
-  if (!comment.value.trim() || !photoInput.files.length) {
-    alert("Photo and comment required.");
-    return;
+      select.value === "Not Acceptable" ||
+      select.value === "N/A"
+    ) {
+      if (!comment.value.trim() || !photo.files.length) {
+        alert("Photo and comment required.");
+        return;
+      }
+    }
   }
 
-  photoData = await captureImageWithTime(photoInput);
-}
-  }
-
-  // ✅ SAVE POST CLEAN STATUS
   localStorage.setItem("macyProdPostcleanDone", "YES");
   localStorage.setItem(
     "macyProdPostcleanTime",
     new Date().toLocaleString()
   );
 
-  // 🔁 HANDOVER DECISION
-  const handover = confirm(
-    "Is handover required for next shift?"
-  );
-const postCleanPayload = {
-  line: "MACY Production",
-  stage: "Post-Cleaning",
-  time: new Date().toLocaleString(),
-  bagsUsed: bagsUsed,
-  bagsRetrieved: bagsRetrieved,
-  verification: [],
-};
-
-questions.forEach((q, index) => {
-
-  const select = q.querySelector("select");
-  const comment = q.querySelector("textarea");
-  const photoInput = q.querySelector("input[type='file']");
-
-  postCleanPayload.verification.push({
-    question: q.querySelector("label").innerText,
-    result: select.value,
-    comment: comment.value.trim(),
-    imageTime:
-      photoInput.files.length
-        ? new Date().toLocaleString()
-        : null
-  });
-});
-
-localStorage.setItem(
-  "macyProdPostcleanData",
-  JSON.stringify(postCleanPayload)
-);
-
-  if (handover) {
-    localStorage.setItem("macyProdHandoverRequired", "YES");
-    window.location.href = "macy-production-handover.html";
-  } else {
-    localStorage.setItem("macyProdHandoverRequired", "NO");
-    window.location.href = "macy-production-control.html";
-  }
+  window.location.href = "macy-production-control.html";
 }
-</script>
-<script>
+
+/* ============================
+   LOAD AREA NAME
+============================ */
 window.onload = function () {
 
   const area =
     localStorage.getItem("selectedArea") || "Area";
 
-  const label = document.getElementById("areaName");
-
-  if (label) {
-    label.innerText = area;
-  }
-loadOpenDamages();
+  document.getElementById("areaName").innerText = area;
 };
 </script>
 
 </body>
 </html>
-
-
