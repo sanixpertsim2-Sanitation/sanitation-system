@@ -52,12 +52,6 @@ textarea {
   cursor: pointer;
   box-shadow: 0 0 25px rgba(0,140,255,.7);
 }
-
-/* ✅ iPhone tap reliability */
-#adminUnlockTarget {
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
 </style>
 </head>
 
@@ -86,7 +80,6 @@ textarea {
 <div class="section">
   <h3>Production Area Checklist</h3>
 
-  <!-- QUESTIONS -->
   <div class="question">
     No product residue present
     <select onchange="toggleExtra(this)">
@@ -171,34 +164,33 @@ textarea {
 </div>
 
 <script>
-/* =========================
+/* =====================
    CONFIG
-========================= */
+===================== */
 const ADMIN_PIN = "0735";
 const LOCK_HOURS = 48;
 
-/* =========================
-   PHOTO TIMESTAMP
-========================= */
-function stampPhoto(input) {
-  const now = new Date().toLocaleString();
-  input.setAttribute("data-time", now);
-
-  const box = input.parentElement.querySelector(".photo-time");
-  if (box) box.innerText = "🕒 Photo taken at: " + now;
-}
-
-/* =========================
+/* =====================
    AUTO DATE
-========================= */
+===================== */
 (() => {
   const dt = document.getElementById("dateTime");
   if (dt) dt.value = new Date().toLocaleString();
 })();
 
-/* =========================
+/* =====================
+   PHOTO TIMESTAMP
+===================== */
+function stampPhoto(input) {
+  const now = new Date().toLocaleString();
+  input.setAttribute("data-time", now);
+  const box = input.parentElement.querySelector(".photo-time");
+  if (box) box.innerText = "🕒 Photo taken at: " + now;
+}
+
+/* =====================
    LOCK CHECK
-========================= */
+===================== */
 (() => {
 
   const done = localStorage.getItem("macyProdPrecleanDone");
@@ -210,83 +202,48 @@ function stampPhoto(input) {
 
     if (diff < LOCK_HOURS) {
 
-     document.body.innerHTML = `
-  <div style="
-    height:100vh;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    background:#0f172a;
-    color:white;
-    text-align:center;
-    padding:30px">
+      document.body.innerHTML = `
+        <div style="
+          height:100vh;
+          display:flex;
+          flex-direction:column;
+          justify-content:center;
+          align-items:center;
+          background:#0f172a;
+          color:white;
+          text-align:center;
+          padding:30px">
 
-    <h1>🔒 Pre-Cleaning Locked</h1>
+          <h1>🔒 Pre-Cleaning Locked</h1>
 
-    <p>
-      Submitted at:<br>
-      <b>${new Date(Number(time)).toLocaleString()}</b>
-    </p>
+          <p>
+            Submitted at:<br>
+            <b>${new Date(Number(time)).toLocaleString()}</b>
+          </p>
 
-    <p style="opacity:.7">
-      Auto unlock after 48 hours
-    </p>
+          <p style="opacity:.7">
+            Auto unlock after 48 hours
+          </p>
 
-    <button
-      onclick="adminUnlock()"
-      style="
-        margin-top:30px;
-        padding:10px 22px;
-        border:none;
-        border-radius:10px;
-        background:#1e293b;
-        color:#94a3b8;
-        font-size:13px;
-        opacity:0.25">
-      Admin Unlock
-    </button>
-
-  </div>
-`;
-enableAdminCornerUnlock();
+          <button onclick="adminUnlock()"
+            style="
+              margin-top:30px;
+              padding:12px 26px;
+              border:none;
+              border-radius:12px;
+              background:#1e293b;
+              color:#cbd5f5;
+              font-size:15px;">
+            Admin Unlock
+          </button>
+        </div>`;
     }
   }
 })();
 
-/* =========================
-   5 TAP ADMIN UNLOCK
-========================= */
-let tapCount = 0;
-let tapTimer = null;
-
-function enableAdminTapUnlock() {
-
-  const target = document.getElementById("adminUnlockTarget");
-  if (!target) return;
-
-  target.addEventListener("click", () => {
-
-    tapCount++;
-
-    target.style.opacity = "0.6";
-    setTimeout(() => target.style.opacity = "1", 120);
-
-    if (tapCount === 1) {
-      tapTimer = setTimeout(() => tapCount = 0, 2000);
-    }
-
-    if (tapCount >= 5) {
-      tapCount = 0;
-      clearTimeout(tapTimer);
-      adminUnlock();
-    }
-  });
-}
-
-/* =========================
+/* =====================
    ADMIN UNLOCK
-========================= */
+===================== */
 function adminUnlock() {
 
   const pin = prompt("🔐 Admin Unlock\n\nEnter Admin PIN");
@@ -301,9 +258,9 @@ function adminUnlock() {
   }
 }
 
-/* =========================
+/* =====================
    TOGGLE EXTRA
-========================= */
+===================== */
 function toggleExtra(select) {
   const extra = select.parentElement.querySelector(".extra");
   if (select.value === "Not Acceptable" || select.value === "NA") {
@@ -313,9 +270,9 @@ function toggleExtra(select) {
   }
 }
 
-/* =========================
+/* =====================
    SUBMIT
-========================= */
+===================== */
 function submitPreCleaning() {
 
   const emp = document.getElementById("employeeName").value.trim();
@@ -329,6 +286,7 @@ function submitPreCleaning() {
   const questions = document.querySelectorAll(".question");
 
   for (let i = 0; i < questions.length; i++) {
+
     const select = questions[i].querySelector("select");
 
     if (!select.value) {
@@ -337,6 +295,7 @@ function submitPreCleaning() {
     }
 
     if (select.value !== "Acceptable") {
+
       const extra = questions[i].querySelector(".extra");
       const photo = extra.querySelector("input").files.length;
       const comment = extra.querySelector("textarea").value.trim();
@@ -354,13 +313,9 @@ function submitPreCleaning() {
   localStorage.setItem("macyProdPrecleanBagsUsed", bags);
 
   alert("✅ Pre-Cleaning Submitted Successfully");
-
   window.location.href = "macy-production-control.html";
 }
 </script>
 
 </body>
 </html>
-
-
-
