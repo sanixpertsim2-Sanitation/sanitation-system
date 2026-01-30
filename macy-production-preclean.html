@@ -33,9 +33,13 @@ select, input, textarea {
   margin-top: 6px;
 }
 
-textarea { min-height: 60px; }
+textarea {
+  min-height: 60px;
+}
 
-.hidden { display: none; }
+.hidden {
+  display: none;
+}
 
 .submit-btn {
   width: 100%;
@@ -47,22 +51,6 @@ textarea { min-height: 60px; }
   color: white;
   cursor: pointer;
   box-shadow: 0 0 25px rgba(0,140,255,.7);
-}
-
-/* LOCK OVERLAY */
-#precleanLockOverlay {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(2,6,23,.94);
-  z-index:9999;
-  color:white;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  text-align:center;
-  padding:30px;
 }
 </style>
 </head>
@@ -96,13 +84,13 @@ textarea { min-height: 60px; }
     No product residue present
     <select onchange="toggleExtra(this)">
       <option value="">Select</option>
-      <option>Acceptable</option>
-      <option>Not Acceptable</option>
-      <option>NA</option>
+      <option value="Acceptable">Acceptable</option>
+      <option value="Not Acceptable">Not Acceptable</option>
+      <option value="NA">N/A</option>
     </select>
     <div class="extra hidden">
       <input type="file" accept="image/*" capture="environment">
-      <textarea placeholder="Comment required"></textarea>
+      <textarea placeholder="Comment required..."></textarea>
     </div>
   </div>
 
@@ -110,13 +98,13 @@ textarea { min-height: 60px; }
     Conveyor belts accessible
     <select onchange="toggleExtra(this)">
       <option value="">Select</option>
-      <option>Acceptable</option>
-      <option>Not Acceptable</option>
-      <option>NA</option>
+      <option value="Acceptable">Acceptable</option>
+      <option value="Not Acceptable">Not Acceptable</option>
+      <option value="NA">N/A</option>
     </select>
     <div class="extra hidden">
       <input type="file" accept="image/*" capture="environment">
-      <textarea placeholder="Comment required"></textarea>
+      <textarea placeholder="Comment required..."></textarea>
     </div>
   </div>
 
@@ -129,30 +117,50 @@ textarea { min-height: 60px; }
 </div>
 
 <!-- 🔒 LOCK OVERLAY -->
-<div id="precleanLockOverlay">
-  <h1>🔒 Pre-Cleaning Locked</h1>
-  <p id="lockTime" style="margin-top:10px;opacity:.85"></p>
-  <p style="opacity:.6">Supervisor unlock required</p>
+<div id="precleanLockOverlay"
+     style="
+       display:none;
+       position:fixed;
+       inset:0;
+       background:rgba(15,23,42,.92);
+       z-index:9999;
+       color:white;
+       text-align:center;
+       padding:30px;
+       display:flex;
+       flex-direction:column;
+       justify-content:center;
+       align-items:center">
 
-  <button onclick="adminUnlock()"
+  <h1>🔒 Pre-Cleaning Submitted</h1>
+
+  <p id="lockTime" style="opacity:.85"></p>
+
+  <p style="opacity:.6">
+    Checklist locked to prevent changes.
+  </p>
+
+  <button
+    onclick="adminUnlock()"
     style="
-      margin-top:25px;
-      padding:12px 28px;
+      margin-top:30px;
+      padding:12px 30px;
       border-radius:14px;
-      border:1px solid rgba(255,255,255,.25);
+      border:1px solid rgba(255,255,255,.3);
       background:transparent;
-      color:#cbd5f5;
+      color:rgba(255,255,255,.7);
       font-size:14px;
-      cursor:pointer;
-      opacity:.7;">
-    🔐 Admin Unlock
+      cursor:pointer;">
+    Admin Unlock
   </button>
+
+  <p style="font-size:12px;opacity:.4;margin-top:12px">
+    Supervisor authorization required
+  </p>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
 const ADMIN_PIN = "0735";
-const LOCK_HOURS = 48;
 
 /* AUTO DATE */
 document.getElementById("dateTime").value =
@@ -161,25 +169,20 @@ document.getElementById("dateTime").value =
 /* TOGGLE EXTRA */
 function toggleExtra(select) {
   const extra = select.parentElement.querySelector(".extra");
-  if (select.value !== "Acceptable") {
+  if (select.value === "Not Acceptable" || select.value === "NA") {
     extra.classList.remove("hidden");
   } else {
     extra.classList.add("hidden");
   }
 }
 
-/* LOCK CHECK */
-function checkPrecleanLock() {
+/* LOAD LOCK STATE */
+document.addEventListener("DOMContentLoaded", () => {
 
   const done = localStorage.getItem("macyProdPrecleanDone");
   const time = localStorage.getItem("macyProdPrecleanTimestamp");
 
-  if (!done || !time) return;
-
-  const diff =
-    (Date.now() - Number(time)) / (1000 * 60 * 60);
-
-  if (diff < LOCK_HOURS) {
+  if (done === "YES" && time) {
 
     document.getElementById("precleanLockOverlay").style.display = "flex";
 
@@ -188,23 +191,26 @@ function checkPrecleanLock() {
       new Date(Number(time)).toLocaleString() +
       "</b>";
 
-    document.querySelector(".submit-btn").disabled = true;
-    document.querySelector(".submit-btn").style.opacity = "0.4";
+    const btn = document.querySelector(".submit-btn");
+    btn.disabled = true;
+    btn.style.opacity = "0.4";
   }
-}
+});
 
 /* ADMIN UNLOCK */
 function adminUnlock() {
 
-  const pin = prompt("🔐 Supervisor Unlock\n\nEnter Admin PIN");
+  const pin = prompt("🔐 Supervisor Unlock");
 
   if (pin === ADMIN_PIN) {
 
-    localStorage.removeItem("macyProdPrecleanDone");
-    localStorage.removeItem("macyProdPrecleanTimestamp");
+    document.getElementById("precleanLockOverlay").style.display = "none";
 
-    alert("✅ Pre-cleaning unlocked");
-    location.reload();
+    const btn = document.querySelector(".submit-btn");
+    btn.disabled = false;
+    btn.style.opacity = "1";
+
+    alert("✅ Pre-clean unlocked");
 
   } else {
     alert("❌ Incorrect PIN");
@@ -218,19 +224,17 @@ function submitPreCleaning() {
   const bags = document.getElementById("bagsUsed").value.trim();
 
   if (!emp || !bags) {
-    alert("Employee name and bag count required");
+    alert("Employee name and bag count required.");
     return;
   }
 
   localStorage.setItem("macyProdPrecleanDone", "YES");
   localStorage.setItem("macyProdPrecleanTimestamp", Date.now());
 
-  alert("✅ Pre-cleaning submitted");
+  alert("✅ Pre-Cleaning Submitted");
 
-  window.location.href = "macy-production-control.html";
+  location.reload(); // refresh to apply lock
 }
-
-window.onload = checkPrecleanLock;
 </script>
 
 </body>
