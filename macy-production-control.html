@@ -127,8 +127,60 @@ function renderControl() {
 
 renderControl();
 </script>
+<!-- Hidden Admin Override Zone -->
+<div id="adminOverrideZone"
+     style="
+       position:fixed;
+       bottom:0;
+       right:0;
+       width:70px;
+       height:70px;
+       opacity:0;
+       z-index:9999;">
+</div>
+  <script>
+let adminTap = 0;
+let adminTimer = null;
 
+document.getElementById("adminOverrideZone")
+  .addEventListener("click", () => {
+
+    adminTap++;
+
+    if (adminTap === 1) {
+      adminTimer = setTimeout(() => {
+        adminTap = 0;
+      }, 2000);
+    }
+
+    if (adminTap >= 5) {
+
+      clearTimeout(adminTimer);
+      adminTap = 0;
+
+      const pin = prompt(
+        "🔐 Supervisor Override\n\nEnter Admin PIN"
+      );
+
+      if (pin === "0735") {
+
+        localStorage.removeItem("macyProdPrecleanDone");
+        localStorage.removeItem("macyProdPrecleanTimestamp");
+        localStorage.removeItem("macyProdPostcleanDone");
+        localStorage.removeItem("macyProdPostcleanTime");
+
+        alert("✅ Sanitation lock released");
+
+        location.reload();
+
+      } else {
+        alert("❌ Incorrect PIN");
+      }
+    }
+});
+</script>
 </body>
 
 </html>
+
 
