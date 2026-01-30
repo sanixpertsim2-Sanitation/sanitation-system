@@ -298,44 +298,85 @@ function openDamagePopup() {
 
   open.forEach(d => {
 
-    list.innerHTML += `
-      <div class="section">
-        <b>${d.area}</b> — ${d.severity}<br>
-        ${d.description}
+list.innerHTML += `
+  <div class="section" style="border:1px solid rgba(255,255,255,.15)">
 
-        <label>Completed by *</label>
-        <select id="who-${d.id}">
-          <option value="">Select</option>
-          <option>Maintenance</option>
-          <option>Sanitation</option>
-          <option>Production</option>
-          <option>Contractor</option>
-        </select>
+    <b>${d.area}</b> — ${d.severity}<br>
+    ${d.description}
 
-        <label>Fix Photo *</label>
-        <input type="file"
-               accept="image/*"
-               capture="environment"
-               id="photo-${d.id}">
+    <div style="
+      margin-top:12px;
+      padding:10px;
+      background:rgba(255,255,255,.05);
+      border-radius:10px;
+      font-size:13px;
+      color:#cbd5f5;
+    ">
+      <b>Action Required</b><br>
+      Please select <b>only one</b> option below:
+      <ul style="margin-top:6px">
+        <li><b>Completed</b> – Issue fixed during this shift</li>
+        <li><b>Handover</b> – Issue not fixed, to be handled next shift</li>
+      </ul>
+    </div>
 
-        <label>Handover reason</label>
-        <select id="handover-${d.id}">
-          <option value="">Select reason</option>
-          <option>Not fixed yet – parts required</option>
-          <option>Partially fixed – follow up required</option>
-          <option>Maintenance planned next shift</option>
-          <option>Safety locked – cannot operate</option>
-        </select>
+    <label style="margin-top:12px">Completed by *</label>
+    <select id="who-${d.id}">
+      <option value="">Select</option>
+      <option>Maintenance</option>
+      <option>Sanitation</option>
+      <option>Production</option>
+      <option>Contractor</option>
+    </select>
 
-        <button onclick="completeDamage('${d.id}')">
-          ✅ Completed
-        </button>
+    <label>Fix Photo *</label>
+    <input type="file"
+           accept="image/*"
+           capture="environment"
+           id="photo-${d.id}">
 
-        <button onclick="handoverDamage('${d.id}')">
-          🔁 Handover
-        </button>
-      </div>
-    `;
+    <label>Handover reason</label>
+    <select id="handover-${d.id}">
+      <option value="">Select reason</option>
+      <option>Not fixed yet – parts required</option>
+      <option>Partially fixed – follow-up required</option>
+      <option>Maintenance planned next shift</option>
+      <option>Safety locked – equipment isolated</option>
+    </select>
+
+    <div style="display:flex;gap:12px;margin-top:15px">
+
+      <button style="
+        flex:1;
+        background:linear-gradient(135deg,#22c55e,#16a34a);
+        color:white;
+        border:none;
+        padding:14px;
+        border-radius:14px;
+        font-size:15px;
+        cursor:pointer"
+        onclick="completeDamage('${d.id}')">
+        ✅ Mark as Completed
+      </button>
+
+      <button style="
+        flex:1;
+        background:linear-gradient(135deg,#f59e0b,#d97706);
+        color:white;
+        border:none;
+        padding:14px;
+        border-radius:14px;
+        font-size:15px;
+        cursor:pointer"
+        onclick="handoverDamage('${d.id}')">
+        🔁 Handover to Next Shift
+      </button>
+
+    </div>
+
+  </div>
+`;
+
   });
 
   document.getElementById("damagePopup").style.display = "block";
@@ -405,4 +446,5 @@ function handoverDamage(id) {
 
 </body>
 </html>
+
 
