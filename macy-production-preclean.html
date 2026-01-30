@@ -202,59 +202,27 @@ function stampPhoto(input) {
 
     if (diff < LOCK_HOURS) {
 
-      document.body.innerHTML = `
-  <div style="
-    height:100vh;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    background:#0f172a;
-    color:white;
-    text-align:center;
-    padding:30px">
+   (() => {
 
-    <h1 style="margin-bottom:10px">
-      🔒 Pre-Cleaning Locked
-    </h1>
+  const done = localStorage.getItem("macyProdPrecleanDone");
+  const time = localStorage.getItem("macyProdPrecleanTimestamp");
 
-    <p style="opacity:.8">
-      Submitted at:<br>
-      <b>${new Date(Number(time)).toLocaleString()}</b>
-    </p>
+  if (done === "YES" && time) {
 
-    <p style="opacity:.6;margin-top:10px">
-      Auto unlock after 48 hours
-    </p>
+    const diff =
+      (Date.now() - Number(time)) / (1000 * 60 * 60);
 
-    <button
-      onclick="adminUnlock()"
-      style="
-        margin-top:35px;
-        padding:12px 28px;
-        border-radius:14px;
-        border:1px solid rgba(255,255,255,.25);
-        background:transparent;
-        color:rgba(255,255,255,.45);
-        font-size:14px;
-        letter-spacing:1px;
-        cursor:pointer;
-        opacity:0.35;
-      ">
-      ADMIN UNLOCK
-    </button>
+    if (diff < LOCK_HOURS) {
 
-    <p style="
-      margin-top:12px;
-      font-size:12px;
-      opacity:.35">
-      Supervisor access only
-    </p>
+      document.getElementById("precleanLockScreen").style.display = "flex";
 
-  </div>
-`;
+      document.getElementById("lockTime").innerHTML =
+        "Submitted at:<br><b>" +
+        new Date(Number(time)).toLocaleString() +
+        "</b>";
     }
   }
+
 })();
 
 /* =====================
@@ -332,7 +300,49 @@ function submitPreCleaning() {
   window.location.href = "macy-production-control.html";
 }
 </script>
+<!-- 🔒 PRE-CLEAN LOCK SCREEN -->
+<div id="precleanLockScreen"
+     style="
+       display:none;
+       position:fixed;
+       inset:0;
+       background:#0f172a;
+       color:white;
+       z-index:9999;
+       text-align:center;
+       padding:30px;
+       display:flex;
+       flex-direction:column;
+       justify-content:center;
+       align-items:center">
 
+  <h1>🔒 Pre-Cleaning Locked</h1>
+
+  <p id="lockTime" style="opacity:.85"></p>
+
+  <p style="opacity:.6">
+    Auto unlock after 48 hours
+  </p>
+
+  <button
+    onclick="adminUnlock()"
+    style="
+      margin-top:30px;
+      padding:12px 28px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.25);
+      background:transparent;
+      color:rgba(255,255,255,.5);
+      font-size:14px;
+      opacity:.4">
+    ADMIN UNLOCK
+  </button>
+
+  <p style="font-size:12px;opacity:.35;margin-top:12px">
+    Supervisor access only
+  </p>
+</div>
 </body>
 </html>
+
 
