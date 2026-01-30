@@ -173,10 +173,56 @@ const LOCK_HOURS = 48;
 /* =====================
    AUTO DATE
 ===================== */
-(() => {
+window.addEventListener("load", () => {
   const dt = document.getElementById("dateTime");
   if (dt) dt.value = new Date().toLocaleString();
-})();
+
+  checkPrecleanLock();
+});
+
+/* =====================
+   LOCK CHECK
+===================== */
+function checkPrecleanLock() {
+
+  const done = localStorage.getItem("macyProdPrecleanDone");
+  const time = localStorage.getItem("macyProdPrecleanTimestamp");
+
+  if (!done || !time) return;
+
+  const diff =
+    (Date.now() - Number(time)) / (1000 * 60 * 60);
+
+  if (diff < LOCK_HOURS) {
+
+    document.getElementById("precleanLockScreen").style.display = "flex";
+
+    document.getElementById("lockTime").innerHTML =
+      "Submitted at:<br><b>" +
+      new Date(Number(time)).toLocaleString() +
+      "</b>";
+  }
+}
+
+/* =====================
+   ADMIN UNLOCK
+===================== */
+function adminUnlock() {
+
+  const pin = prompt("🔐 Supervisor Unlock\n\nEnter Admin PIN");
+
+  if (pin === ADMIN_PIN) {
+
+    localStorage.removeItem("macyProdPrecleanDone");
+    localStorage.removeItem("macyProdPrecleanTimestamp");
+
+    alert("✅ Pre-cleaning unlocked");
+    location.reload();
+
+  } else {
+    alert("❌ Incorrect PIN");
+  }
+}
 
 /* =====================
    PHOTO TIMESTAMP
@@ -184,62 +230,9 @@ const LOCK_HOURS = 48;
 function stampPhoto(input) {
   const now = new Date().toLocaleString();
   input.setAttribute("data-time", now);
+
   const box = input.parentElement.querySelector(".photo-time");
   if (box) box.innerText = "🕒 Photo taken at: " + now;
-}
-
-/* =====================
-   LOCK CHECK
-===================== */
-(() => {
-
-  const done = localStorage.getItem("macyProdPrecleanDone");
-  const time = localStorage.getItem("macyProdPrecleanTimestamp");
-
-  if (done === "YES" && time) {
-
-    const diff = (Date.now() - Number(time)) / (1000 * 60 * 60);
-
-    if (diff < LOCK_HOURS) {
-
-   (() => {
-
-  const done = localStorage.getItem("macyProdPrecleanDone");
-  const time = localStorage.getItem("macyProdPrecleanTimestamp");
-
-  if (done === "YES" && time) {
-
-    const diff =
-      (Date.now() - Number(time)) / (1000 * 60 * 60);
-
-    if (diff < LOCK_HOURS) {
-
-      document.getElementById("precleanLockScreen").style.display = "flex";
-
-      document.getElementById("lockTime").innerHTML =
-        "Submitted at:<br><b>" +
-        new Date(Number(time)).toLocaleString() +
-        "</b>";
-    }
-  }
-
-})();
-
-/* =====================
-   ADMIN UNLOCK
-===================== */
-function adminUnlock() {
-
-  const pin = prompt("🔐 Admin Unlock\n\nEnter Admin PIN");
-
-  if (pin === ADMIN_PIN) {
-    localStorage.removeItem("macyProdPrecleanDone");
-    localStorage.removeItem("macyProdPrecleanTimestamp");
-    alert("✅ Admin unlocked successfully");
-    location.reload();
-  } else {
-    alert("❌ Incorrect PIN");
-  }
 }
 
 /* =====================
@@ -344,5 +337,6 @@ function submitPreCleaning() {
 </div>
 </body>
 </html>
+
 
 
