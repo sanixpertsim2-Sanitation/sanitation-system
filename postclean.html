@@ -133,11 +133,41 @@ select, textarea, input {
     Please complete or handover all damages before submitting post-cleaning.
   </div>
 </div>
+<button class="submit-btn"
+        style="background:#f59e0b;margin-bottom:15px"
+        onclick="openDamagePopup()">
+  ⚠ Review Open Damage
+</button>
 
 <button class="submit-btn" onclick="submitPostCleaning()">
   Submit Post-Cleaning
 </button>
+<div id="damagePopup"
+     style="display:none;
+     position:fixed;
+     inset:0;
+     background:rgba(0,0,0,.85);
+     z-index:999;
+     padding:20px;
+     overflow:auto">
 
+  <div style="
+    background:#020617;
+    border-radius:18px;
+    padding:22px;
+    max-width:700px;
+    margin:auto">
+
+    <h3 style="margin-bottom:15px">Open Damage Review</h3>
+
+    <div id="popupDamageList"></div>
+
+    <button class="submit-btn"
+            onclick="closeDamagePopup()">
+      Close
+    </button>
+  </div>
+</div>
 </div>
 
 <script>
@@ -252,7 +282,127 @@ window.onload = function () {
 
   document.getElementById("areaName").innerText = area;
 };
+function openDamagePopup() {
+
+  const damages =
+    JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
+
+  const open = damages.filter(d => d.status === "Open");
+
+  const list = document.getElementById("popupDamageList");
+  list.innerHTML = "";
+
+  if (open.length === 0) {
+    list.innerHTML = "<p>No open damages.</p>";
+  }
+
+  open.forEach(d => {
+
+    list.innerHTML += `
+      <div class="section">
+        <b>${d.area}</b> — ${d.severity}<br>
+        ${d.description}
+
+        <label>Completed by *</label>
+        <select id="who-${d.id}">
+          <option value="">Select</option>
+          <option>Maintenance</option>
+          <option>Sanitation</option>
+          <option>Production</option>
+          <option>Contractor</option>
+        </select>
+
+        <label>Fix Photo *</label>
+        <input type="file"
+               accept="image/*"
+               capture="environment"
+               id="photo-${d.id}">
+
+        <label>Handover reason</label>
+        <select id="handover-${d.id}">
+          <option value="">Select reason</option>
+          <option>Not fixed yet – parts required</option>
+          <option>Partially fixed – follow up required</option>
+          <option>Maintenance planned next shift</option>
+          <option>Safety locked – cannot operate</option>
+        </select>
+
+        <button onclick="completeDamage('${d.id}')">
+          ✅ Completed
+        </button>
+
+        <button onclick="handoverDamage('${d.id}')">
+          🔁 Handover
+        </button>
+      </div>
+    `;
+  });
+
+  document.getElementById("damagePopup").style.display = "block";
+}
+
+function closeDamagePopup() {
+  document.getElementById("damagePopup").style.display = "none";
+}
+
+function completeDamage(id) {
+
+  const who =
+    document.getElementById("who-" + id).value;
+
+  const photo =
+    document.getElementById("photo-" + id).files.length;
+
+  if (!who || !photo) {
+    alert("Completed requires who fixed + photo");
+    return;
+  }
+
+  const damages =
+    JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
+
+  const d = damages.find(x => x.id === id);
+
+  d.status = "Completed";
+  d.completedBy = who;
+  d.completedTime = new Date().toLocaleString();
+
+  localStorage.setItem(
+    "macyDamageReports",
+    JSON.stringify(damages)
+  );
+
+  openDamagePopup();
+}
+
+function handoverDamage(id) {
+
+  const reason =
+    document.getElementById("handover-" + id).value;
+
+  if (!reason) {
+    alert("Select handover reason");
+    return;
+  }
+
+  const damages =
+    JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
+
+  const d = damages.find(x => x.id === id);
+
+  d.status = "Handover";
+  d.handoverReason = reason;
+  d.handoverTime = new Date().toLocaleString();
+
+  localStorage.setItem(
+    "macyDamageReports",
+    JSON.stringify(damages)
+  );
+
+  openDamagePopup();
+}
 </script>
 
 </body>
 </html>
+
