@@ -2,35 +2,42 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>MACY – Line Control</title>
+<title>MACY – Production Control</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" href="css/style.css">
 
 <style>
-.status-banner {
-  padding: 18px;
-  border-radius: 14px;
-  text-align: center;
+.status {
+  padding: 22px;
+  border-radius: 18px;
   margin-bottom: 25px;
-  font-size: 16px;
-  font-weight: 600;
+  text-align: center;
+  font-size: 17px;
+  font-weight: bold;
 }
 
-.blue { background:#1e3a8a; }
+.blue   { background:#1e3a8a; }
 .yellow { background:#92400e; }
-.red { background:#7f1d1d; }
-.green { background:#064e3b; }
+.orange { background:#9a3412; }
+.green  { background:#065f46; }
 
 .action-btn {
   width: 100%;
-  padding: 15px;
-  margin-top: 15px;
+  padding: 16px;
   font-size: 17px;
-  border-radius: 12px;
+  border-radius: 16px;
   border: none;
-  cursor: pointer;
-  background: linear-gradient(135deg,#00aaff,#0077ff);
+  margin-top: 15px;
+  background: linear-gradient(135deg,#00aaff,#0066ff);
   color: white;
+  cursor: pointer;
+}
+
+.note {
+  margin-top: 10px;
+  font-size: 13px;
+  opacity: .65;
 }
 </style>
 </head>
@@ -38,61 +45,186 @@
 <body>
 
 <div class="container">
-<h1 class="page-title">MACY – Cupcake Line</h1>
-<h3>Sanitation Control</h3>
 
-<div id="actions"></div>
+<h1 class="page-title">MACY – Production Line</h1>
+<h3>Sanitation Control Panel</h3>
+
+<div id="statusBox"></div>
+<div id="actionBox"></div>
 
 </div>
 
+<!-- 🔐 Hidden Admin Override Area -->
+<div id="adminOverrideZone"
+     style="
+       position:fixed;
+       bottom:0;
+       right:0;
+       width:70px;
+       height:70px;
+       opacity:0;
+       z-index:9999;">
+</div>
+
 <script>
-function goPre(){ window.location.href="preclean.html"; }
-function goPost(){ window.location.href="postclean.html"; }
-function goDamage(){ window.location.href="damage.html"; }
-function goRelease(){ window.location.href="release.html"; }
+/* ===================================================
+   CONFIG
+=================================================== */
+const ADMIN_PIN = "0735";
+const RESET_HOURS = 48;
 
-function renderActions(){
+/* ===================================================
+   NAVIGATION
+=================================================== */
+function goPre()     { location.href = "macy-production-preclean.html"; }
+function goDamage()  { location.href = "damage.html"; }
+function goPost()    { location.href = "postclean.html"; }
+function goRelease() { location.href = "macy-production-release.html"; }
 
-  const pre = localStorage.getItem("precleanDone");
-  const post = localStorage.getItem("postcleanDone");
-  const released = localStorage.getItem("lineReleased");
+/* ===================================================
+   48 HOUR AUTO RESET
+=================================================== */
+(function autoReset() {
 
-  const box = document.getElementById("actions");
+  const ts = localStorage.getItem("macyProdPrecleanTimestamp");
+  if (!ts) return;
 
-  // LINE RELEASED
-  if(released==="YES"){
-    box.innerHTML = `
-      <div class="status-banner green">
-        🟢 LINE RELEASED FOR PRODUCTION<br>
-        Area Lead: ${localStorage.getItem("releasedBy")}<br>
-        ${localStorage.getItem("releaseTime")}
+  const diff =
+    (Date.now() - Number(ts)) / (1000 * 60 * 60);
+
+  if (diff >= RESET_HOURS) {
+
+    localStorage.removeItem("macyProdPrecleanDone");
+    localStorage.removeItem("macyProdPostcleanDone");
+    localStorage.removeItem("macyProdReleased");
+    localStorage.removeItem("macyProdPrecleanEmployee");
+    localStorage.removeItem("macyProdPrecleanBagsUsed");
+    localStorage.removeItem("macyProdPostcleanTime");
+    localStorage.removeItem("macyPrecleanInProgressBy");
+
+    console.log("🔄 48-hour sanitation reset completed");
+  }
+})();
+
+/* ===================================================
+   CONTROL PANEL LOGIC
+=================================================== */
+function renderControl() {
+
+  const pre  = localStorage.getItem("macyProdPrecleanDone");
+  const post = localStorage.getItem("macyProdPostcleanDone");
+  const rel  = localStorage.getItem("macyProdReleased");
+
+  const status = document.getElementById("statusBox");
+  const action = document.getElementById("actionBox");
+
+  status.innerHTML = "";
+  action.innerHTML = "";
+
+  /* 🟢 RELEASED */
+  if (rel === "YES") {
+    status.innerHTML = `
+      <div class="status green">
+        🟢 LINE RELEASED FOR PRODUCTION
       </div>`;
     return;
   }
 
-  // WAITING FOR AREA LEAD
-  if(post==="YES"){
-    box.innerHTML = `
-      <div class="status-banner yellow">
-        🔒 Sanitation completed<br>
-        Awaiting Area Lead verification
-      </div>
-
+  /* 🟠 POST CLEAN DONE */
+  if (post === "YES") {
+    status.innerHTML = `
+      <div class="status orange">
+        🟠 Post-cleaning completed
+      </div>`;
+    action.innerHTML = `
       <button class="action-btn" onclick="goRelease()">
-        👤 Area Lead Release
-      </button>`;
+        Area Lead Verification
+      </button>
+      <div class="note">
+        Verify sanitation before starting production
+      </div>`;
     return;
   }
 
-  // SANITATION IN PROGRESS
-  box.innerHTML = `
-    <button class="action-btn" onclick="goPre()">Pre-Cleaning</button>
-    <button class="action-btn" onclick="goDamage()">Damage Report</button>
-    <button class="action-btn" onclick="goPost()">Post-Cleaning</button>
-  `;
+  /* 🟡 PRE CLEAN DONE */
+  if (pre === "YES") {
+    status.innerHTML = `
+      <div class="status yellow">
+        🟡 Pre-cleaning completed
+      </div>`;
+    action.innerHTML = `
+      <button class="action-btn" onclick="goDamage()">
+        Damage Report
+      </button>
+
+      <button class="action-btn" onclick="goPost()">
+        Start Post-Cleaning
+      </button>
+      <div class="note">
+        All damages must be reviewed before post-clean
+      </div>`;
+    return;
+  }
+
+  /* 🔵 NOT STARTED */
+  status.innerHTML = `
+    <div class="status blue">
+      🔵 Sanitation not started
+    </div>`;
+
+  action.innerHTML = `
+    <button class="action-btn" onclick="goPre()">
+      Start Pre-Cleaning
+    </button>
+    <div class="note">
+      Begin sanitation process for this production line
+    </div>`;
 }
 
-renderActions();
+/* ===================================================
+   ADMIN OVERRIDE (5 TAP CORNER)
+=================================================== */
+let adminTap = 0;
+let adminTimer = null;
+
+document.getElementById("adminOverrideZone")
+  .addEventListener("click", () => {
+
+    adminTap++;
+
+    if (adminTap === 1) {
+      adminTimer = setTimeout(() => {
+        adminTap = 0;
+      }, 2000);
+    }
+
+    if (adminTap >= 5) {
+
+      clearTimeout(adminTimer);
+      adminTap = 0;
+
+      const pin = prompt(
+        "🔐 Supervisor Override\n\nEnter Admin PIN"
+      );
+
+      if (pin === ADMIN_PIN) {
+
+        localStorage.clear();
+
+        alert("✅ Sanitation system fully reset");
+
+        location.reload();
+
+      } else {
+        alert("❌ Incorrect PIN");
+      }
+    }
+});
+
+/* ===================================================
+   START
+=================================================== */
+renderControl();
 </script>
 
 </body>
