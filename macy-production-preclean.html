@@ -233,7 +233,31 @@ function stampPhoto(input) {
     <p style="opacity:.7">
       Auto unlock after 48 hours
     </p>
+function enableAdminCornerUnlock() {
 
+  const trigger = document.getElementById("adminTrigger");
+  if (!trigger) return;
+
+  let tapCount = 0;
+  let timer = null;
+
+  trigger.addEventListener("click", () => {
+
+    tapCount++;
+
+    if (tapCount === 1) {
+      timer = setTimeout(() => {
+        tapCount = 0;
+      }, 2000);
+    }
+
+    if (tapCount >= 3) {
+      clearTimeout(timer);
+      tapCount = 0;
+      adminUnlock();
+    }
+  });
+}
     <!-- 🔐 hidden admin trigger -->
     <div id="adminTrigger"
          style="
@@ -360,4 +384,5 @@ function submitPreCleaning() {
 
 </body>
 </html>
+
 
