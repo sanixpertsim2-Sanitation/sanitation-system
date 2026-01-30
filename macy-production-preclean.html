@@ -210,34 +210,45 @@ function stampPhoto(input) {
 
     if (diff < LOCK_HOURS) {
 
-      document.body.innerHTML = `
-        <div style="
-          height:100vh;
-          display:flex;
-          flex-direction:column;
-          justify-content:center;
-          align-items:center;
-          background:#0f172a;
-          color:white;
-          text-align:center;
-          padding:30px">
+     document.body.innerHTML = `
+  <div style="
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:#0f172a;
+    color:white;
+    text-align:center;
+    padding:30px;
+    position:relative">
 
-          <h1 id="adminUnlockTarget">🔒 Pre-Cleaning Locked</h1>
+    <h1>🔒 Pre-Cleaning Locked</h1>
 
-          <p>
-            Submitted at:<br>
-            <b>${new Date(Number(time)).toLocaleString()}</b>
-          </p>
+    <p>
+      Submitted at:<br>
+      <b>${new Date(Number(time)).toLocaleString()}</b>
+    </p>
 
-          <p style="opacity:.7">Auto unlock after 48 hours</p>
+    <p style="opacity:.7">
+      Auto unlock after 48 hours
+    </p>
 
-          <p style="font-size:13px;opacity:.4;margin-top:20px">
-            Tap 5 times to unlock (admin only)
-          </p>
-        </div>
-      `;
+    <!-- 🔐 hidden admin trigger -->
+    <div id="adminTrigger"
+         style="
+           position:absolute;
+           top:0;
+           right:0;
+           width:60px;
+           height:60px;
+           opacity:0;
+         ">
+    </div>
 
-      enableAdminTapUnlock();
+  </div>
+`;
+enableAdminCornerUnlock();
     }
   }
 })();
@@ -349,3 +360,4 @@ function submitPreCleaning() {
 
 </body>
 </html>
+
