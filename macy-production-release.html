@@ -8,50 +8,39 @@
 <link rel="stylesheet" href="css/style.css">
 
 <style>
-.section {
-  background: rgba(255,255,255,0.08);
-  padding: 22px;
-  border-radius: 18px;
-  margin-bottom: 25px;
+.section{
+  background:rgba(255,255,255,0.08);
+  padding:22px;
+  border-radius:18px;
+  margin-bottom:25px;
 }
-
-.question { margin-bottom: 22px; }
-
-select, textarea, input {
-  width: 100%;
-  padding: 12px;
-  border-radius: 12px;
-  border: none;
-  margin-top: 8px;
+.question{margin-bottom:22px;}
+select,textarea,input{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:none;
+  margin-top:8px;
 }
-
-.hidden { display:none; }
-
-.photo-time {
-  font-size: 12px;
-  color: #93c5fd;
-  margin-top: 5px;
+.hidden{display:none;}
+canvas{
+  width:100%;
+  height:180px;
+  border:2px dashed #60a5fa;
+  border-radius:14px;
+  background:#020617;
 }
-
-canvas {
-  width: 100%;
-  height: 180px;
-  border: 2px dashed #60a5fa;
-  border-radius: 14px;
-  background: #020617;
-  margin-top: 10px;
+button{
+  width:100%;
+  padding:18px;
+  font-size:18px;
+  border-radius:18px;
+  border:none;
+  margin-top:20px;
+  background:linear-gradient(135deg,#22c55e,#16a34a);
+  color:white;
 }
-
-button {
-  width: 100%;
-  padding: 18px;
-  font-size: 18px;
-  border-radius: 18px;
-  border: none;
-  background: linear-gradient(135deg,#22c55e,#16a34a);
-  color: white;
-  margin-top: 20px;
-}
+.warn{background:#f59e0b;}
 </style>
 </head>
 
@@ -60,128 +49,93 @@ button {
 <div class="container">
 
 <h1 class="page-title">Area Lead Verification</h1>
-<h3>Final Line Release – MACY Production</h3>
+<h3>Final Line Decision</h3>
 
-<!-- QUESTIONS -->
-
-<div class="section question">
-<label>1️⃣ Verify all coverings removed *</label>
-<select onchange="toggleExtra(this)">
-  <option value="">Select</option>
-  <option>Yes</option>
-  <option>No</option>
-</select>
-<div class="extra hidden">
-  <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-  <div class="photo-time"></div>
-  <textarea placeholder="Mention exact area"></textarea>
-</div>
-</div>
-
-<div class="section question">
-<label>2️⃣ Conveyor verification *</label>
-<select onchange="toggleExtraAlways(this)">
-  <option value="">Select</option>
-  <option>Yes</option>
-  <option>No</option>
-</select>
-<div class="extra hidden">
-  <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-  <div class="photo-time"></div>
-  <textarea placeholder="Mention conveyor / area"></textarea>
-</div>
-</div>
-
-<div class="section question">
-<label>3️⃣ Frames & structure cleanliness *</label>
-<select onchange="handleExtra(this)">
-  <option value="">Select</option>
-  <option>Excellent</option>
-  <option>Moderate Standard</option>
-  <option>Not up to the mark</option>
-</select>
-<div class="extra hidden">
-  <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-  <div class="photo-time"></div>
-  <textarea placeholder="Comment required"></textarea>
-</div>
-</div>
-
-<div class="section question">
-<label>4️⃣ Floor condition *</label>
-<select onchange="handleExtra(this)">
-  <option value="">Select</option>
-  <option>Excellent</option>
-  <option>Acceptable Standard</option>
-  <option>Need Floor Cleaning</option>
-</select>
-<div class="extra hidden">
-  <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-  <div class="photo-time"></div>
-  <textarea placeholder="Comment required"></textarea>
-</div>
-</div>
-
-<div class="section">
-<label>Area Lead Selfie *</label>
-<input type="file" accept="image/*" capture="user" id="selfie">
-</div>
-
+<!-- LEAD -->
 <div class="section">
 <label>Area Lead Name *</label>
-<input type="text" id="leadName">
-
-<label>Enter PIN *</label>
-<input type="password" id="leadPin">
+<select id="leadName">
+  <option value="">Select</option>
+  <option>Adarsh</option>
+  <option>Prabhdeep</option>
+  <option>Arjan</option>
+  <option>Karanpreeth</option>
+</select>
 
 <label>Signature *</label>
 <canvas id="signPad"></canvas>
 <button onclick="clearSignature()">Clear Signature</button>
 </div>
 
-<button onclick="submitRelease()">✅ RELEASE LINE</button>
+<!-- QUESTIONS -->
+
+<div class="section question">
+<label>1️⃣ Verify all coverings removed *</label>
+<select onchange="toggleFinding(this)">
+  <option value="">Select</option>
+  <option>Yes</option>
+  <option>No</option>
+</select>
+<div class="extra hidden">
+  <textarea placeholder="Comment required"></textarea>
+</div>
+</div>
+
+<div class="section question">
+<label>2️⃣ Conveyor verification *</label>
+<select onchange="toggleFinding(this)">
+  <option value="">Select</option>
+  <option>Yes</option>
+  <option>No</option>
+</select>
+<div class="extra hidden">
+  <textarea placeholder="Comment required"></textarea>
+</div>
+</div>
+
+<div class="section question">
+<label>3️⃣ Frames & structure *</label>
+<select onchange="toggleFinding(this)">
+  <option value="">Select</option>
+  <option>Excellent</option>
+  <option>Moderate Standard</option>
+  <option>Not up to the mark</option>
+</select>
+<div class="extra hidden">
+  <textarea placeholder="Comment required"></textarea>
+</div>
+</div>
+
+<div class="section question">
+<label>4️⃣ Floor condition *</label>
+<select onchange="toggleFinding(this)">
+  <option value="">Select</option>
+  <option>Excellent</option>
+  <option>Acceptable Standard</option>
+  <option>Need Floor Cleaning</option>
+</select>
+<div class="extra hidden">
+  <textarea placeholder="Comment required"></textarea>
+</div>
+</div>
+
+<button class="warn" onclick="reviewDamages()">🔧 Review Damages</button>
+<button class="warn" onclick="goHandover()">📋 Review Handover</button>
+
+<button onclick="submitArea()">Submit</button>
 
 </div>
 
 <script>
-const AREA_LEAD_PIN = "0735";
 
-/* DAMAGE CHECK */
-const damages =
-JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
-
-const unresolved =
-damages.filter(d => d.status !== "Resolved");
-
-/* PHOTO TIME */
-function stampPhoto(i){
-  const t = new Date().toLocaleString();
-  i.setAttribute("data-time",t);
-  const b = i.parentElement.querySelector(".photo-time");
-  if(b) b.innerText = "🕒 " + t;
-}
-
-/* TOGGLES */
-function toggleExtra(s){
-  s.parentElement.querySelector(".extra")
-   .classList.toggle("hidden", s.value !== "No");
-}
-function toggleExtraAlways(s){
-  s.parentElement.querySelector(".extra").classList.remove("hidden");
-}
-function handleExtra(s){
-  s.parentElement.querySelector(".extra").classList.remove("hidden");
-}
-
-/* SIGNATURE */
-const canvas = document.getElementById("signPad");
-const ctx = canvas.getContext("2d");
+/* SIGN */
+const canvas=document.getElementById("signPad");
+const ctx=canvas.getContext("2d");
 let draw=false;
-
 canvas.onmousedown=()=>draw=true;
 canvas.onmouseup=()=>{draw=false;ctx.beginPath();};
 canvas.onmousemove=e=>{
-  if(!draw) return;
+  if(!draw)return;
   const r=canvas.getBoundingClientRect();
   ctx.lineWidth=2;
   ctx.strokeStyle="#38bdf8";
@@ -190,89 +144,74 @@ canvas.onmousemove=e=>{
   ctx.beginPath();
   ctx.moveTo(e.clientX-r.left,e.clientY-r.top);
 };
+function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height);}
 
-function clearSignature(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+/* FINDING */
+function toggleFinding(sel){
+  const bad =
+    sel.value==="No" ||
+    sel.value==="Not up to the mark" ||
+    sel.value==="Need Floor Cleaning";
+
+  sel.parentElement.querySelector(".extra")
+    .classList.toggle("hidden",!bad);
 }
 
-/* BASE64 */
-function readBase64(input, cb){
-  if(!input.files[0]) return cb(null);
-  const r=new FileReader();
-  r.onload=e=>cb(e.target.result);
-  r.readAsDataURL(input.files[0]);
+function reviewDamages(){
+  window.location.href="postclean.html";
+}
+function goHandover(){
+  window.location.href="macy-production-handover.html";
 }
 
-/* FINAL SUBMIT */
-function submitRelease(){
+/* SUBMIT */
+function submitArea(){
 
-  if(unresolved.length>0){
-    alert("⚠️ Unresolved damages exist. Close handover first.");
+  const lead=document.getElementById("leadName").value;
+  if(!lead) return alert("Select Area Lead");
+
+  const sign=canvas.toDataURL();
+  if(sign.length<1000) return alert("Signature required");
+
+  let handovers =
+    JSON.parse(localStorage.getItem("macyHandoverTasks")||"[]");
+
+  let newTasks=[];
+
+  document.querySelectorAll(".question").forEach(q=>{
+    const txt=q.querySelector("textarea");
+    if(txt && txt.value.trim()){
+      newTasks.push({
+        task: txt.value.trim(),
+        status:"Pending",
+        source:"Area Verification",
+        time:new Date().toLocaleString()
+      });
+    }
+  });
+
+  if(newTasks.length){
+    handovers = handovers.concat(newTasks);
+    localStorage.setItem("macyHandoverTasks",JSON.stringify(handovers));
+    alert("⚠ Sent to Handover");
+    window.location.href="macy-production-control.html";
     return;
   }
 
-  const name=document.getElementById("leadName").value.trim();
-  const pin=document.getElementById("leadPin").value.trim();
+  const pending =
+    handovers.some(h=>h.status!=="Completed");
 
-  if(!name||!pin) return alert("Name and PIN required.");
-  if(pin!==AREA_LEAD_PIN) return alert("Invalid PIN.");
-
-  const sign=canvas.toDataURL();
-  if(sign.length<1000) return alert("Signature required.");
-
-  let findings=[];
-  let pending=0;
-
-  document.querySelectorAll(".question").forEach(q=>{
-    const sel=q.querySelector("select");
-    const txt=q.querySelector("textarea");
-    const img=q.querySelector("input[type=file]");
-
-    const v=sel?.value||"";
-    const c=txt?.value.trim()||"";
-
-    const isFinding =
-      v==="No" ||
-      v==="Not up to the mark" ||
-      v==="Need Floor Cleaning" ||
-      c!=="";
-
-    if(!isFinding) return;
-
-    pending++;
-
-    readBase64(img, photo=>{
-      findings.push({
-        question:q.querySelector("label").innerText,
-        response:v,
-        comment:c,
-        photo,
-        time:new Date().toLocaleString()
-      });
-      pending--;
-      if(pending===0) finalize(findings,name);
-    });
-  });
-
-  if(pending===0) finalize(findings,name);
-}
-
-/* FINALIZE */
-function finalize(findings,name){
-
-  if(findings.length>0){
-    localStorage.setItem("macyProdFindings",JSON.stringify(findings));
-    localStorage.setItem("macyProdFindingRequired","YES");
-    alert("⚠️ Findings detected. Handover required.");
-    window.location.href="macy-production-handover.html";
+  if(pending){
+    alert("⚠ Pending handovers exist");
+    window.location.href="macy-production-control.html";
     return;
   }
 
   localStorage.setItem("macyProdReleased","YES");
-  localStorage.setItem("macyProdReleasedBy",name);
+  localStorage.setItem("macyProdReleasedBy",lead);
   localStorage.setItem("macyProdReleaseTime",new Date().toLocaleString());
 
-  alert("✅ LINE RELEASED SUCCESSFULLY");
+  alert("✅ LINE RELEASED");
   window.location.href="macy-production-control.html";
 }
 </script>
