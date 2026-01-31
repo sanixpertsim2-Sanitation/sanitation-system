@@ -55,9 +55,9 @@ select,textarea,input{
 }
 
 .damage-card{
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:14px;
+  border:1px solid rgba(255,255,255,.2);
   padding:16px;
+  border-radius:14px;
   margin-bottom:18px;
 }
 </style>
@@ -70,7 +70,7 @@ select,textarea,input{
 <h1 class="page-title">MACY – <span id="areaName"></span></h1>
 <h3>Post-Cleaning Verification</h3>
 
-<!-- EMPLOYEE -->
+<!-- EMPLOYEE INFO -->
 <div class="section">
   <h3>Employee Information</h3>
 
@@ -85,6 +85,47 @@ select,textarea,input{
 <div class="section">
   <h3>Bag Reconciliation</h3>
   <input type="number" id="bagsRetrieved" placeholder="Enter bags retrieved">
+</div>
+
+<!-- CLEANING -->
+<div class="section">
+  <h3>Cleaning Verification</h3>
+
+  <div class="question">
+    Conveyor cleaned and residue free *
+    <select onchange="toggleNA(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>N/A</option>
+    </select>
+    <textarea class="hidden" placeholder="Comment required"></textarea>
+    <input class="hidden" type="file" accept="image/*" capture="environment">
+  </div>
+
+  <div class="question">
+    Guards reinstalled correctly *
+    <select onchange="toggleNA(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>N/A</option>
+    </select>
+    <textarea class="hidden"></textarea>
+    <input class="hidden" type="file" accept="image/*" capture="environment">
+  </div>
+
+  <div class="question">
+    Frames & structure cleaned *
+    <select onchange="toggleNA(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>N/A</option>
+    </select>
+    <textarea class="hidden"></textarea>
+    <input class="hidden" type="file" accept="image/*" capture="environment">
+  </div>
 </div>
 
 <!-- HANDOVER -->
@@ -117,14 +158,13 @@ select,textarea,input{
   </div>
 </div>
 
-<button class="submit-btn"
-  style="background:#f59e0b;margin-bottom:15px"
-  onclick="openDamagePopup()">
-  ⚠ Review Damage
+<button class="submit-btn" style="background:#f59e0b;margin-bottom:15px"
+onclick="openDamagePopup()">
+⚠ Review Damage
 </button>
 
 <button class="submit-btn" onclick="submitPostClean()">
-  Submit Post-Cleaning
+Submit Post-Cleaning
 </button>
 
 </div>
@@ -143,7 +183,7 @@ style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99
 </div>
 
 <script>
-window.onload = () => {
+window.onload=()=>{
   document.getElementById("areaName").innerText =
     localStorage.getItem("selectedArea") || "Area";
 
@@ -154,9 +194,18 @@ window.onload = () => {
     new Date().toLocaleString();
 };
 
+function toggleNA(sel){
+  const q=sel.closest(".question");
+  const t=q.querySelector("textarea");
+  const f=q.querySelector("input");
+  sel.value==="Acceptable"
+    ? (t.classList.add("hidden"),f.classList.add("hidden"))
+    : (t.classList.remove("hidden"),f.classList.remove("hidden"));
+}
+
 function toggleHandover(sel){
   document.getElementById("handoverBox")
-    .classList.toggle("hidden", sel.value !== "Yes");
+    .classList.toggle("hidden", sel.value!=="Yes");
 }
 
 /* DAMAGE */
@@ -177,7 +226,7 @@ function openDamagePopup(){
         <b>${d.area}</b><br>${d.description}
 
         <label>Action *</label>
-        <select onchange="toggleDamage('${d.id}', this.value)">
+        <select onchange="toggleDamage('${d.id}',this.value)">
           <option value="">Select</option>
           <option value="Completed">Completed</option>
           <option value="Handover">Handover</option>
@@ -208,9 +257,8 @@ function openDamagePopup(){
         </div>
 
         <button class="submit-btn" style="margin-top:12px"
-          onclick="saveDamage('${d.id}')">Save</button>
-      </div>
-    `;
+        onclick="saveDamage('${d.id}')">Save</button>
+      </div>`;
   });
 
   document.getElementById("damagePopup").style.display="block";
@@ -231,19 +279,20 @@ function saveDamage(id){
   const data=JSON.parse(localStorage.getItem("macyDamageReports")||"[]");
   const d=data.find(x=>x.id===id);
 
-  const comp=document.getElementById("comp-"+id);
-  const hand=document.getElementById("hand-"+id);
-
-  if(!comp.classList.contains("hidden")){
-    const who=document.getElementById("who-"+id).value;
-    const photo=document.getElementById("photo-"+id).files.length;
-    if(!who || !photo){alert("Completed requires person and photo");return;}
+  if(!document.getElementById("comp-"+id).classList.contains("hidden")){
+    if(!document.getElementById("who-"+id).value ||
+       !document.getElementById("photo-"+id).files.length){
+      alert("Completed requires person and photo");
+      return;
+    }
     d.status="Completed";
   }
 
-  if(!hand.classList.contains("hidden")){
-    const r=document.getElementById("reason-"+id).value;
-    if(!r){alert("Select handover reason");return;}
+  if(!document.getElementById("hand-"+id).classList.contains("hidden")){
+    if(!document.getElementById("reason-"+id).value){
+      alert("Select handover reason");
+      return;
+    }
     d.status="Handover";
   }
 
@@ -255,7 +304,6 @@ function closePopup(){
   document.getElementById("damagePopup").style.display="none";
 }
 
-/* SUBMIT */
 function submitPostClean(){
 
   if(!document.getElementById("bagsRetrieved").value){
