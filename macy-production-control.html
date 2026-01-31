@@ -61,15 +61,19 @@ const ADMIN_PIN = "0735";
 function goPre() {
   window.location.href = "macy-production-preclean.html";
 }
+
 function goPost() {
   window.location.href = "postclean.html";
 }
+
 function goDamage() {
   window.location.href = "damage.html";
 }
+
 function goHandover() {
   window.location.href = "macy-production-handover.html";
 }
+
 function goInspection() {
   const pin = prompt("🔐 Area Inspection Access\n\nEnter PIN");
 
@@ -85,14 +89,9 @@ function goInspection() {
 ============================= */
 function renderControl() {
 
-  const preDone =
-    localStorage.getItem("macyProdPrecleanDone");
-
-  const postDone =
-    localStorage.getItem("macyProdPostcleanDone");
-
-  const released =
-    localStorage.getItem("macyProdReleased");
+  const preDone  = localStorage.getItem("macyProdPrecleanDone");
+  const postDone = localStorage.getItem("macyProdPostcleanDone");
+  const released = localStorage.getItem("macyProdReleased");
 
   const status = document.getElementById("statusBox");
   const action = document.getElementById("actionBox");
@@ -113,7 +112,7 @@ function renderControl() {
 
   /* ==========================
      🟠 POST CLEAN DONE
-     → ONLY HANDOVER + INSPECTION
+     ONLY HANDOVER + INSPECTION
   ========================== */
   if (postDone === "YES") {
 
