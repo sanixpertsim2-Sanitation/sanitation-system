@@ -15,9 +15,7 @@
   margin-bottom: 25px;
 }
 
-.question {
-  margin-bottom: 22px;
-}
+.question { margin-bottom: 22px; }
 
 select, textarea, input {
   width: 100%;
@@ -52,7 +50,6 @@ button {
   border: none;
   background: linear-gradient(135deg,#22c55e,#16a34a);
   color: white;
-  cursor: pointer;
   margin-top: 20px;
 }
 </style>
@@ -65,109 +62,81 @@ button {
 <h1 class="page-title">Area Lead Verification</h1>
 <h3>Final Line Release – MACY Production</h3>
 
-<!-- ========================= -->
-<!-- QUESTION 1 -->
-<!-- ========================= -->
-<div class="section question">
-  <label>1️⃣ Verify all coverings removed *</label>
-  <select onchange="toggleExtra(this)">
-    <option value="">Select</option>
-    <option>Yes</option>
-    <option>No</option>
-  </select>
+<!-- QUESTIONS -->
 
-  <div class="extra hidden">
-    <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-    <div class="photo-time"></div>
-    <textarea placeholder="Mention exact area where covering found"></textarea>
-  </div>
+<div class="section question">
+<label>1️⃣ Verify all coverings removed *</label>
+<select onchange="toggleExtra(this)">
+  <option value="">Select</option>
+  <option>Yes</option>
+  <option>No</option>
+</select>
+<div class="extra hidden">
+  <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
+  <div class="photo-time"></div>
+  <textarea placeholder="Mention exact area"></textarea>
+</div>
 </div>
 
-<!-- ========================= -->
-<!-- QUESTION 2 -->
-<!-- ========================= -->
 <div class="section question">
-  <label>2️⃣ Conveyor verification *</label>
-  <select onchange="toggleExtraAlways(this)">
-    <option value="">Select</option>
-    <option>Yes</option>
-    <option>No</option>
-  </select>
-
-  <div class="extra hidden">
-    <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-    <div class="photo-time"></div>
-    <textarea placeholder="Mention conveyor / area"></textarea>
-  </div>
+<label>2️⃣ Conveyor verification *</label>
+<select onchange="toggleExtraAlways(this)">
+  <option value="">Select</option>
+  <option>Yes</option>
+  <option>No</option>
+</select>
+<div class="extra hidden">
+  <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
+  <div class="photo-time"></div>
+  <textarea placeholder="Mention conveyor / area"></textarea>
+</div>
 </div>
 
-<!-- ========================= -->
-<!-- QUESTION 3 -->
-<!-- ========================= -->
 <div class="section question">
-  <label>3️⃣ Frames & Structure cleanliness *</label>
-  <select onchange="handleFrame(this)">
-    <option value="">Select</option>
-    <option>Excellent</option>
-    <option>Moderate Standard</option>
-    <option>Not up to the mark</option>
-  </select>
-
-  <div class="extra hidden">
-    <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-    <div class="photo-time"></div>
-    <textarea placeholder="Comment required for Not up to the mark"></textarea>
-  </div>
+<label>3️⃣ Frames & structure cleanliness *</label>
+<select onchange="handleExtra(this)">
+  <option value="">Select</option>
+  <option>Excellent</option>
+  <option>Moderate Standard</option>
+  <option>Not up to the mark</option>
+</select>
+<div class="extra hidden">
+  <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
+  <div class="photo-time"></div>
+  <textarea placeholder="Comment required"></textarea>
+</div>
 </div>
 
-<!-- ========================= -->
-<!-- QUESTION 4 -->
-<!-- ========================= -->
 <div class="section question">
-  <label>4️⃣ Floor condition *</label>
-  <select onchange="handleFloor(this)">
-    <option value="">Select</option>
-    <option>Excellent</option>
-    <option>Acceptable Standard</option>
-    <option>Need Floor Cleaning</option>
-  </select>
-
-  <div class="extra hidden">
-    <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
-    <div class="photo-time"></div>
-    <textarea placeholder="Comment required if cleaning needed"></textarea>
-  </div>
+<label>4️⃣ Floor condition *</label>
+<select onchange="handleExtra(this)">
+  <option value="">Select</option>
+  <option>Excellent</option>
+  <option>Acceptable Standard</option>
+  <option>Need Floor Cleaning</option>
+</select>
+<div class="extra hidden">
+  <input type="file" accept="image/*" capture="environment" onchange="stampPhoto(this)">
+  <div class="photo-time"></div>
+  <textarea placeholder="Comment required"></textarea>
+</div>
 </div>
 
-<!-- ========================= -->
-<!-- LINE CLEANLINESS -->
-<!-- ========================= -->
 <div class="section">
-  <label>5️⃣ Entire line cleanliness (area-wise photos – max 15)</label>
-  <input type="file" accept="image/*" capture="environment" multiple id="linePhotos">
+<label>Area Lead Selfie *</label>
+<input type="file" accept="image/*" capture="user" id="selfie">
 </div>
 
-<!-- ========================= -->
-<!-- SELFIE -->
-<!-- ========================= -->
 <div class="section">
-  <label>Area Lead Selfie *</label>
-  <input type="file" accept="image/*" capture="user" id="selfie">
-</div>
+<label>Area Lead Name *</label>
+<input type="text" id="leadName">
 
-<!-- ========================= -->
-<!-- LEAD INFO -->
-<!-- ========================= -->
-<div class="section">
-  <label>Area Lead Name *</label>
-  <input type="text" id="leadName">
+<label>Enter PIN *</label>
+<input type="password" id="leadPin">
 
-  <label>Enter PIN *</label>
-  <input type="password" id="leadPin">
-
-  <label>Signature *</label>
-  <canvas id="signPad"></canvas>
-  <button onclick="clearSignature()">Clear Signature</button>
+<label>Signature *</label>
+<canvas id="signPad"></canvas>
+<button onclick="clearSignature()">Clear Signature</button>
 </div>
 
 <button onclick="submitRelease()">✅ RELEASE LINE</button>
@@ -175,232 +144,138 @@ button {
 </div>
 
 <script>
-const damages =
-  JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
-
-const unresolved =
-  damages.filter(d => d.status !== "Resolved");
-  
 const AREA_LEAD_PIN = "0735";
 
-/* PHOTO TIMESTAMP */
-function stampPhoto(input) {
-  const time = new Date().toLocaleString();
-  const box = input.parentElement.querySelector(".photo-time");
-  if (box) box.innerText = "🕒 " + time;
-  input.setAttribute("data-time", time);
+/* DAMAGE CHECK */
+const damages =
+JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
+
+const unresolved =
+damages.filter(d => d.status !== "Resolved");
+
+/* PHOTO TIME */
+function stampPhoto(i){
+  const t = new Date().toLocaleString();
+  i.setAttribute("data-time",t);
+  const b = i.parentElement.querySelector(".photo-time");
+  if(b) b.innerText = "🕒 " + t;
 }
 
 /* TOGGLES */
-function toggleExtra(sel){
-  const ex = sel.parentElement.querySelector(".extra");
-  sel.value === "No" ? ex.classList.remove("hidden") : ex.classList.add("hidden");
+function toggleExtra(s){
+  s.parentElement.querySelector(".extra")
+   .classList.toggle("hidden", s.value !== "No");
 }
-
-function toggleExtraAlways(sel){
-  sel.parentElement.querySelector(".extra").classList.remove("hidden");
+function toggleExtraAlways(s){
+  s.parentElement.querySelector(".extra").classList.remove("hidden");
 }
-
-function handleFrame(sel){
-  const ex = sel.parentElement.querySelector(".extra");
-  ex.classList.remove("hidden");
-}
-
-function handleFloor(sel){
-  const ex = sel.parentElement.querySelector(".extra");
-  ex.classList.remove("hidden");
+function handleExtra(s){
+  s.parentElement.querySelector(".extra").classList.remove("hidden");
 }
 
 /* SIGNATURE */
 const canvas = document.getElementById("signPad");
 const ctx = canvas.getContext("2d");
-let draw = false;
+let draw=false;
 
-canvas.addEventListener("mousedown",()=>draw=true);
-canvas.addEventListener("mouseup",()=>draw=false);
-canvas.addEventListener("mousemove",e=>{
+canvas.onmousedown=()=>draw=true;
+canvas.onmouseup=()=>{draw=false;ctx.beginPath();};
+canvas.onmousemove=e=>{
   if(!draw) return;
-  const r = canvas.getBoundingClientRect();
+  const r=canvas.getBoundingClientRect();
   ctx.lineWidth=2;
   ctx.strokeStyle="#38bdf8";
   ctx.lineTo(e.clientX-r.left,e.clientY-r.top);
   ctx.stroke();
   ctx.beginPath();
   ctx.moveTo(e.clientX-r.left,e.clientY-r.top);
-});
+};
 
 function clearSignature(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 }
-function readPhotoBase64(input, callback) {
-  const file = input?.files?.[0];
-  if (!file) {
-    callback(null);
-    return;
-  }
 
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    callback(e.target.result);
-  };
-  reader.readAsDataURL(file);
+/* BASE64 */
+function readBase64(input, cb){
+  if(!input.files[0]) return cb(null);
+  const r=new FileReader();
+  r.onload=e=>cb(e.target.result);
+  r.readAsDataURL(input.files[0]);
 }
 
 /* FINAL SUBMIT */
+function submitRelease(){
 
-function submitRelease() {
-
-  if (unresolved.length > 0) {
-  alert(
-    "⚠️ There are unresolved damages.\n\n" +
-    "Please close them from handover before release."
-  );
-  return;
-}
-  const name = document.getElementById("leadName").value.trim();
-  const pin = document.getElementById("leadPin").value.trim();
-
-  if (!name || !pin) {
-    alert("Area Lead name and PIN required.");
+  if(unresolved.length>0){
+    alert("⚠️ Unresolved damages exist. Close handover first.");
     return;
   }
 
-  if (pin !== AREA_LEAD_PIN) {
-    alert("Invalid PIN.");
-    return;
-  }
+  const name=document.getElementById("leadName").value.trim();
+  const pin=document.getElementById("leadPin").value.trim();
 
-  const signatureData = canvas.toDataURL();
-  if (signatureData.length < 1000) {
-    alert("Signature is required.");
-    return;
-  }
-function finalizeRelease(findings) {
+  if(!name||!pin) return alert("Name and PIN required.");
+  if(pin!==AREA_LEAD_PIN) return alert("Invalid PIN.");
 
-  const name = document.getElementById("leadName").value.trim();
+  const sign=canvas.toDataURL();
+  if(sign.length<1000) return alert("Signature required.");
 
-  localStorage.setItem("macyProdLeadName", name);
-  localStorage.setItem("macyProdLeadVerifyTime", new Date().toLocaleString());
+  let findings=[];
+  let pending=0;
 
-  if (findings.length > 0) {
+  document.querySelectorAll(".question").forEach(q=>{
+    const sel=q.querySelector("select");
+    const txt=q.querySelector("textarea");
+    const img=q.querySelector("input[type=file]");
 
-    localStorage.setItem(
-      "macyProdFindings",
-      JSON.stringify(findings)
-    );
+    const v=sel?.value||"";
+    const c=txt?.value.trim()||"";
 
-    localStorage.setItem("macyProdFindingRequired", "YES");
+    const isFinding =
+      v==="No" ||
+      v==="Not up to the mark" ||
+      v==="Need Floor Cleaning" ||
+      c!=="";
 
-    alert("⚠️ Findings detected. Redirecting to handover.");
+    if(!isFinding) return;
 
-    window.location.href = "macy-production-handover.html";
-    return;
-  }
+    pending++;
 
-  // ✅ NO FINDINGS → RELEASE
-  localStorage.setItem("macyProdReleased", "YES");
-  localStorage.setItem("macyProdReleasedBy", name);
-  localStorage.setItem(
-    "macyProdReleaseTime",
-    new Date().toLocaleString()
-  );
-
-  alert("✅ Line released successfully.");
-
-  window.location.href = "macy-production-control.html";
-}
-  // =============================
-  // CHECK FINDINGS
-  // =============================
-
-let findings = [];
-let pending = 0;
-
-document.querySelectorAll(".question").forEach((q) => {
-
-  const select = q.querySelector("select");
-  const comment = q.querySelector("textarea");
-  const photoInput = q.querySelector("input[type='file']");
-
-  if (!select) return;
-
-  const value = select.value;
-  const commentText = comment ? comment.value.trim() : "";
-  const photoTime = photoInput?.getAttribute("data-time") || "";
-
-  const isFinding =
-    value === "No" ||
-    value === "Not up to the mark" ||
-    value === "Need Floor Cleaning" ||
-    commentText !== "";
-
-  if (!isFinding) return;
-
-  pending++;
-
-  readPhotoBase64(photoInput, function (imageData) {
-
-    findings.push({
-      question: q.querySelector("label").innerText,
-      response: value,
-      comment: commentText,
-      photo: imageData,              // ✅ IMAGE STORED
-      photoTime: photoTime,          // 🕒 CAMERA TIME
-      verifiedAt: new Date().toLocaleString()
+    readBase64(img, photo=>{
+      findings.push({
+        question:q.querySelector("label").innerText,
+        response:v,
+        comment:c,
+        photo,
+        time:new Date().toLocaleString()
+      });
+      pending--;
+      if(pending===0) finalize(findings,name);
     });
-
-    pending--;
-
-    if (pending === 0) {
-      finalizeRelease(findings);
-    }
   });
-});
 
-  // =============================
-  // SAVE LEAD INFO
-  // =============================
-  localStorage.setItem("macyProdLeadName", name);
-  localStorage.setItem("macyProdLeadSignature", signatureData);
-  localStorage.setItem("macyProdLeadVerifyTime", new Date().toLocaleString());
+  if(pending===0) finalize(findings,name);
+}
 
-  // =============================
-  // FINDINGS PRESENT → HANDOVER
-  // =============================
-  if (findings.length > 0) {
+/* FINALIZE */
+function finalize(findings,name){
 
-    localStorage.setItem(
-      "macyProdFindings",
-      JSON.stringify(findings)
-    );
-
-    localStorage.setItem("macyProdFindingRequired", "YES");
-
-    alert(
-      "⚠️ Findings detected.\n\nHandover is required before line release."
-    );
-
-    window.location.href = "macy-production-handover.html";
+  if(findings.length>0){
+    localStorage.setItem("macyProdFindings",JSON.stringify(findings));
+    localStorage.setItem("macyProdFindingRequired","YES");
+    alert("⚠️ Findings detected. Handover required.");
+    window.location.href="macy-production-handover.html";
     return;
   }
 
-  // =============================
-  // NO FINDINGS → RELEASE
-  // =============================
-  localStorage.setItem("macyProdReleased", "YES");
-  localStorage.setItem("macyProdReleasedBy", name);
-  localStorage.setItem(
-    "macyProdReleaseTime",
-    new Date().toLocaleString()
-  );
+  localStorage.setItem("macyProdReleased","YES");
+  localStorage.setItem("macyProdReleasedBy",name);
+  localStorage.setItem("macyProdReleaseTime",new Date().toLocaleString());
 
-  alert("✅ Line released successfully.");
-
-  window.location.href = "macy-production-control.html";
+  alert("✅ LINE RELEASED SUCCESSFULLY");
+  window.location.href="macy-production-control.html";
 }
-
 </script>
 
 </body>
 </html>
-
