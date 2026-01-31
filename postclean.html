@@ -208,7 +208,7 @@ function toggleHandover(sel){
     .classList.toggle("hidden", sel.value!=="Yes");
 }
 
-/* DAMAGE */
+/* ================= DAMAGE ================= */
 function openDamagePopup(){
   const list=document.getElementById("popupList");
   list.innerHTML="";
@@ -304,19 +304,59 @@ function closePopup(){
   document.getElementById("damagePopup").style.display="none";
 }
 
+/* ================= SUBMIT ================= */
 function submitPostClean(){
 
-  if(!document.getElementById("bagsRetrieved").value){
+  const postBags = Number(document.getElementById("bagsRetrieved").value);
+  if(!postBags){
     alert("Enter bags retrieved");
     return;
   }
 
-  if(!document.getElementById("handoverSelect").value){
+  // ✅ BAG VALIDATION
+  const preBags = Number(localStorage.getItem("macyProdBagCount") || 0);
+
+  if(preBags && postBags !== preBags){
+    alert(
+      "❌ Bag count mismatch\n\n" +
+      "Pre-clean: " + preBags +
+      "\nPost-clean: " + postBags
+    );
+    return;
+  }
+
+  const handoverValue = document.getElementById("handoverSelect").value;
+  if(!handoverValue){
     alert("Select handover option");
     return;
   }
 
-  const damages=JSON.parse(localStorage.getItem("macyDamageReports")||"[]");
+  // ✅ SAVE HANDOVER TASKS
+  if(handoverValue === "Yes"){
+    const inputs = document.querySelectorAll("#handoverBox input");
+    let existing =
+      JSON.parse(localStorage.getItem("macyHandoverTasks") || "[]");
+
+    inputs.forEach(i=>{
+      if(i.value.trim()){
+        existing.push({
+          task: i.value.trim(),
+          status: "Pending",
+          source: "Post Cleaning",
+          time: new Date().toLocaleString()
+        });
+      }
+    });
+
+    localStorage.setItem(
+      "macyHandoverTasks",
+      JSON.stringify(existing)
+    );
+  }
+
+  const damages =
+    JSON.parse(localStorage.getItem("macyDamageReports")||"[]");
+
   if(damages.some(d=>d.status==="Open")){
     document.getElementById("damageWarning").style.display="block";
     alert("All damages must be acknowledged");
@@ -333,3 +373,4 @@ function submitPostClean(){
 
 </body>
 </html>
+
