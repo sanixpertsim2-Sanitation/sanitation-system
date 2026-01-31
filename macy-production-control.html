@@ -34,22 +34,8 @@
   cursor: pointer;
 }
 
-.unlock-box {
-  margin-top: 18px;
-  padding: 18px;
-  border-radius: 14px;
-  border: 1px dashed rgba(255,255,255,.3);
-  background: rgba(255,255,255,.04);
-}
-
-.pin-input {
-  width: 100%;
-  font-size: 26px;
-  letter-spacing: 12px;
-  text-align: center;
-  padding: 14px;
-  border-radius: 12px;
-  border: none;
+.lock-btn {
+  background:#1e293b !important;
 }
 </style>
 </head>
@@ -69,6 +55,9 @@
 <script>
 const ADMIN_PIN = "0735";
 
+/* ======================
+   NAVIGATION
+====================== */
 function goPre() {
   window.location.href = "macy-production-preclean.html";
 }
@@ -77,6 +66,18 @@ function goPost() {
 }
 function goDamage() {
   window.location.href = "damage.html";
+}
+function goHandover() {
+  window.location.href = "macy-production-handover.html";
+}
+function goInspection() {
+  const pin = prompt("🔐 Area Inspection Access\n\nEnter PIN");
+
+  if (pin === ADMIN_PIN) {
+    window.location.href = "macy-area-inspection.html";
+  } else {
+    alert("❌ Incorrect PIN");
+  }
 }
 
 /* =============================
@@ -90,72 +91,117 @@ function renderControl() {
   const postDone =
     localStorage.getItem("macyProdPostcleanDone");
 
+  const released =
+    localStorage.getItem("macyProdReleased");
+
   const status = document.getElementById("statusBox");
   const action = document.getElementById("actionBox");
 
   status.innerHTML = "";
   action.innerHTML = "";
 
-  // 🔵 FIRST TIME
-  if (!preDone) {
+  /* ==========================
+     🟢 LINE RELEASED
+  ========================== */
+  if (released === "YES") {
     status.innerHTML =
-      `<div class="status blue">🔵 Sanitation not started</div>`;
-    action.innerHTML =
-      `<button class="action-btn" onclick="goPre()">
-        Start Pre-Cleaning
-      </button>`;
+      `<div class="status green">
+        🟢 LINE RELEASED
+      </div>`;
     return;
   }
 
-  // 🟡 PRE CLEAN DONE
+  /* ==========================
+     🟠 POST CLEAN DONE
+     → ONLY HANDOVER + INSPECTION
+  ========================== */
+  if (postDone === "YES") {
+
+    status.innerHTML =
+      `<div class="status orange">
+        🟠 Post-Cleaning Completed
+      </div>`;
+
+    action.innerHTML = `
+      <button class="action-btn" onclick="goHandover()">
+        📋 Handover
+      </button>
+
+      <button class="action-btn lock-btn" onclick="goInspection()">
+        🔒 Area Inspection (Aryaa)
+      </button>
+    `;
+    return;
+  }
+
+  /* ==========================
+     🟡 PRE CLEAN DONE
+  ========================== */
+  if (preDone === "YES") {
+
+    status.innerHTML =
+      `<div class="status yellow">
+        🟡 Pre-Cleaning Completed
+      </div>`;
+
+    action.innerHTML = `
+      <button class="action-btn" onclick="goDamage()">
+        Damage Report
+      </button>
+
+      <button class="action-btn" onclick="goPost()">
+        Start Post-Cleaning
+      </button>
+
+      <div style="
+        margin-top:25px;
+        padding:18px;
+        border:1px dashed rgba(255,255,255,.3);
+        border-radius:14px;
+        background:rgba(255,255,255,.04);
+      ">
+        <div style="font-size:14px;opacity:.7;margin-bottom:8px">
+          🔐 Admin Unlock Pre-Cleaning
+        </div>
+
+        <input
+          id="adminPin"
+          type="password"
+          maxlength="4"
+          inputmode="numeric"
+          placeholder="••••"
+          style="
+            width:100%;
+            padding:14px;
+            font-size:24px;
+            text-align:center;
+            letter-spacing:10px;
+            border-radius:12px;
+            border:none;
+          "
+          oninput="checkAdminPin(this)"
+        >
+      </div>
+    `;
+    return;
+  }
+
+  /* ==========================
+     🔵 FIRST TIME
+  ========================== */
   status.innerHTML =
-    `<div class="status yellow">
-      🟡 Pre-Cleaning Completed
+    `<div class="status blue">
+      🔵 Sanitation not started
     </div>`;
 
-  action.innerHTML = `
-    <button class="action-btn" onclick="goDamage()">
-      Damage Report
-    </button>
-
-    <button class="action-btn" onclick="goPost()">
-      Start Post-Cleaning
-    </button>
-
-    <div style="
-      margin-top:25px;
-      padding:18px;
-      border:1px dashed rgba(255,255,255,.3);
-      border-radius:14px;
-      background:rgba(255,255,255,.04);
-    ">
-      <div style="font-size:14px;opacity:.7;margin-bottom:8px">
-        🔐 Admin Unlock Pre-Cleaning
-      </div>
-
-      <input
-        id="adminPin"
-        type="password"
-        maxlength="4"
-        inputmode="numeric"
-        style="
-          width:100%;
-          padding:14px;
-          font-size:24px;
-          text-align:center;
-          letter-spacing:10px;
-          border-radius:12px;
-          border:none;
-        "
-        placeholder="••••"
-        oninput="checkAdminPin(this)"
-      >
-    </div>
-  `;
+  action.innerHTML =
+    `<button class="action-btn" onclick="goPre()">
+      Start Pre-Cleaning
+    </button>`;
 }
 
 /* =============================
-   PIN AUTO CHECK
+   ADMIN PIN CHECK
 ============================= */
 function checkAdminPin(input) {
 
@@ -165,8 +211,8 @@ function checkAdminPin(input) {
 
     localStorage.removeItem("macyProdPrecleanDone");
 
-    // GO BACK TO PRE-CLEAN WITH DATA
-    window.location.href = "macy-production-preclean.html";
+    window.location.href =
+      "macy-production-preclean.html";
 
   } else {
     input.value = "";
