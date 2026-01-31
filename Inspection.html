@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY – Area Inspection</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.section {
+  background: rgba(255,255,255,0.08);
+  padding:22px;
+  border-radius:18px;
+  margin-bottom:22px;
+}
+
+.question {
+  margin-bottom:18px;
+}
+
+select, textarea, input {
+  width:100%;
+  padding:11px;
+  border-radius:12px;
+  border:none;
+  margin-top:8px;
+}
+
+.hidden { display:none; }
+
+.submit-btn {
+  width:100%;
+  padding:18px;
+  font-size:18px;
+  border-radius:18px;
+  border:none;
+  background:linear-gradient(135deg,#22c55e,#16a34a);
+  color:white;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">MACY – Area Inspection</h1>
+<h3>Lead / QA Verification</h3>
+
+<div class="section">
+  <label>Inspector Name *</label>
+  <input type="text" id="inspector">
+</div>
+
+<div class="section">
+
+  <div class="question">
+    Area visually clean and acceptable *
+    <select onchange="toggle(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+    </select>
+    <textarea class="hidden" placeholder="Comment required"></textarea>
+    <input type="file" class="hidden" accept="image/*" capture="environment">
+  </div>
+
+  <div class="question">
+    No foreign material observed *
+    <select onchange="toggle(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+    </select>
+    <textarea class="hidden"></textarea>
+    <input type="file" class="hidden" accept="image/*" capture="environment">
+  </div>
+
+  <div class="question">
+    All guards installed and secured *
+    <select onchange="toggle(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+    </select>
+    <textarea class="hidden"></textarea>
+    <input type="file" class="hidden" accept="image/*" capture="environment">
+  </div>
+
+  <div class="question">
+    Equipment safe for startup *
+    <select onchange="toggle(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+    </select>
+    <textarea class="hidden"></textarea>
+    <input type="file" class="hidden" accept="image/*" capture="environment">
+  </div>
+
+  <div class="question">
+    Area approved for production *
+    <select onchange="toggle(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+    </select>
+    <textarea class="hidden"></textarea>
+    <input type="file" class="hidden" accept="image/*" capture="environment">
+  </div>
+
+</div>
+
+<button class="submit-btn" onclick="submitInspection()">
+  Submit Inspection
+</button>
+
+</div>
+
+<script>
+function toggle(sel) {
+  const q = sel.parentElement;
+  const t = q.querySelector("textarea");
+  const f = q.querySelector("input[type=file]");
+
+  if (sel.value === "Not Acceptable") {
+    t.classList.remove("hidden");
+    f.classList.remove("hidden");
+  } else {
+    t.classList.add("hidden");
+    f.classList.add("hidden");
+    t.value = "";
+    f.value = "";
+  }
+}
+
+function submitInspection() {
+
+  const name = document.getElementById("inspector").value.trim();
+  if (!name) {
+    alert("Inspector name required");
+    return;
+  }
+
+  const questions = document.querySelectorAll(".question");
+
+  for (let q of questions) {
+    const sel = q.querySelector("select");
+    const txt = q.querySelector("textarea");
+    const file = q.querySelector("input[type=file]");
+
+    if (!sel.value) {
+      alert("Complete all inspection items");
+      return;
+    }
+
+    if (sel.value === "Not Acceptable") {
+      if (!txt.value.trim() || !file.files.length) {
+        alert("Photo and comment required");
+        return;
+      }
+    }
+  }
+
+  localStorage.setItem("macyInspectionDone","YES");
+  localStorage.setItem("macyInspectionBy",name);
+  localStorage.setItem("macyInspectionTime",new Date().toLocaleString());
+
+  alert("✅ Area Inspection Completed");
+
+  window.location.href = "control.html";
+}
+</script>
+
+</body>
+</html>
