@@ -15,14 +15,12 @@
   margin-bottom:25px;
 }
 
-.question{margin-bottom:20px;}
-
 select,textarea,input{
   width:100%;
-  padding:11px;
+  padding:12px;
   border-radius:12px;
   border:none;
-  margin-top:8px;
+  margin-top:10px;
 }
 
 .hidden{display:none;}
@@ -36,29 +34,28 @@ select,textarea,input{
   background:linear-gradient(135deg,#00c6ff,#0072ff);
   color:white;
   cursor:pointer;
-}
-
-.warning{
-  background:rgba(250,204,21,.1);
-  border-left:4px solid #facc15;
-  padding:12px;
-  border-radius:12px;
-  font-size:13px;
-}
-
-.handover-box{
-  margin-top:12px;
-  padding:12px;
-  border-radius:12px;
-  background:rgba(59,130,246,.08);
-  border-left:4px solid #60a5fa;
+  margin-top:14px;
 }
 
 .damage-card{
+  background:rgba(255,255,255,.05);
   border:1px solid rgba(255,255,255,.2);
-  padding:16px;
+  padding:18px;
+  border-radius:16px;
+  margin-bottom:25px;
+}
+
+.damage-title{
+  font-weight:bold;
+  margin-bottom:8px;
+  color:#93c5fd;
+}
+
+.sub-box{
+  margin-top:14px;
+  padding:14px;
   border-radius:14px;
-  margin-bottom:18px;
+  background:rgba(255,255,255,.05);
 }
 </style>
 </head>
@@ -70,95 +67,22 @@ select,textarea,input{
 <h1 class="page-title">MACY – <span id="areaName"></span></h1>
 <h3>Post-Cleaning Verification</h3>
 
-<!-- EMPLOYEE INFO -->
+<!-- EMPLOYEE -->
 <div class="section">
-  <h3>Employee Information</h3>
-
-  <label>Employee Name *</label>
-  <input type="text" id="empName">
+  <label>Employee Name</label>
+  <input id="empName">
 
   <label>Date & Time</label>
-  <input type="text" id="dateTime" readonly>
+  <input id="dateTime" readonly>
 </div>
 
 <!-- BAGS -->
 <div class="section">
-  <h3>Bag Reconciliation</h3>
-  <input type="number" id="bagsRetrieved" placeholder="Enter bags retrieved">
+  <label>Bags retrieved *</label>
+  <input type="number" id="bagsRetrieved">
 </div>
 
-<!-- CLEANING -->
-<div class="section">
-  <h3>Cleaning Verification</h3>
-
-  <div class="question">
-    Conveyor cleaned and residue free *
-    <select onchange="toggleNA(this)">
-      <option value="">Select</option>
-      <option>Acceptable</option>
-      <option>Not Acceptable</option>
-      <option>N/A</option>
-    </select>
-    <textarea class="hidden" placeholder="Comment required"></textarea>
-    <input class="hidden" type="file" accept="image/*" capture="environment">
-  </div>
-
-  <div class="question">
-    Guards reinstalled correctly *
-    <select onchange="toggleNA(this)">
-      <option value="">Select</option>
-      <option>Acceptable</option>
-      <option>Not Acceptable</option>
-      <option>N/A</option>
-    </select>
-    <textarea class="hidden"></textarea>
-    <input class="hidden" type="file" accept="image/*" capture="environment">
-  </div>
-
-  <div class="question">
-    Frames & structure cleaned *
-    <select onchange="toggleNA(this)">
-      <option value="">Select</option>
-      <option>Acceptable</option>
-      <option>Not Acceptable</option>
-      <option>N/A</option>
-    </select>
-    <textarea class="hidden"></textarea>
-    <input class="hidden" type="file" accept="image/*" capture="environment">
-  </div>
-</div>
-
-<!-- HANDOVER -->
-<div class="section">
-  <h3>Handover Check</h3>
-
-  <select id="handoverSelect" onchange="toggleHandover(this)">
-    <option value="">Select</option>
-    <option>No</option>
-    <option>Yes</option>
-  </select>
-
-  <div id="handoverBox" class="hidden handover-box">
-    <p style="font-size:13px;opacity:.8">
-      Write one task per box (do not combine tasks).
-    </p>
-    <input placeholder="Task 1">
-    <input placeholder="Task 2">
-    <input placeholder="Task 3">
-    <input placeholder="Task 4">
-    <input placeholder="Task 5">
-  </div>
-</div>
-
-<!-- DAMAGE WARNING -->
-<div class="section" id="damageWarning" style="display:none">
-  <h3>⚠ Damage acknowledgement required</h3>
-  <div class="warning">
-    All open damages must be Completed or Handed over.
-  </div>
-</div>
-
-<button class="submit-btn" style="background:#f59e0b;margin-bottom:15px"
+<button class="submit-btn" style="background:#f59e0b"
 onclick="openDamagePopup()">
 ⚠ Review Damage
 </button>
@@ -169,21 +93,39 @@ Submit Post-Cleaning
 
 </div>
 
-<!-- DAMAGE POPUP -->
+<!-- ================= DAMAGE POPUP ================= -->
 <div id="damagePopup"
-style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;padding:20px;overflow:auto">
+style="
+display:none;
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.85);
+z-index:9999;
+overflow:auto;
+padding:20px">
 
-<div style="background:#020617;border-radius:18px;padding:22px;max-width:720px;margin:auto">
+<div style="
+background:#020617;
+border-radius:22px;
+padding:24px;
+max-width:760px;
+margin:auto;
+">
 
-<h3>Damage Acknowledgement</h3>
+<h2 style="text-align:center;margin-bottom:25px">
+🛠 Damage Acknowledgement
+</h2>
+
 <div id="popupList"></div>
 
-<button class="submit-btn" onclick="closePopup()">Close</button>
+<button class="submit-btn" style="background:#334155"
+onclick="closePopup()">Close</button>
+
 </div>
 </div>
 
 <script>
-window.onload=()=>{
+window.onload = () => {
   document.getElementById("areaName").innerText =
     localStorage.getItem("selectedArea") || "Area";
 
@@ -194,45 +136,37 @@ window.onload=()=>{
     new Date().toLocaleString();
 };
 
-function toggleNA(sel){
-  const q=sel.closest(".question");
-  const t=q.querySelector("textarea");
-  const f=q.querySelector("input");
-  sel.value==="Acceptable"
-    ? (t.classList.add("hidden"),f.classList.add("hidden"))
-    : (t.classList.remove("hidden"),f.classList.remove("hidden"));
-}
+/* ================= DAMAGE ================= */
 
-function toggleHandover(sel){
-  document.getElementById("handoverBox")
-    .classList.toggle("hidden", sel.value!=="Yes");
-}
-
-/* DAMAGE */
 function openDamagePopup(){
-  const list=document.getElementById("popupList");
-  list.innerHTML="";
 
-  const damages=JSON.parse(localStorage.getItem("macyDamageReports")||"[]")
-    .filter(d=>d.status==="Open");
+  const list = document.getElementById("popupList");
+  list.innerHTML = "";
+
+  const damages = JSON.parse(
+    localStorage.getItem("macyDamageReports") || "[]"
+  ).filter(d => d.status === "Open");
 
   if(!damages.length){
-    list.innerHTML="<p>No open damages.</p>";
+    list.innerHTML = "<p>No open damages.</p>";
   }
 
-  damages.forEach(d=>{
-    list.innerHTML+=`
+  damages.forEach(d => {
+
+    list.innerHTML += `
       <div class="damage-card">
-        <b>${d.area}</b><br>${d.description}
+
+        <div class="damage-title">${d.area}</div>
+        <div style="opacity:.8">${d.description}</div>
 
         <label>Action *</label>
-        <select onchange="toggleDamage('${d.id}',this.value)">
+        <select onchange="toggleDamage('${d.id}', this.value)">
           <option value="">Select</option>
-          <option value="Completed">Completed</option>
-          <option value="Handover">Handover</option>
+          <option value="Completed">✅ Completed</option>
+          <option value="Handover">🔁 Handover</option>
         </select>
 
-        <div id="comp-${d.id}" class="hidden">
+        <div id="comp-${d.id}" class="hidden sub-box">
           <label>Completed by *</label>
           <select id="who-${d.id}">
             <option value="">Select</option>
@@ -243,10 +177,11 @@ function openDamagePopup(){
           </select>
 
           <label>Completion photo *</label>
-          <input type="file" accept="image/*" capture="environment" id="photo-${d.id}">
+          <input type="file" accept="image/*" capture="environment"
+          id="photo-${d.id}">
         </div>
 
-        <div id="hand-${d.id}" class="hidden">
+        <div id="hand-${d.id}" class="hidden sub-box">
           <label>Handover reason *</label>
           <select id="reason-${d.id}">
             <option value="">Select</option>
@@ -256,12 +191,16 @@ function openDamagePopup(){
           </select>
         </div>
 
-        <button class="submit-btn" style="margin-top:12px"
-        onclick="saveDamage('${d.id}')">Save</button>
-      </div>`;
+        <button class="submit-btn"
+        onclick="saveDamage('${d.id}')">
+        Save Damage
+        </button>
+
+      </div>
+    `;
   });
 
-  document.getElementById("damagePopup").style.display="block";
+  document.getElementById("damagePopup").style.display = "block";
 }
 
 function toggleDamage(id,val){
@@ -276,19 +215,25 @@ function toggleDamage(id,val){
 }
 
 function saveDamage(id){
-  const data=JSON.parse(localStorage.getItem("macyDamageReports")||"[]");
-  const d=data.find(x=>x.id===id);
 
-  if(!document.getElementById("comp-"+id).classList.contains("hidden")){
+  const data = JSON.parse(localStorage.getItem("macyDamageReports")||"[]");
+  const d = data.find(x=>x.id===id);
+
+  if(!d) return;
+
+  const comp = document.getElementById("comp-"+id);
+  const hand = document.getElementById("hand-"+id);
+
+  if(!comp.classList.contains("hidden")){
     if(!document.getElementById("who-"+id).value ||
        !document.getElementById("photo-"+id).files.length){
-      alert("Completed requires person and photo");
+      alert("Completed requires person + photo");
       return;
     }
     d.status="Completed";
   }
 
-  if(!document.getElementById("hand-"+id).classList.contains("hidden")){
+  if(!hand.classList.contains("hidden")){
     if(!document.getElementById("reason-"+id).value){
       alert("Select handover reason");
       return;
@@ -304,6 +249,8 @@ function closePopup(){
   document.getElementById("damagePopup").style.display="none";
 }
 
+/* ================= SUBMIT ================= */
+
 function submitPostClean(){
 
   if(!document.getElementById("bagsRetrieved").value){
@@ -311,20 +258,18 @@ function submitPostClean(){
     return;
   }
 
-  if(!document.getElementById("handoverSelect").value){
-    alert("Select handover option");
-    return;
-  }
+  const damages = JSON.parse(
+    localStorage.getItem("macyDamageReports")||"[]"
+  );
 
-  const damages=JSON.parse(localStorage.getItem("macyDamageReports")||"[]");
   if(damages.some(d=>d.status==="Open")){
-    document.getElementById("damageWarning").style.display="block";
-    alert("All damages must be acknowledged");
+    alert("All damages must be completed or handed over");
     return;
   }
 
   localStorage.setItem("macyProdPostcleanDone","YES");
-  localStorage.setItem("macyProdPostcleanTime",new Date().toLocaleString());
+  localStorage.setItem("macyProdPostcleanTime",
+    new Date().toLocaleString());
 
   alert("✅ Post-cleaning submitted successfully");
   window.location.href="macy-production-control.html";
