@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>MACY – Production Control</title>
+<title>MACY – Sanitation Control Panel</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="css/style.css">
@@ -11,20 +11,20 @@
 .status {
   padding: 22px;
   border-radius: 18px;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   text-align: center;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: bold;
 }
 
-.blue   { background:#1e3a8a; }
+.blue { background:#1e3a8a; }
 .yellow { background:#92400e; }
 .orange { background:#9a3412; }
-.green  { background:#065f46; }
+.green { background:#065f46; }
 
 .action-btn {
   width: 100%;
-  padding: 16px;
+  padding: 18px;
   font-size: 17px;
   border-radius: 16px;
   border: none;
@@ -34,22 +34,16 @@
   cursor: pointer;
 }
 
-.unlock-box {
-  margin-top: 18px;
-  padding: 18px;
-  border-radius: 14px;
-  border: 1px dashed rgba(255,255,255,.3);
-  background: rgba(255,255,255,.04);
-}
-
-.pin-input {
+.lock-btn {
   width: 100%;
-  font-size: 26px;
-  letter-spacing: 12px;
-  text-align: center;
   padding: 14px;
-  border-radius: 12px;
-  border: none;
+  margin-top: 20px;
+  border-radius: 14px;
+  border:1px solid rgba(255,255,255,.3);
+  background: transparent;
+  color: rgba(255,255,255,.5);
+  font-size: 13px;
+  opacity: .35;
 }
 </style>
 </head>
@@ -64,31 +58,48 @@
 <div id="statusBox"></div>
 <div id="actionBox"></div>
 
+<button class="lock-btn" onclick="adminUnlock()">
+  🔐 Admin Unlock Pre-Cleaning
+</button>
+
 </div>
 
 <script>
 const ADMIN_PIN = "0735";
 
-function goPre() {
-  window.location.href = "macy-production-preclean.html";
-}
-function goPost() {
-  window.location.href = "postclean.html";
-}
-function goDamage() {
-  window.location.href = "damage.html";
+/* NAVIGATION */
+function go(page) {
+  window.location.href = page;
 }
 
-/* =============================
-   RENDER CONTROL PANEL
-============================= */
+/* ADMIN UNLOCK */
+function adminUnlock() {
+
+  let pin = prompt("Enter 4-digit Admin PIN");
+
+  if (!pin) return;
+
+  if (pin === ADMIN_PIN) {
+
+    localStorage.removeItem("macyPrecleanDone");
+
+    alert("✅ Pre-cleaning unlocked");
+
+    renderControl();
+
+  } else {
+    alert("❌ Incorrect PIN");
+  }
+}
+
+/* RENDER CONTROL LOGIC */
 function renderControl() {
 
-  const preDone =
-    localStorage.getItem("macyProdPrecleanDone");
-
-  const postDone =
-    localStorage.getItem("macyProdPostcleanDone");
+  const pre = localStorage.getItem("macyPrecleanDone");
+  const post = localStorage.getItem("macyPostcleanDone");
+  const hand = localStorage.getItem("macyHandoverDone");
+  const insp = localStorage.getItem("macyInspectionDone");
+  const rel = localStorage.getItem("macyReleased");
 
   const status = document.getElementById("statusBox");
   const action = document.getElementById("actionBox");
@@ -96,82 +107,60 @@ function renderControl() {
   status.innerHTML = "";
   action.innerHTML = "";
 
-  // 🔵 FIRST TIME
-  if (!preDone) {
+  /* RELEASED */
+  if (rel === "YES") {
     status.innerHTML =
-      `<div class="status blue">🔵 Sanitation not started</div>`;
+      `<div class="status green">🟢 LINE RELEASED</div>`;
+    return;
+  }
+
+  /* INSPECTION DONE */
+  if (insp === "YES") {
+    status.innerHTML =
+      `<div class="status green">✅ Area Inspection Completed</div>`;
     action.innerHTML =
-      `<button class="action-btn" onclick="goPre()">
-        Start Pre-Cleaning
+      `<button class="action-btn" onclick="go('release.html')">
+        Release Line
       </button>`;
     return;
   }
 
-  // 🟡 PRE CLEAN DONE
-  status.innerHTML =
-    `<div class="status yellow">
-      🟡 Pre-Cleaning Completed
-    </div>`;
-
-  action.innerHTML = `
-    <button class="action-btn" onclick="goDamage()">
-      Damage Report
-    </button>
-
-    <button class="action-btn" onclick="goPost()">
-      Start Post-Cleaning
-    </button>
-
-    <div style="
-      margin-top:25px;
-      padding:18px;
-      border:1px dashed rgba(255,255,255,.3);
-      border-radius:14px;
-      background:rgba(255,255,255,.04);
-    ">
-      <div style="font-size:14px;opacity:.7;margin-bottom:8px">
-        🔐 Admin Unlock Pre-Cleaning
-      </div>
-
-      <input
-        id="adminPin"
-        type="password"
-        maxlength="4"
-        inputmode="numeric"
-        style="
-          width:100%;
-          padding:14px;
-          font-size:24px;
-          text-align:center;
-          letter-spacing:10px;
-          border-radius:12px;
-          border:none;
-        "
-        placeholder="••••"
-        oninput="checkAdminPin(this)"
-      >
-    </div>
-  `;
-}
-
-/* =============================
-   PIN AUTO CHECK
-============================= */
-function checkAdminPin(input) {
-
-  if (input.value.length < 4) return;
-
-  if (input.value === ADMIN_PIN) {
-
-    localStorage.removeItem("macyProdPrecleanDone");
-
-    // GO BACK TO PRE-CLEAN WITH DATA
-    window.location.href = "macy-production-preclean.html";
-
-  } else {
-    input.value = "";
-    alert("❌ Incorrect PIN");
+  /* POST CLEAN DONE */
+  if (post === "YES") {
+    status.innerHTML =
+      `<div class="status orange">🟠 Post-clean completed</div>`;
+    action.innerHTML = `
+      <button class="action-btn" onclick="go('handover.html')">
+        Handover
+      </button>
+      <button class="action-btn" onclick="go('inspection.html')">
+        Area Inspection
+      </button>`;
+    return;
   }
+
+  /* PRE CLEAN DONE */
+  if (pre === "YES") {
+    status.innerHTML =
+      `<div class="status yellow">🟡 Pre-clean completed</div>`;
+    action.innerHTML = `
+      <button class="action-btn" onclick="go('damage.html')">
+        Damage Report
+      </button>
+      <button class="action-btn" onclick="go('postclean.html')">
+        Start Post-Cleaning
+      </button>`;
+    return;
+  }
+
+  /* NOT STARTED */
+  status.innerHTML =
+    `<div class="status blue">🔵 Sanitation not started</div>`;
+
+  action.innerHTML =
+    `<button class="action-btn" onclick="go('preclean.html')">
+      Start Pre-Cleaning
+    </button>`;
 }
 
 renderControl();
@@ -179,4 +168,3 @@ renderControl();
 
 </body>
 </html>
-
