@@ -47,6 +47,14 @@ select,textarea,input{
   font-size:13px;
   margin-top:10px;
 }
+
+.handover-box{
+  margin-top:10px;
+  padding:12px;
+  border-radius:12px;
+  background:rgba(59,130,246,.08);
+  border-left:4px solid #60a5fa;
+}
 </style>
 </head>
 
@@ -54,19 +62,28 @@ select,textarea,input{
 
 <div class="container">
 
-<h1 class="page-title">
-  MACY – <span id="areaName"></span>
-</h1>
+<h1 class="page-title">MACY – <span id="areaName"></span></h1>
 <h3>Post-Cleaning Verification</h3>
 
-<!-- BAG -->
+<!-- ================= EMPLOYEE INFO ================= -->
+<div class="section">
+  <h3>Employee Information</h3>
+
+  <label>Employee Name</label>
+  <input type="text" id="empName" readonly>
+
+  <label>Date & Time</label>
+  <input type="text" id="dateTime" readonly>
+</div>
+
+<!-- ================= BAG ================= -->
 <div class="section">
   <h3>Bag Reconciliation</h3>
   <label>Bags retrieved *</label>
   <input type="number" id="bagsRetrieved">
 </div>
 
-<!-- QUESTIONS -->
+<!-- ================= CLEANING QUESTIONS ================= -->
 <div class="section">
   <h3>Cleaning Verification</h3>
 
@@ -107,12 +124,36 @@ select,textarea,input{
   </div>
 </div>
 
-<!-- DAMAGE WARNING -->
+<!-- ================= HANDOVER ================= -->
+<div class="section">
+  <h3>Handover Check</h3>
+
+  <label>Is there anything to handover to next shift? *</label>
+  <select id="handoverSelect" onchange="toggleHandover(this)">
+    <option value="">Select</option>
+    <option value="No">No</option>
+    <option value="Yes">Yes</option>
+  </select>
+
+  <div id="handoverBox" class="hidden handover-box">
+    <p style="font-size:13px;opacity:.85">
+      Please write each handover task separately (one task per box).
+    </p>
+
+    <input placeholder="Handover task 1">
+    <input placeholder="Handover task 2">
+    <input placeholder="Handover task 3">
+    <input placeholder="Handover task 4">
+    <input placeholder="Handover task 5">
+  </div>
+</div>
+
+<!-- ================= DAMAGE WARNING ================= -->
 <div class="section" id="damageWarning" style="display:none">
   <h3>⚠ Damage Acknowledgement Required</h3>
   <div class="warning">
-    All open damages must be either <b>Completed</b> or marked as
-    <b>Handover</b> before post-cleaning submission.
+    All open damages must be either <b>Completed</b> or <b>Handed over</b>
+    before post-cleaning submission.
   </div>
 </div>
 
@@ -128,7 +169,7 @@ select,textarea,input{
 
 </div>
 
-<!-- DAMAGE POPUP -->
+<!-- ================= DAMAGE POPUP ================= -->
 <div id="damagePopup"
 style="display:none;position:fixed;inset:0;
 background:rgba(0,0,0,.85);z-index:999;padding:20px;overflow:auto">
@@ -144,23 +185,37 @@ padding:22px;max-width:720px;margin:auto">
 </div>
 
 <script>
+
+/* ================= LOAD DATA ================= */
+window.onload = () => {
+  document.getElementById("areaName").innerText =
+    localStorage.getItem("selectedArea") || "Area";
+
+  document.getElementById("empName").value =
+    localStorage.getItem("macyProdPrecleanEmployee") || "";
+
+  document.getElementById("dateTime").value =
+    new Date().toLocaleString();
+};
+
+/* ================= TOGGLES ================= */
 function toggleNA(sel){
   const q=sel.closest(".question");
   const t=q.querySelector("textarea");
   const f=q.querySelector("input");
-  if(sel.value==="Acceptable"){
-    t.classList.add("hidden");
-    f.classList.add("hidden");
-  }else{
-    t.classList.remove("hidden");
-    f.classList.remove("hidden");
-  }
+  sel.value==="Acceptable"
+    ? (t.classList.add("hidden"),f.classList.add("hidden"))
+    : (t.classList.remove("hidden"),f.classList.remove("hidden"));
+}
+
+function toggleHandover(sel){
+  document.getElementById("handoverBox").classList.toggle(
+    "hidden", sel.value!=="Yes"
+  );
 }
 
 /* ================= DAMAGE ================= */
-
 function openDamagePopup(){
-
   const list=document.getElementById("popupList");
   list.innerHTML="";
 
@@ -173,49 +228,10 @@ function openDamagePopup(){
 
   damages.forEach(d=>{
     list.innerHTML+=`
-    <div class="section">
-
-      <b>${d.area}</b><br>
-      ${d.description}
-
-      <label>Action *</label>
-      <select id="action-${d.id}" onchange="toggleAction('${d.id}')">
-        <option value="">Select</option>
-        <option value="Completed">Completed</option>
-        <option value="Handover">Handover</option>
-      </select>
-
-      <div id="completed-${d.id}" class="hidden">
-        <label>Completed by *</label>
-        <select id="who-${d.id}">
-          <option value="">Select</option>
-          <option>Maintenance</option>
-          <option>Sanitation</option>
-          <option>Production</option>
-          <option>Contractor</option>
-        </select>
-
-        <label>Completion photo *</label>
-        <input type="file" accept="image/*" capture="environment" id="photo-${d.id}">
-      </div>
-
-      <div id="handover-${d.id}" class="hidden">
-        <label>Handover reason *</label>
-        <select id="reason-${d.id}">
-          <option value="">Select</option>
-          <option>Parts required</option>
-          <option>Partially fixed</option>
-          <option>Maintenance next shift</option>
-        </select>
-      </div>
-
-      <button class="submit-btn"
-        style="margin-top:15px"
-        onclick="submitDamage('${d.id}')">
-        Save
-      </button>
-
-    </div>`;
+      <div class="section">
+        <b>${d.area}</b><br>${d.description}
+        <p style="opacity:.7">Resolve from damage screen.</p>
+      </div>`;
   });
 
   document.getElementById("damagePopup").style.display="block";
@@ -225,56 +241,24 @@ function closePopup(){
   document.getElementById("damagePopup").style.display="none";
 }
 
-function toggleAction(id){
-  document.getElementById("completed-"+id).classList.add("hidden");
-  document.getElementById("handover-"+id).classList.add("hidden");
-
-  const a=document.getElementById("action-"+id).value;
-  if(a==="Completed")
-    document.getElementById("completed-"+id).classList.remove("hidden");
-  if(a==="Handover")
-    document.getElementById("handover-"+id).classList.remove("hidden");
-}
-
-function submitDamage(id){
-
-  const action=document.getElementById("action-"+id).value;
-  const data=JSON.parse(localStorage.getItem("macyDamageReports")||"[]");
-  const d=data.find(x=>x.id===id);
-
-  if(!action){alert("Select Completed or Handover");return;}
-
-  if(action==="Completed"){
-    const who=document.getElementById("who-"+id).value;
-    const file=document.getElementById("photo-"+id).files[0];
-    if(!who||!file){alert("Completed requires person + photo");return;}
-
-    const r=new FileReader();
-    r.onload=()=>{
-      d.status="Completed";
-      d.completedBy=who;
-      d.completedPhoto=r.result;
-      d.completedTime=new Date().toLocaleString();
-      localStorage.setItem("macyDamageReports",JSON.stringify(data));
-      openDamagePopup();
-    };
-    r.readAsDataURL(file);
-  }
-
-  if(action==="Handover"){
-    const r=document.getElementById("reason-"+id).value;
-    if(!r){alert("Select handover reason");return;}
-    d.status="Handover";
-    d.handoverReason=r;
-    d.handoverTime=new Date().toLocaleString();
-    localStorage.setItem("macyDamageReports",JSON.stringify(data));
-    openDamagePopup();
-  }
-}
-
 /* ================= SUBMIT ================= */
-
 function submitPostClean(){
+
+  const bags=document.getElementById("bagsRetrieved").value;
+  if(!bags){alert("Enter bags retrieved.");return;}
+
+  const handover=document.getElementById("handoverSelect").value;
+  if(!handover){alert("Select handover option.");return;}
+
+  if(handover==="Yes"){
+    const inputs=document.querySelectorAll("#handoverBox input");
+    let filled=false;
+    inputs.forEach(i=>{ if(i.value.trim()) filled=true; });
+    if(!filled){
+      alert("At least one handover task is required.");
+      return;
+    }
+  }
 
   const damages=JSON.parse(localStorage.getItem("macyDamageReports")||"[]");
   if(damages.some(d=>d.status==="Open")){
@@ -284,19 +268,11 @@ function submitPostClean(){
   }
 
   localStorage.setItem("macyProdPostcleanDone","YES");
-  localStorage.setItem(
-    "macyProdPostcleanTime",
-    new Date().toLocaleString()
-  );
+  localStorage.setItem("macyProdPostcleanTime",new Date().toLocaleString());
 
   alert("✅ Post-cleaning submitted successfully");
   window.location.href="macy-production-control.html";
 }
-
-window.onload=()=>{
-  document.getElementById("areaName").innerText =
-    localStorage.getItem("selectedArea") || "Area";
-};
 </script>
 
 </body>
