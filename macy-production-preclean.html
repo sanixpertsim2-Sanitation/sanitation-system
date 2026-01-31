@@ -13,10 +13,15 @@
   border-radius: 18px;
   padding: 22px;
   margin-bottom: 25px;
+  box-shadow: 0 0 25px rgba(0,150,255,.25);
 }
-
-.question { margin-bottom: 18px; }
-
+.section h3 {
+  color: #7fd6ff;
+  margin-bottom: 15px;
+}
+.question {
+  margin-bottom: 18px;
+}
 select, input, textarea {
   width: 100%;
   padding: 10px;
@@ -24,19 +29,20 @@ select, input, textarea {
   border: none;
   margin-top: 6px;
 }
-
-textarea { min-height: 60px; }
-
+textarea {
+  min-height: 60px;
+}
 .hidden { display:none; }
-
 .submit-btn {
   width:100%;
-  padding:18px;
+  padding:16px;
   font-size:18px;
+  background:linear-gradient(135deg,#00b3ff,#0066ff);
   border:none;
   border-radius:16px;
-  background:linear-gradient(135deg,#00b3ff,#0066ff);
   color:white;
+  cursor:pointer;
+  box-shadow:0 0 25px rgba(0,140,255,.7);
 }
 </style>
 </head>
@@ -48,120 +54,188 @@ textarea { min-height: 60px; }
 <h1 class="page-title">MACY – Production</h1>
 <h3>Pre-Cleaning Verification</h3>
 
-<!-- GENERAL INFO -->
+<!-- GENERAL -->
 <div class="section">
+  <h3>General Information</h3>
+
   <label>Employee Name *</label>
-  <input id="employeeName">
+  <input type="text" id="employeeName" oninput="saveDraft()">
 
   <label>Date & Time</label>
-  <input id="dateTime" readonly>
+  <input type="text" id="dateTime" readonly>
 
   <label>Number of bags used *</label>
-  <input type="number" id="bagsUsed">
+  <input type="number" id="bagsUsed" oninput="saveDraft()">
 </div>
 
-<!-- QUESTIONS -->
+<!-- CHECKLIST -->
 <div class="section">
+  <h3>Production Area Checklist</h3>
 
+  <!-- QUESTION TEMPLATE -->
   <div class="question">
     No product residue present
-    <select onchange="toggle(this)">
+    <select onchange="toggleExtra(this);saveDraft()">
       <option value="">Select</option>
       <option>Acceptable</option>
       <option>Not Acceptable</option>
-      <option>N/A</option>
+      <option>NA</option>
     </select>
     <div class="extra hidden">
-      <input type="file" capture="environment">
-      <textarea placeholder="Comment"></textarea>
+      <input type="file" accept="image/*" capture="environment">
+      <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
     </div>
   </div>
 
   <div class="question">
-    Guards removed
-    <select onchange="toggle(this)">
+    Conveyor belts accessible
+    <select onchange="toggleExtra(this);saveDraft()">
       <option value="">Select</option>
       <option>Acceptable</option>
       <option>Not Acceptable</option>
-      <option>N/A</option>
+      <option>NA</option>
     </select>
     <div class="extra hidden">
-      <input type="file" capture="environment">
-      <textarea placeholder="Comment"></textarea>
+      <input type="file" accept="image/*" capture="environment">
+      <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+    </div>
+  </div>
+
+  <div class="question">
+    Frames and structure accessible
+    <select onchange="toggleExtra(this);saveDraft()">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>NA</option>
+    </select>
+    <div class="extra hidden">
+      <input type="file" accept="image/*" capture="environment">
+      <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+    </div>
+  </div>
+
+  <div class="question">
+    Guards and covers removed
+    <select onchange="toggleExtra(this);saveDraft()">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>NA</option>
+    </select>
+    <div class="extra hidden">
+      <input type="file" accept="image/*" capture="environment">
+      <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
     </div>
   </div>
 
 </div>
 
-<button class="submit-btn" onclick="submitPreclean()">
+<button class="submit-btn" onclick="submitPreCleaning()">
   Submit Pre-Cleaning
 </button>
 
 </div>
 
 <script>
-/* AUTO TIME */
+/* ===============================
+   AUTO DATE
+================================ */
 document.getElementById("dateTime").value =
   new Date().toLocaleString();
 
-/* LOAD SAVED DATA */
-const saved = JSON.parse(
-  localStorage.getItem("macyPrecleanDraft") || "{}"
-);
-
-if (saved.employeeName)
-  document.getElementById("employeeName").value = saved.employeeName;
-
-if (saved.bagsUsed)
-  document.getElementById("bagsUsed").value = saved.bagsUsed;
-
-/* AUTO SAVE */
-document.querySelectorAll("input, textarea, select")
-.forEach(el => {
-  el.addEventListener("input", saveDraft);
-});
-
-function saveDraft() {
-
-  const data = {
-    employeeName: document.getElementById("employeeName").value,
-    bagsUsed: document.getElementById("bagsUsed").value
-  };
-
-  localStorage.setItem("macyPrecleanDraft", JSON.stringify(data));
-}
-
-/* TOGGLE */
-function toggle(sel) {
+/* ===============================
+   TOGGLE EXTRA
+================================ */
+function toggleExtra(sel) {
   const extra = sel.parentElement.querySelector(".extra");
-  if (sel.value !== "Acceptable") {
+  if (sel.value !== "Acceptable" && sel.value !== "") {
     extra.classList.remove("hidden");
   } else {
     extra.classList.add("hidden");
   }
 }
 
-/* SUBMIT */
-function submitPreclean() {
+/* ===============================
+   SAVE DRAFT
+================================ */
+function saveDraft() {
 
-  const name = document.getElementById("employeeName").value.trim();
+  const data = {
+    employee: document.getElementById("employeeName").value,
+    bags: document.getElementById("bagsUsed").value,
+    answers: []
+  };
+
+  document.querySelectorAll(".question").forEach(q => {
+    data.answers.push({
+      value: q.querySelector("select").value,
+      comment: q.querySelector("textarea")?.value || ""
+    });
+  });
+
+  localStorage.setItem(
+    "macyProdPrecleanDraft",
+    JSON.stringify(data)
+  );
+}
+
+/* ===============================
+   LOAD DRAFT
+================================ */
+(function () {
+
+  const draft =
+    JSON.parse(localStorage.getItem("macyProdPrecleanDraft"));
+
+  if (!draft) return;
+
+  document.getElementById("employeeName").value =
+    draft.employee || "";
+
+  document.getElementById("bagsUsed").value =
+    draft.bags || "";
+
+  const questions =
+    document.querySelectorAll(".question");
+
+  draft.answers.forEach((a, i) => {
+    if (!questions[i]) return;
+
+    const sel = questions[i].querySelector("select");
+    const txt = questions[i].querySelector("textarea");
+
+    sel.value = a.value;
+
+    if (a.value && a.value !== "Acceptable") {
+      questions[i].querySelector(".extra").classList.remove("hidden");
+      txt.value = a.comment;
+    }
+  });
+})();
+
+/* ===============================
+   SUBMIT
+================================ */
+function submitPreCleaning() {
+
+  const emp = document.getElementById("employeeName").value.trim();
   const bags = document.getElementById("bagsUsed").value.trim();
 
-  if (!name || !bags) {
-    alert("Employee name and bags required");
+  if (!emp || !bags) {
+    alert("Employee name and bags used are required.");
     return;
   }
 
-  localStorage.setItem("macyPrecleanDone","YES");
-  localStorage.setItem("macyPrecleanData",
-    localStorage.getItem("macyPrecleanDraft"));
+  localStorage.setItem("macyProdPrecleanDone", "YES");
+  localStorage.setItem("macyProdPrecleanTimestamp", Date.now());
 
-  alert("✅ Pre-cleaning submitted");
+  alert("✅ Pre-Cleaning submitted successfully");
 
-  window.location.href = "control.html";
+  window.location.href =
+    "macy-production-control.html";
 }
 </script>
 
 </body>
 </html>
-
