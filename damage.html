@@ -90,8 +90,11 @@
 </div>
 </div>
   
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
 let damagePhotoBase64 = "";
+const supabase = window.supabaseClient;
 
 /* ======================
    PHOTO HANDLER
@@ -114,18 +117,53 @@ function handleDamagePhoto(input) {
 /* ======================
    STORAGE HELPERS
 ====================== */
-function getDamages() {
-  return JSON.parse(localStorage.getItem("macyDamageReports") || "[]");
+function toStoredDescription(text, photo) {
+  return JSON.stringify({
+    text: text,
+    photo: photo || ""
+  });
 }
 
-function saveDamages(list) {
-  localStorage.setItem("macyDamageReports", JSON.stringify(list));
+function fromStoredDescription(stored) {
+  try {
+    const parsed = JSON.parse(stored);
+    if (parsed && typeof parsed === "object" && "text" in parsed) {
+      return parsed;
+    }
+  } catch (e) {
+    // keep fallback
+  }
+  return { text: stored || "", photo: "" };
+}
+
+async function getDamages() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    alert("Failed to load damages: " + (error.message || "Unknown error"));
+    return [];
+  }
+  return data || [];
+}
+
+async function saveDamageUpdate(id, patch) {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from("damage_reports")
+    .update(patch)
+    .eq("id", id);
+  if (error) {
+    alert("Failed to update damage: " + (error.message || "Unknown error"));
+  }
 }
 
 /* ======================
    SUBMIT DAMAGE
 ====================== */
-function submitDamage() {
+async function submitDamage() {
 
   const areaVal = document.getElementById("area").value.trim();
   const descVal = document.getElementById("desc").value.trim();
@@ -136,19 +174,27 @@ function submitDamage() {
     return;
   }
 
-  const damages = getDamages();
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    return;
+  }
 
-  damages.push({
-    id: "DR-" + Date.now(),
-    area: areaVal,
-    description: descVal,
-    severity: sevVal,
-    photo: damagePhotoBase64,
-    reportedAt: new Date().toLocaleString(),
-    status: "Open"
-  });
+  const storedDescription = toStoredDescription(descVal, damagePhotoBase64);
 
-  saveDamages(damages);
+  const { error } = await supabase
+    .from("damage_reports")
+    .insert({
+      area: areaVal,
+      description: storedDescription,
+      severity: sevVal,
+      status: "Open",
+      created_at: new Date().toISOString()
+    });
+
+  if (error) {
+    alert("Failed to submit damage: " + (error.message || "Unknown error"));
+    return;
+  }
 
   alert("✅ Damage submitted");
 
@@ -161,34 +207,36 @@ function submitDamage() {
 function renderList() {
 
   const list = document.getElementById("damageList");
-  const damages = getDamages();
-
   list.innerHTML = "";
 
-  damages.forEach(d => {
+  getDamages().then(damages => {
+    damages.forEach(d => {
 
-    const div = document.createElement("div");
-    div.className = "card " + d.severity.toLowerCase();
+      const parsed = fromStoredDescription(d.description);
+      const displayText = parsed.text || d.description || "";
+      const div = document.createElement("div");
+      div.className = "card " + (d.severity || "").toLowerCase();
 
-    let actionHTML = "";
+      let actionHTML = "";
 
-    if (d.status === "Open") {
-      actionHTML = `
-        <button class="btn resolve" onclick="markCompleted('${d.id}')">✅ Completed</button>
-        <button class="btn" onclick="markHandover('${d.id}')">🔁 Handover</button>
+      if (d.status === "Open") {
+        actionHTML = `
+          <button class="btn resolve" onclick="markCompleted('${d.id}')">✅ Completed</button>
+          <button class="btn" onclick="markHandover('${d.id}')">🔁 Handover</button>
+        `;
+      } else {
+        actionHTML = `<div class="small">Status: ${d.status}</div>`;
+      }
+
+      div.innerHTML = `
+        <b>${d.area}</b> — ${d.severity || "-"}<br>
+        ${displayText}<br>
+        <span class="small">Reported: ${new Date(d.created_at).toLocaleString()}</span><br>
+        ${actionHTML}
       `;
-    } else {
-      actionHTML = `<div class="small">Status: ${d.status}</div>`;
-    }
 
-    div.innerHTML = `
-      <b>${d.area}</b> — ${d.severity}<br>
-      ${d.description}<br>
-      <span class="small">Reported: ${d.reportedAt}</span><br>
-      ${actionHTML}
-    `;
-
-    list.appendChild(div);
+      list.appendChild(div);
+    });
   });
 
   renderDamageTable();
@@ -197,7 +245,7 @@ function renderList() {
 /* ======================
    COMPLETED
 ====================== */
-function markCompleted(id) {
+async function markCompleted(id) {
 
   const who = prompt(
     "Completed by:\nMaintenance / Sanitation / Production / Contractor"
@@ -205,21 +253,18 @@ function markCompleted(id) {
 
   if (!who) return;
 
-  const damages = getDamages();
-  const d = damages.find(x => x.id === id);
-
-  d.status = "Completed";
-  d.completedBy = who;
-  d.completedTime = new Date().toLocaleString();
-
-  saveDamages(damages);
+  await saveDamageUpdate(id, {
+    status: "Completed",
+    completed_by: who,
+    completed_at: new Date().toISOString()
+  });
   renderList();
 }
 
 /* ======================
    HANDOVER
 ====================== */
-function markHandover(id) {
+async function markHandover(id) {
 
   const note = prompt(
     "Handover reason:\n" +
@@ -230,14 +275,11 @@ function markHandover(id) {
 
   if (!note) return;
 
-  const damages = getDamages();
-  const d = damages.find(x => x.id === id);
-
-  d.status = "Handover";
-  d.handoverNotes = note;
-  d.handoverTime = new Date().toLocaleString();
-
-  saveDamages(damages);
+  await saveDamageUpdate(id, {
+    status: "Handover",
+    handover_reason: note,
+    handover_at: new Date().toISOString()
+  });
   renderList();
 }
 
@@ -247,19 +289,19 @@ function markHandover(id) {
 function renderDamageTable() {
 
   const table = document.getElementById("damageTable");
-  const damages = getDamages();
-
   table.innerHTML = "";
 
-  damages.forEach(d => {
-    table.innerHTML += `
-      <tr>
-        <td>${d.area}</td>
-        <td>${d.severity}</td>
-        <td>${d.status}</td>
-        <td>${d.reportedAt}</td>
-      </tr>
-    `;
+  getDamages().then(damages => {
+    damages.forEach(d => {
+      table.innerHTML += `
+        <tr>
+          <td>${d.area}</td>
+          <td>${d.severity || "-"}</td>
+          <td>${d.status}</td>
+          <td>${new Date(d.created_at).toLocaleString()}</td>
+        </tr>
+      `;
+    });
   });
 }
 

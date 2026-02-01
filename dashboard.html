@@ -54,27 +54,43 @@ tr:hover {
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
 const table = document.getElementById("releaseTable");
-const releases = JSON.parse(localStorage.getItem("releaseHistory")) || [];
+const supabase = window.supabaseClient;
 
 const today = new Date().toLocaleDateString();
 
-releases.forEach(r => {
-  const date = new Date(r.time).toLocaleDateString();
-
-  if (date === today) {
-    const row = `
-      <tr>
-        <td>${r.line}</td>
-        <td class="green">Released</td>
-        <td>${r.lead}</td>
-        <td>${r.time}</td>
-      </tr>
-    `;
-    table.innerHTML += row;
+async function loadReleases() {
+  if (!supabase) return;
+  const { data, error } = await supabase
+    .from("line_release_logs")
+    .select("*")
+    .order("verified_at", { ascending: false });
+  if (error) {
+    alert("Failed to load release history: " + (error.message || "Unknown error"));
+    return;
   }
-});
+
+  (data || []).forEach(r => {
+    const date = new Date(r.verified_at).toLocaleDateString();
+
+    if (date === today) {
+      const row = `
+        <tr>
+          <td>MACY – Cupcake Line</td>
+          <td class="green">Released</td>
+          <td>${r.released_by}</td>
+          <td>${new Date(r.verified_at).toLocaleString()}</td>
+        </tr>
+      `;
+      table.innerHTML += row;
+    }
+  });
+}
+
+loadReleases();
 </script>
 
 </body>

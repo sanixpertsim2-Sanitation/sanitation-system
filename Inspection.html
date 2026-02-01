@@ -118,7 +118,11 @@ select, textarea, input {
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
+const supabase = window.supabaseClient;
+
 function toggle(sel) {
   const q = sel.parentElement;
   const t = q.querySelector("textarea");
@@ -135,7 +139,7 @@ function toggle(sel) {
   }
 }
 
-function submitInspection() {
+async function submitInspection() {
 
   const name = document.getElementById("inspector").value.trim();
   if (!name) {
@@ -144,6 +148,8 @@ function submitInspection() {
   }
 
   const questions = document.querySelectorAll(".question");
+  const checklist = [];
+  let comments = [];
 
   for (let q of questions) {
     const sel = q.querySelector("select");
@@ -161,11 +167,45 @@ function submitInspection() {
         return;
       }
     }
+
+    const photo = await new Promise(resolve => {
+      if (!file || !file.files.length) return resolve("");
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result || "");
+      reader.readAsDataURL(file.files[0]);
+    });
+
+    const questionText = q.childNodes[0].textContent.trim();
+    checklist.push({
+      question: questionText,
+      answer: sel.value,
+      comment: txt.value || "",
+      photo: photo
+    });
+
+    if (txt.value.trim()) {
+      comments.push(txt.value.trim());
+    }
   }
 
-  localStorage.setItem("macyInspectionDone","YES");
-  localStorage.setItem("macyInspectionBy",name);
-  localStorage.setItem("macyInspectionTime",new Date().toLocaleString());
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("area_inspection_logs")
+    .insert({
+      inspector_name: name,
+      checklist: checklist,
+      comments: comments.join(" | "),
+      submitted_at: new Date().toISOString()
+    });
+
+  if (error) {
+    alert("Failed to save inspection: " + (error.message || "Unknown error"));
+    return;
+  }
 
   alert("✅ Area Inspection Completed");
 

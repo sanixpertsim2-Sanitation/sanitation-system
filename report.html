@@ -24,51 +24,130 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
-const pre = JSON.parse(localStorage.getItem("precleanData"));
-const post = JSON.parse(localStorage.getItem("postcleanData"));
-const damage = JSON.parse(localStorage.getItem("damageData"));
-const release = JSON.parse(localStorage.getItem("areaLeadRelease"));
+const supabase = window.supabaseClient;
 
-let html = "";
+function fromStoredDescription(stored) {
+  try {
+    const parsed = JSON.parse(stored);
+    if (parsed && typeof parsed === "object" && "text" in parsed) {
+      return parsed.text || "";
+    }
+  } catch (e) {
+    // keep fallback
+  }
+  return stored || "";
+}
 
-html += `<h3>Employee Information</h3>`;
-html += `<p><b>Name:</b> ${pre?.employee || "-"}</p>`;
-html += `<p><b>Pre-Cleaning Time:</b> ${pre?.datetime || "-"}</p>`;
-html += `<p><b>Post-Cleaning Time:</b> ${post?.datetime || "-"}</p>`;
+async function fetchLatestPreclean(area) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("pre_cleaning_logs")
+    .select("*")
+    .eq("area", area)
+    .order("submitted_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load pre-cleaning: " + (error.message || "Unknown error"));
+    return null;
+  }
+  return data && data.length ? data[0] : null;
+}
 
-html += `<hr><h3>Pre-Cleaning Checklist</h3>`;
+async function fetchLatestPostclean(precleanId) {
+  if (!supabase || !precleanId) return null;
+  const { data, error } = await supabase
+    .from("post_cleaning_logs")
+    .select("*")
+    .eq("preclean_id", precleanId)
+    .order("submitted_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load post-cleaning: " + (error.message || "Unknown error"));
+    return null;
+  }
+  return data && data.length ? data[0] : null;
+}
 
-(pre?.checklist || []).forEach(item => {
-  html += `
-    <div style="margin-bottom:10px;">
-      <b>${item.question}</b><br>
-      Result: ${item.result}<br>
-      Comment: ${item.comment || "—"}<br>
-      Photo: ${item.photo || "—"}
-    </div>
-  `;
-});
+async function fetchDamages(area) {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("*")
+    .eq("area", area)
+    .order("created_at", { ascending: false });
+  if (error) {
+    alert("Failed to load damages: " + (error.message || "Unknown error"));
+    return [];
+  }
+  return data || [];
+}
 
-html += `<hr><h3>Post-Cleaning</h3>`;
-html += `<p>Bags Used: ${pre?.bagsUsed}</p>`;
-html += `<p>Bags Retrieved: ${post?.bagsRetrieved}</p>`;
+async function fetchLatestRelease() {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("line_release_logs")
+    .select("*")
+    .order("verified_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load release: " + (error.message || "Unknown error"));
+    return null;
+  }
+  return data && data.length ? data[0] : null;
+}
 
-html += `<hr><h3>Damage Report</h3>`;
+async function buildReport() {
+  const area = localStorage.getItem("selectedArea") || "Area";
+  const pre = await fetchLatestPreclean(area);
+  const post = await fetchLatestPostclean(pre ? pre.id : null);
+  const damage = await fetchDamages(area);
+  const release = await fetchLatestRelease();
 
-(damage || []).forEach(d => {
-  html += `
-    <div>
-      ${d.issue} — ${d.severity}
-    </div>
-  `;
-});
+  let html = "";
 
-html += `<hr><h3>Area Lead Release</h3>`;
-html += `<p>Released By: ${release?.leadName}</p>`;
-html += `<p>Date: ${release?.releasedAt}</p>`;
+  html += `<h3>Employee Information</h3>`;
+  html += `<p><b>Name:</b> ${pre?.employee_name || "-"}</p>`;
+  html += `<p><b>Pre-Cleaning Time:</b> ${pre?.submitted_at ? new Date(pre.submitted_at).toLocaleString() : "-"}</p>`;
+  html += `<p><b>Post-Cleaning Time:</b> ${post?.submitted_at ? new Date(post.submitted_at).toLocaleString() : "-"}</p>`;
 
-document.getElementById("reportContent").innerHTML = html;
+  html += `<hr><h3>Pre-Cleaning Checklist</h3>`;
+
+  (pre?.checklist || []).forEach(item => {
+    html += `
+      <div style="margin-bottom:10px;">
+        <b>${item.question || "Checklist item"}</b><br>
+        Result: ${item.value || "-"}<br>
+        Comment: ${item.comment || "—"}<br>
+        Photo: ${item.photo || "—"}
+      </div>
+    `;
+  });
+
+  html += `<hr><h3>Post-Cleaning</h3>`;
+  html += `<p>Bags Used: ${pre?.bags_used ?? "-"}</p>`;
+  html += `<p>Bags Retrieved: ${post?.bags_returned ?? "-"}</p>`;
+
+  html += `<hr><h3>Damage Report</h3>`;
+
+  (damage || []).forEach(d => {
+    html += `
+      <div>
+        ${fromStoredDescription(d.description)} — ${d.severity || "-"}
+      </div>
+    `;
+  });
+
+  html += `<hr><h3>Area Lead Release</h3>`;
+  html += `<p>Released By: ${release?.released_by || "-"}</p>`;
+  html += `<p>Date: ${release?.verified_at ? new Date(release.verified_at).toLocaleString() : "-"}</p>`;
+
+  document.getElementById("reportContent").innerHTML = html;
+}
+
+buildReport();
 </script>
 <script>
 window.onload = function () {

@@ -126,7 +126,10 @@ button{
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
+const supabase = window.supabaseClient;
 
 /* SIGN */
 const canvas=document.getElementById("signPad");
@@ -164,8 +167,52 @@ function goHandover(){
   window.location.href="macy-production-handover.html";
 }
 
+async function fetchLatestPrecleanId(area) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("pre_cleaning_logs")
+    .select("id")
+    .eq("area", area)
+    .order("submitted_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load pre-cleaning: " + (error.message || "Unknown error"));
+    return null;
+  }
+  return data && data.length ? data[0].id : null;
+}
+
+async function hasPendingHandovers() {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("handover_tasks")
+    .select("id,status")
+    .eq("status", "Pending")
+    .limit(1);
+  if (error) {
+    alert("Failed to load handovers: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
+async function hasHandoverDamages(area) {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("id,status")
+    .eq("area", area)
+    .eq("status", "Handover")
+    .limit(1);
+  if (error) {
+    alert("Failed to load damage status: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
 /* SUBMIT */
-function submitArea(){
+async function submitArea(){
 
   const lead=document.getElementById("leadName").value;
   if(!lead) return alert("Select Area Lead");
@@ -173,8 +220,44 @@ function submitArea(){
   const sign=canvas.toDataURL();
   if(sign.length<1000) return alert("Signature required");
 
-  let handovers =
-    JSON.parse(localStorage.getItem("macyHandoverTasks")||"[]");
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    return;
+  }
+
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+  const precleanId = await fetchLatestPrecleanId(area);
+
+  const checklist = [];
+  const comments = [];
+  document.querySelectorAll(".section.question").forEach(q => {
+    const label = q.querySelector("label");
+    const sel = q.querySelector("select");
+    const txt = q.querySelector("textarea");
+    const questionText = label ? label.innerText.trim() : "Question";
+    checklist.push({
+      question: questionText,
+      answer: sel ? sel.value : "",
+      comment: txt ? txt.value || "" : ""
+    });
+    if (txt && txt.value.trim()) {
+      comments.push(txt.value.trim());
+    }
+  });
+
+  const { error: inspectionError } = await supabase
+    .from("area_inspection_logs")
+    .insert({
+      inspector_name: lead,
+      checklist: checklist,
+      comments: comments.join(" | "),
+      submitted_at: new Date().toISOString()
+    });
+
+  if (inspectionError) {
+    alert("Failed to save inspection: " + (inspectionError.message || "Unknown error"));
+    return;
+  }
 
   let newTasks=[];
 
@@ -182,34 +265,49 @@ function submitArea(){
     const txt=q.querySelector("textarea");
     if(txt && txt.value.trim()){
       newTasks.push({
-        task: txt.value.trim(),
-        status:"Pending",
-        source:"Area Verification",
-        time:new Date().toLocaleString()
+        source: "area-verification",
+        reference_id: precleanId,
+        task_description: txt.value.trim(),
+        status: "Pending",
+        created_at: new Date().toISOString()
       });
     }
   });
 
   if(newTasks.length){
-    handovers = handovers.concat(newTasks);
-    localStorage.setItem("macyHandoverTasks",JSON.stringify(handovers));
+    const { error } = await supabase
+      .from("handover_tasks")
+      .insert(newTasks);
+    if (error) {
+      alert("Failed to save handover tasks: " + (error.message || "Unknown error"));
+      return;
+    }
     alert("⚠ Sent to Handover");
     window.location.href="macy-production-control.html";
     return;
   }
 
-  const pending =
-    handovers.some(h=>h.status!=="Completed");
+  const pending = await hasPendingHandovers();
+  const damageHandover = await hasHandoverDamages(area);
 
-  if(pending){
+  if(pending || damageHandover){
     alert("⚠ Pending handovers exist");
     window.location.href="macy-production-control.html";
     return;
   }
 
-  localStorage.setItem("macyProdReleased","YES");
-  localStorage.setItem("macyProdReleasedBy",lead);
-  localStorage.setItem("macyProdReleaseTime",new Date().toLocaleString());
+  const { error: releaseError } = await supabase
+    .from("line_release_logs")
+    .insert({
+      released_by: lead,
+      signature: sign,
+      verified_at: new Date().toISOString()
+    });
+
+  if (releaseError) {
+    alert("Failed to release line: " + (releaseError.message || "Unknown error"));
+    return;
+  }
 
   alert("✅ LINE RELEASED");
   window.location.href="macy-production-control.html";

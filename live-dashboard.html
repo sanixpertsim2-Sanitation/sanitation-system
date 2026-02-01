@@ -94,20 +94,70 @@ body {
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
 function openFull(){
   document.documentElement.requestFullscreen();
 }
 
-function loadDashboard(){
+const supabase = window.supabaseClient;
 
-  const pre = localStorage.getItem("precleanDone");
-  const post = localStorage.getItem("postcleanDone");
-  const released = localStorage.getItem("lineReleased");
-  const start = localStorage.getItem("releaseStartTime");
+async function fetchLatestPreclean(area) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("pre_cleaning_logs")
+    .select("*")
+    .eq("area", area)
+    .order("submitted_at", { ascending: false })
+    .limit(1);
+  if (error) return null;
+  return data && data.length ? data[0] : null;
+}
 
-  const damages = JSON.parse(localStorage.getItem("damageReport")) || [];
-  const openDamages = damages.filter(d => d.status !== "Closed");
+async function fetchLatestPostclean(precleanId) {
+  if (!supabase || !precleanId) return null;
+  const { data, error } = await supabase
+    .from("post_cleaning_logs")
+    .select("*")
+    .eq("preclean_id", precleanId)
+    .order("submitted_at", { ascending: false })
+    .limit(1);
+  if (error) return null;
+  return data && data.length ? data[0] : null;
+}
+
+async function fetchDamages(area) {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("*")
+    .eq("area", area)
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return data || [];
+}
+
+async function fetchLatestRelease() {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("line_release_logs")
+    .select("*")
+    .order("verified_at", { ascending: false })
+    .limit(1);
+  if (error) return null;
+  return data && data.length ? data[0] : null;
+}
+
+async function loadDashboard(){
+
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+  const pre = await fetchLatestPreclean(area);
+  const post = await fetchLatestPostclean(pre ? pre.id : null);
+  const released = await fetchLatestRelease();
+
+  const damages = await fetchDamages(area);
+  const openDamages = damages.filter(d => d.status !== "Completed");
   const critical = openDamages.filter(d => d.severity === "Critical");
 
   let stage = "Not Started";
@@ -125,8 +175,8 @@ function loadDashboard(){
   document.getElementById("kpiRelease").innerText =
     released ? "RELEASED" : "LOCKED";
 
-  if(start){
-    const mins = Math.floor((Date.now() - Number(start)) / 60000);
+  if(pre && pre.submitted_at){
+    const mins = Math.floor((Date.now() - new Date(pre.submitted_at).getTime()) / 60000);
     document.getElementById("kpiTime").innerText = mins + " min";
   }
 

@@ -76,14 +76,17 @@ button {
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
-const findings =
-  JSON.parse(localStorage.getItem("macyProdFindings") || "[]");
+const supabase = window.supabaseClient;
 
 const container = document.getElementById("taskContainer");
 const releaseBtn = document.getElementById("releaseBtn");
 
 let completed = new Set();
+let tasks = [];
+let damageTasks = [];
 
 function stampPhoto(input) {
   const time = new Date().toLocaleString();
@@ -91,15 +94,52 @@ function stampPhoto(input) {
   input.nextElementSibling.innerText = "🕒 " + time;
 }
 
-function render() {
+async function fetchHandoverTasks() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("handover_tasks")
+    .select("*")
+    .eq("status", "Pending")
+    .order("created_at", { ascending: true });
+  if (error) {
+    alert("Failed to load handover tasks: " + (error.message || "Unknown error"));
+    return [];
+  }
+  return data || [];
+}
 
-  if (findings.length === 0) {
+async function fetchDamageHandovers() {
+  if (!supabase) return [];
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("*")
+    .eq("area", area)
+    .eq("status", "Handover")
+    .order("created_at", { ascending: true });
+  if (error) {
+    alert("Failed to load handover damages: " + (error.message || "Unknown error"));
+    return [];
+  }
+  return data || [];
+}
+
+async function render() {
+
+  tasks = await fetchHandoverTasks();
+  damageTasks = await fetchDamageHandovers();
+
+  container.innerHTML = "";
+  completed = new Set();
+
+  if (tasks.length === 0 && damageTasks.length === 0) {
     container.innerHTML =
       "<p>No handover tasks found.</p>";
+    releaseBtn.classList.remove("hidden");
     return;
   }
 
-  findings.forEach((f, index) => {
+  tasks.forEach((t, index) => {
 
     const div = document.createElement("div");
     div.className = "section task";
@@ -108,14 +148,13 @@ function render() {
       <h4>Finding ${index + 1}</h4>
 
       <b>Issue:</b>
-      <p>${f.question}</p>
+      <p>${t.task_description}</p>
 
       <b>Area Lead Comment:</b>
-      <p>${f.comment || "—"}</p>
+      <p>${t.source || "—"}</p>
 
-      <b>Lead Photo:</b>
-      <img src="${f.photo}">
-      <div class="photo-time">🕒 ${f.photoTime}</div>
+      <b>Reference:</b>
+      <p>${t.reference_id || "—"}</p>
 
       <hr>
 
@@ -128,16 +167,50 @@ function render() {
         onchange="stampPhoto(this)">
       <div class="photo-time"></div>
 
-      <button onclick="completeTask(${index})">
+      <button onclick="completeTask(${index}, 'task')">
         ✔ Mark as Completed
       </button>
     `;
 
     container.appendChild(div);
   });
+
+  damageTasks.forEach((d, index) => {
+    const offset = tasks.length + index;
+    const div = document.createElement("div");
+    div.className = "section task";
+    div.innerHTML = `
+      <h4>Damage Handover ${index + 1}</h4>
+
+      <b>Area:</b>
+      <p>${d.area}</p>
+
+      <b>Description:</b>
+      <p>${d.description}</p>
+
+      <b>Handover Reason:</b>
+      <p>${d.handover_reason || "—"}</p>
+
+      <hr>
+
+      <label>Sanitation action taken *</label>
+      <textarea id="comment-${offset}"
+        placeholder="Explain what action was taken"></textarea>
+
+      <label>Upload fix photo *</label>
+      <input type="file" accept="image/*" capture="environment"
+        onchange="stampPhoto(this)">
+      <div class="photo-time"></div>
+
+      <button onclick="completeTask(${offset}, 'damage')">
+        ✔ Mark as Completed
+      </button>
+    `;
+    container.appendChild(div);
+  });
 }
 
-function completeTask(i) {
+async function completeTask(i, type) {
 
   const comment =
     document.getElementById(`comment-${i}`).value.trim();
@@ -150,22 +223,79 @@ function completeTask(i) {
     return;
   }
 
-  completed.add(i);
+  const file = input.files[0];
+  const photo = await new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result || "");
+    reader.readAsDataURL(file);
+  });
 
-  if (completed.size === findings.length) {
-    releaseBtn.classList.remove("hidden");
+  if (type === "task") {
+    const task = tasks[i];
+    const { error } = await supabase
+      .from("handover_tasks")
+      .update({
+        status: "Completed",
+        completed_by: comment,
+        completed_photo: photo,
+        completed_at: new Date().toISOString()
+      })
+      .eq("id", task.id);
+    if (error) {
+      alert("Failed to complete task: " + (error.message || "Unknown error"));
+      return;
+    }
   }
 
+  if (type === "damage") {
+    const damageIndex = i - tasks.length;
+    const damage = damageTasks[damageIndex];
+    const { error } = await supabase
+      .from("damage_reports")
+      .update({
+        status: "Completed",
+        completed_by: comment,
+        completed_photo: photo,
+        completed_at: new Date().toISOString()
+      })
+      .eq("id", damage.id);
+    if (error) {
+      alert("Failed to complete damage: " + (error.message || "Unknown error"));
+      return;
+    }
+  }
+
+  completed.add(i);
+
   alert(`Finding ${i + 1} completed.`);
+  render();
 }
 
-function finalRelease() {
+async function finalRelease() {
 
-  localStorage.setItem("macyProdReleased", "YES");
-  localStorage.setItem(
-    "macyProdReleaseTime",
-    new Date().toLocaleString()
-  );
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    return;
+  }
+
+  const lead = prompt("Area Lead name for release");
+  if (!lead) {
+    alert("Area Lead name required.");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("line_release_logs")
+    .insert({
+      released_by: lead,
+      signature: null,
+      verified_at: new Date().toISOString()
+    });
+
+  if (error) {
+    alert("Failed to release line: " + (error.message || "Unknown error"));
+    return;
+  }
 
   alert("✅ All findings closed. Line released.");
 

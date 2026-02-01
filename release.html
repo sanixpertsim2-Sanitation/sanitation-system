@@ -33,7 +33,10 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
+const supabase = window.supabaseClient;
 function releaseLine() {
 
   const name = document.getElementById("leadName").value.trim();
@@ -59,31 +62,40 @@ function releaseLine() {
   // ===============================
   // SAVE RELEASE RECORD (DASHBOARD)
   // ===============================
-  let history = JSON.parse(localStorage.getItem("releaseHistory")) || [];
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    return;
+  }
 
-  history.push({
-    line: "MACY – Cupcake Line",
-    areaLead: name,
-    releasedAt: new Date().toLocaleString()
-  });
+  supabase
+    .from("line_release_logs")
+    .insert({
+      released_by: name,
+      signature: null,
+      verified_at: new Date().toISOString()
+    })
+    .then(({ error }) => {
+      if (error) {
+        alert("Failed to save release: " + (error.message || "Unknown error"));
+        return;
+      }
 
-  localStorage.setItem("releaseHistory", JSON.stringify(history));
+      // ===============================
+      // FULL SYSTEM RESET
+      // ===============================
+      localStorage.removeItem("precleanData");
+      localStorage.removeItem("postcleanData");
+      localStorage.removeItem("damageReport");
+      localStorage.removeItem("precleanDone");
+      localStorage.removeItem("postcleanDone");
+      localStorage.removeItem("areaLocked");
+      localStorage.removeItem("releaseStartTime");
+      localStorage.removeItem("mailSent");
 
-  // ===============================
-  // FULL SYSTEM RESET
-  // ===============================
-  localStorage.removeItem("precleanData");
-  localStorage.removeItem("postcleanData");
-  localStorage.removeItem("damageReport");
-  localStorage.removeItem("precleanDone");
-  localStorage.removeItem("postcleanDone");
-  localStorage.removeItem("areaLocked");
-  localStorage.removeItem("releaseStartTime");
-  localStorage.removeItem("mailSent");
+      alert("✅ Line officially released for production");
 
-  alert("✅ Line officially released for production");
-
-  window.location.href = "dashboard.html";
+      window.location.href = "dashboard.html";
+    });
 }
 </script>
 <script>

@@ -52,8 +52,11 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
 const ADMIN_PIN = "0735";
+const supabase = window.supabaseClient;
 
 /* ======================
    NAVIGATION
@@ -87,11 +90,56 @@ function goInspection() {
 /* =============================
    RENDER CONTROL PANEL
 ============================= */
-function renderControl() {
+async function fetchLatestPreclean(area) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("pre_cleaning_logs")
+    .select("*")
+    .eq("area", area)
+    .order("submitted_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load pre-cleaning: " + (error.message || "Unknown error"));
+    return null;
+  }
+  return data && data.length ? data[0] : null;
+}
 
-  const preDone  = localStorage.getItem("macyProdPrecleanDone");
-  const postDone = localStorage.getItem("macyProdPostcleanDone");
-  const released = localStorage.getItem("macyProdReleased");
+async function fetchPostclean(precleanId) {
+  if (!supabase || !precleanId) return null;
+  const { data, error } = await supabase
+    .from("post_cleaning_logs")
+    .select("*")
+    .eq("preclean_id", precleanId)
+    .order("submitted_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load post-cleaning: " + (error.message || "Unknown error"));
+    return null;
+  }
+  return data && data.length ? data[0] : null;
+}
+
+async function hasLineRelease() {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("line_release_logs")
+    .select("id")
+    .order("verified_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load release status: " + (error.message || "Unknown error"));
+    return false;
+  }
+  return data && data.length > 0;
+}
+
+async function renderControl() {
+
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+  const preclean = await fetchLatestPreclean(area);
+  const postclean = await fetchPostclean(preclean ? preclean.id : null);
+  const released = await hasLineRelease();
 
   const status = document.getElementById("statusBox");
   const action = document.getElementById("actionBox");
@@ -102,7 +150,7 @@ function renderControl() {
   /* ==========================
      🟢 LINE RELEASED
   ========================== */
-  if (released === "YES") {
+  if (released) {
     status.innerHTML =
       `<div class="status green">
         🟢 LINE RELEASED
@@ -114,7 +162,7 @@ function renderControl() {
      🟠 POST CLEAN DONE
      ONLY HANDOVER + INSPECTION
   ========================== */
-  if (postDone === "YES") {
+  if (postclean) {
 
     status.innerHTML =
       `<div class="status orange">
@@ -136,7 +184,7 @@ function renderControl() {
   /* ==========================
      🟡 PRE CLEAN DONE
   ========================== */
-  if (preDone === "YES") {
+  if (preclean) {
 
     status.innerHTML =
       `<div class="status yellow">
@@ -207,9 +255,6 @@ function checkAdminPin(input) {
   if (input.value.length < 4) return;
 
   if (input.value === ADMIN_PIN) {
-
-    localStorage.removeItem("macyProdPrecleanDone");
-
     window.location.href =
       "macy-production-preclean.html";
 

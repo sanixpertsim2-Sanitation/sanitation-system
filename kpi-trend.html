@@ -50,25 +50,92 @@ th {
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
-const data = JSON.parse(localStorage.getItem("dailyKPI")) || [];
+const supabase = window.supabaseClient;
 const tbody = document.getElementById("kpiTable");
 
-data.slice(-14).forEach(row => {
-  tbody.innerHTML += `
-    <tr>
-      <td>${row.date}</td>
-      <td>${row.duration}</td>
-      <td>${row.damageCount}</td>
-      <td class="${row.criticalCount>0?'red':'green'}">
-        ${row.criticalCount}
-      </td>
-      <td class="${row.released?'green':'red'}">
-        ${row.released ? "Released" : "Blocked"}
-      </td>
-    </tr>
-  `;
-});
+function toDateKey(ts) {
+  return new Date(ts).toLocaleDateString();
+}
+
+async function loadKpi() {
+  if (!supabase) return;
+
+  const { data: preclean, error: preError } = await supabase
+    .from("pre_cleaning_logs")
+    .select("*")
+    .order("submitted_at", { ascending: false })
+    .limit(50);
+
+  const { data: postclean, error: postError } = await supabase
+    .from("post_cleaning_logs")
+    .select("*")
+    .order("submitted_at", { ascending: false })
+    .limit(50);
+
+  const { data: damages, error: damageError } = await supabase
+    .from("damage_reports")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  const { data: releases, error: releaseError } = await supabase
+    .from("line_release_logs")
+    .select("*")
+    .order("verified_at", { ascending: false })
+    .limit(50);
+
+  if (preError || postError || damageError || releaseError) {
+    alert("Failed to load KPI data.");
+    return;
+  }
+
+  const rows = {};
+
+  (preclean || []).forEach(p => {
+    const key = toDateKey(p.submitted_at);
+    if (!rows[key]) rows[key] = { date: key, duration: "-", damageCount: 0, criticalCount: 0, released: false };
+    const relatedPost = (postclean || []).find(pc => pc.preclean_id === p.id);
+    if (relatedPost) {
+      const mins = Math.round((new Date(relatedPost.submitted_at) - new Date(p.submitted_at)) / 60000);
+      rows[key].duration = isNaN(mins) ? "-" : mins;
+    }
+  });
+
+  (damages || []).forEach(d => {
+    const key = toDateKey(d.created_at);
+    if (!rows[key]) rows[key] = { date: key, duration: "-", damageCount: 0, criticalCount: 0, released: false };
+    rows[key].damageCount += 1;
+    if (d.severity === "Critical") rows[key].criticalCount += 1;
+  });
+
+  (releases || []).forEach(r => {
+    const key = toDateKey(r.verified_at);
+    if (!rows[key]) rows[key] = { date: key, duration: "-", damageCount: 0, criticalCount: 0, released: false };
+    rows[key].released = true;
+  });
+
+  const data = Object.values(rows).slice(0, 14);
+  data.forEach(row => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${row.date}</td>
+        <td>${row.duration}</td>
+        <td>${row.damageCount}</td>
+        <td class="${row.criticalCount>0?'red':'green'}">
+          ${row.criticalCount}
+        </td>
+        <td class="${row.released?'green':'red'}">
+          ${row.released ? "Released" : "Blocked"}
+        </td>
+      </tr>
+    `;
+  });
+}
+
+loadKpi();
 </script>
 
 </body>

@@ -137,6 +137,8 @@ textarea {
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script>
 /* ===============================
    AUTO DATE
@@ -217,7 +219,7 @@ function saveDraft() {
 /* ===============================
    SUBMIT
 ================================ */
-function submitPreCleaning() {
+async function submitPreCleaning() {
 
   const emp = document.getElementById("employeeName").value.trim();
   const bags = document.getElementById("bagsUsed").value.trim();
@@ -227,8 +229,39 @@ function submitPreCleaning() {
     return;
   }
 
-  localStorage.setItem("macyProdPrecleanDone", "YES");
-  localStorage.setItem("macyProdPrecleanTimestamp", Date.now());
+  const supabase = window.supabaseClient;
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    return;
+  }
+
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+
+  const checklist = [];
+  document.querySelectorAll(".question").forEach(q => {
+    const questionText = q.childNodes[0].textContent.trim();
+    checklist.push({
+      question: questionText,
+      value: q.querySelector("select").value,
+      comment: q.querySelector("textarea")?.value || ""
+    });
+  });
+
+  const { error } = await supabase
+    .from("pre_cleaning_logs")
+    .insert({
+      area: area,
+      employee_name: emp,
+      bags_used: parseInt(bags, 10) || 0,
+      checklist: checklist,
+      status: "submitted",
+      submitted_at: new Date().toISOString()
+    });
+
+  if (error) {
+    alert("Failed to save pre-cleaning: " + (error.message || "Unknown error"));
+    return;
+  }
 
   alert("✅ Pre-Cleaning submitted successfully");
 
