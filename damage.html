@@ -253,12 +253,33 @@ async function markCompleted(id) {
 
   if (!who) return;
 
-  await saveDamageUpdate(id, {
-    status: "Completed",
-    completed_by: who,
-    completed_at: new Date().toISOString()
-  });
-  renderList();
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+  fileInput.capture = "environment";
+  fileInput.onchange = async () => {
+    if (!fileInput.files.length) {
+      alert("Completion photo required.");
+      return;
+    }
+    const photo = await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result || "");
+      reader.readAsDataURL(fileInput.files[0]);
+    });
+    if (!photo) {
+      alert("Completion photo required.");
+      return;
+    }
+    await saveDamageUpdate(id, {
+      status: "Completed",
+      completed_by: who,
+      completed_photo: photo,
+      completed_at: new Date().toISOString()
+    });
+    renderList();
+  };
+  fileInput.click();
 }
 
 /* ======================

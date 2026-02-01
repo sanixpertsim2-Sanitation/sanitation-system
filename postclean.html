@@ -186,6 +186,12 @@ style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99
 <script src="js/supabaseClient.js"></script>
 <script>
 const supabase = window.supabaseClient;
+function setButtonBusy(btn, isBusy) {
+  if (!btn) return;
+  btn.disabled = isBusy;
+  btn.dataset.busy = isBusy ? "1" : "0";
+  btn.style.opacity = isBusy ? "0.7" : "1";
+}
 
 async function fetchLatestPreclean(area) {
   if (!supabase) return null;
@@ -391,9 +397,14 @@ function closePopup(){
 /* ================= SUBMIT ================= */
 async function submitPostClean(){
 
+  const btn = document.querySelector("button[onclick='submitPostClean()']");
+  if (btn && btn.dataset.busy === "1") return;
+  setButtonBusy(btn, true);
+
   const postBags = Number(document.getElementById("bagsRetrieved").value);
   if(!postBags){
     alert("Enter bags retrieved");
+    setButtonBusy(btn, false);
     return;
   }
 
@@ -403,17 +414,22 @@ async function submitPostClean(){
   const preBags = preclean ? Number(preclean.bags_used || 0) : 0;
 
   if(preBags && postBags !== preBags){
-    alert(
-      "❌ Bag count mismatch\n\n" +
+    const proceed = confirm(
+      "⚠ Bag count mismatch\n\n" +
       "Pre-clean: " + preBags +
-      "\nPost-clean: " + postBags
+      "\nPost-clean: " + postBags +
+      "\n\nContinue anyway?"
     );
-    return;
+    if (!proceed) {
+      setButtonBusy(btn, false);
+      return;
+    }
   }
 
   const handoverValue = document.getElementById("handoverSelect").value;
   if(!handoverValue){
     alert("Select handover option");
+    setButtonBusy(btn, false);
     return;
   }
 
@@ -433,11 +449,19 @@ async function submitPostClean(){
       }
     });
     if (tasks.length) {
-      const { error } = await supabase
-        .from("handover_tasks")
-        .insert(tasks);
-      if (error) {
-        alert("Failed to create handover tasks: " + (error.message || "Unknown error"));
+      try {
+        // Audit/webhook safe point: handover task creation.
+        const { error } = await supabase
+          .from("handover_tasks")
+          .insert(tasks);
+        if (error) {
+          alert("Failed to create handover tasks: " + (error.message || "Unknown error"));
+          setButtonBusy(btn, false);
+          return;
+        }
+      } catch (e) {
+        alert("Failed to create handover tasks.");
+        setButtonBusy(btn, false);
         return;
       }
     }
@@ -447,6 +471,7 @@ async function submitPostClean(){
   if(openDamages.some(d=>d.status==="Open")){
     document.getElementById("damageWarning").style.display="block";
     alert("All damages must be acknowledged");
+    setButtonBusy(btn, false);
     return;
   }
 
@@ -466,22 +491,31 @@ async function submitPostClean(){
 
   if (!supabase) {
     alert("Supabase client not loaded.");
+    setButtonBusy(btn, false);
     return;
   }
 
-  const { error } = await supabase
-    .from("post_cleaning_logs")
-    .insert({
-      preclean_id: preclean ? preclean.id : null,
-      employee_name: document.getElementById("empName").value.trim() || "",
-      bags_returned: postBags,
-      checklist: checklist,
-      handover_required: handoverValue === "Yes",
-      submitted_at: new Date().toISOString()
-    });
+  try {
+    // Audit/webhook safe point: post-clean submission persisted with who/when.
+    const { error } = await supabase
+      .from("post_cleaning_logs")
+      .insert({
+        preclean_id: preclean ? preclean.id : null,
+        employee_name: document.getElementById("empName").value.trim() || "",
+        bags_returned: postBags,
+        checklist: checklist,
+        handover_required: handoverValue === "Yes",
+        submitted_at: new Date().toISOString()
+      });
 
-  if (error) {
-    alert("Failed to save post-cleaning: " + (error.message || "Unknown error"));
+    if (error) {
+      alert("Failed to save post-cleaning: " + (error.message || "Unknown error"));
+      setButtonBusy(btn, false);
+      return;
+    }
+  } catch (e) {
+    alert("Failed to save post-cleaning. Please try again.");
+    setButtonBusy(btn, false);
     return;
   }
 

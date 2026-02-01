@@ -120,6 +120,50 @@ async function fetchPostclean(precleanId) {
   return data && data.length ? data[0] : null;
 }
 
+async function hasPendingHandovers() {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("handover_tasks")
+    .select("id,status")
+    .eq("status", "Pending")
+    .limit(1);
+  if (error) {
+    alert("Failed to load handover status: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
+async function hasHandoverDamages(area) {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("id,status")
+    .eq("area", area)
+    .eq("status", "Handover")
+    .limit(1);
+  if (error) {
+    alert("Failed to load damage status: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
+async function hasOpenDamages(area) {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("id,status")
+    .eq("area", area)
+    .eq("status", "Open")
+    .limit(1);
+  if (error) {
+    alert("Failed to load damage status: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
 async function hasLineRelease() {
   if (!supabase) return false;
   const { data, error } = await supabase
@@ -140,6 +184,9 @@ async function renderControl() {
   const preclean = await fetchLatestPreclean(area);
   const postclean = await fetchPostclean(preclean ? preclean.id : null);
   const released = await hasLineRelease();
+  const pendingHandovers = await hasPendingHandovers();
+  const handoverDamages = await hasHandoverDamages(area);
+  const openDamages = await hasOpenDamages(area);
 
   const status = document.getElementById("statusBox");
   const action = document.getElementById("actionBox");
@@ -169,15 +216,23 @@ async function renderControl() {
         🟠 Post-Cleaning Completed
       </div>`;
 
-    action.innerHTML = `
-      <button class="action-btn" onclick="goHandover()">
-        📋 Handover
-      </button>
+    if (pendingHandovers || handoverDamages || openDamages) {
+      action.innerHTML = `
+        <button class="action-btn" onclick="goHandover()">
+          📋 Handover
+        </button>
+      `;
+    } else {
+      action.innerHTML = `
+        <button class="action-btn" onclick="goHandover()">
+          📋 Handover
+        </button>
 
-      <button class="action-btn lock-btn" onclick="goInspection()">
-        🔒 Area Inspection (Area Lead)
-      </button>
-    `;
+        <button class="action-btn lock-btn" onclick="goInspection()">
+          🔒 Area Inspection (Area Lead)
+        </button>
+      `;
+    }
     return;
   }
 

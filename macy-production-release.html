@@ -130,6 +130,12 @@ button{
 <script src="js/supabaseClient.js"></script>
 <script>
 const supabase = window.supabaseClient;
+function setButtonBusy(btn, isBusy) {
+  if (!btn) return;
+  btn.disabled = isBusy;
+  btn.dataset.busy = isBusy ? "1" : "0";
+  btn.style.opacity = isBusy ? "0.7" : "1";
+}
 
 /* SIGN */
 const canvas=document.getElementById("signPad");
@@ -211,17 +217,45 @@ async function hasHandoverDamages(area) {
   return data && data.length > 0;
 }
 
+async function hasOpenDamages(area) {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("id,status")
+    .eq("area", area)
+    .eq("status", "Open")
+    .limit(1);
+  if (error) {
+    alert("Failed to load damage status: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
 /* SUBMIT */
 async function submitArea(){
 
+  const btn = document.querySelector("button[onclick='submitArea()']");
+  if (btn && btn.dataset.busy === "1") return;
+  setButtonBusy(btn, true);
+
   const lead=document.getElementById("leadName").value;
-  if(!lead) return alert("Select Area Lead");
+  if(!lead) {
+    alert("Select Area Lead");
+    setButtonBusy(btn, false);
+    return;
+  }
 
   const sign=canvas.toDataURL();
-  if(sign.length<1000) return alert("Signature required");
+  if(sign.length<1000) {
+    alert("Signature required");
+    setButtonBusy(btn, false);
+    return;
+  }
 
   if (!supabase) {
     alert("Supabase client not loaded.");
+    setButtonBusy(btn, false);
     return;
   }
 
@@ -230,11 +264,17 @@ async function submitArea(){
 
   const checklist = [];
   const comments = [];
+  const issueTasks = [];
+  let missing = false;
   document.querySelectorAll(".section.question").forEach(q => {
     const label = q.querySelector("label");
     const sel = q.querySelector("select");
     const txt = q.querySelector("textarea");
     const questionText = label ? label.innerText.trim() : "Question";
+    if (!sel || !sel.value) {
+      missing = true;
+      return;
+    }
     checklist.push({
       question: questionText,
       answer: sel ? sel.value : "",
@@ -243,43 +283,79 @@ async function submitArea(){
     if (txt && txt.value.trim()) {
       comments.push(txt.value.trim());
     }
+    const bad =
+      sel.value === "No" ||
+      sel.value === "Not up to the mark" ||
+      sel.value === "Need Floor Cleaning";
+    if (bad || (txt && txt.value.trim())) {
+      issueTasks.push({
+        question: questionText,
+        answer: sel.value,
+        comment: txt ? txt.value.trim() : ""
+      });
+    }
+  });
+  checklist.push({
+    question: "Signature",
+    answer: "Captured",
+    comment: "",
+    photo: sign
   });
 
-  const { error: inspectionError } = await supabase
-    .from("area_inspection_logs")
-    .insert({
-      inspector_name: lead,
-      checklist: checklist,
-      comments: comments.join(" | "),
-      submitted_at: new Date().toISOString()
-    });
+  if (missing) {
+    alert("Complete all inspection items.");
+    setButtonBusy(btn, false);
+    return;
+  }
 
-  if (inspectionError) {
-    alert("Failed to save inspection: " + (inspectionError.message || "Unknown error"));
+  try {
+    // Audit/webhook safe point: area inspection record persisted.
+    const { error: inspectionError } = await supabase
+      .from("area_inspection_logs")
+      .insert({
+        inspector_name: lead,
+        checklist: checklist,
+        comments: comments.join(" | "),
+        submitted_at: new Date().toISOString()
+      });
+
+    if (inspectionError) {
+      alert("Failed to save inspection: " + (inspectionError.message || "Unknown error"));
+      setButtonBusy(btn, false);
+      return;
+    }
+  } catch (e) {
+    alert("Failed to save inspection. Please try again.");
+    setButtonBusy(btn, false);
     return;
   }
 
   let newTasks=[];
 
-  document.querySelectorAll(".question").forEach(q=>{
-    const txt=q.querySelector("textarea");
-    if(txt && txt.value.trim()){
-      newTasks.push({
-        source: "area-verification",
-        reference_id: precleanId,
-        task_description: txt.value.trim(),
-        status: "Pending",
-        created_at: new Date().toISOString()
-      });
-    }
+  issueTasks.forEach(i => {
+    newTasks.push({
+      source: "area-verification",
+      reference_id: precleanId,
+      task_description: `${i.question} — ${i.answer}${i.comment ? " | " + i.comment : ""}`,
+      status: "Pending",
+      created_at: new Date().toISOString()
+    });
   });
 
   if(newTasks.length){
-    const { error } = await supabase
-      .from("handover_tasks")
-      .insert(newTasks);
-    if (error) {
-      alert("Failed to save handover tasks: " + (error.message || "Unknown error"));
+  try {
+    // Audit/webhook safe point: auto-create handover tasks from inspection issues.
+      const { error } = await supabase
+        .from("handover_tasks")
+        .insert(newTasks);
+      if (error) {
+        alert("Failed to save handover tasks: " + (error.message || "Unknown error"));
+        setButtonBusy(btn, false);
+        return;
+      }
+    } catch (e) {
+      alert("Failed to save handover tasks.");
+      setButtonBusy(btn, false);
       return;
     }
     alert("⚠ Sent to Handover");
@@ -289,23 +365,32 @@ async function submitArea(){
 
   const pending = await hasPendingHandovers();
   const damageHandover = await hasHandoverDamages(area);
+  const openDamages = await hasOpenDamages(area);
 
-  if(pending || damageHandover){
+  if(pending || damageHandover || openDamages){
     alert("⚠ Pending handovers exist");
     window.location.href="macy-production-control.html";
     return;
   }
 
-  const { error: releaseError } = await supabase
-    .from("line_release_logs")
-    .insert({
-      released_by: lead,
-      signature: sign,
-      verified_at: new Date().toISOString()
-    });
+  try {
+    // Audit/webhook safe point: line release persisted with who/when/signature.
+    const { error: releaseError } = await supabase
+      .from("line_release_logs")
+      .insert({
+        released_by: lead,
+        signature: sign,
+        verified_at: new Date().toISOString()
+      });
 
-  if (releaseError) {
-    alert("Failed to release line: " + (releaseError.message || "Unknown error"));
+    if (releaseError) {
+      alert("Failed to release line: " + (releaseError.message || "Unknown error"));
+      setButtonBusy(btn, false);
+      return;
+    }
+  } catch (e) {
+    alert("Failed to release line. Please try again.");
+    setButtonBusy(btn, false);
     return;
   }
 

@@ -140,6 +140,14 @@ textarea {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
 <script>
+const supabase = window.supabaseClient;
+
+function setButtonBusy(btn, isBusy) {
+  if (!btn) return;
+  btn.disabled = isBusy;
+  btn.dataset.busy = isBusy ? "1" : "0";
+  btn.style.opacity = isBusy ? "0.7" : "1";
+}
 /* ===============================
    AUTO DATE
 ================================ */
@@ -221,17 +229,22 @@ function saveDraft() {
 ================================ */
 async function submitPreCleaning() {
 
+  const btn = document.querySelector("button[onclick='submitPreCleaning()']");
+  if (btn && btn.dataset.busy === "1") return;
+  setButtonBusy(btn, true);
+
   const emp = document.getElementById("employeeName").value.trim();
   const bags = document.getElementById("bagsUsed").value.trim();
 
   if (!emp || !bags) {
     alert("Employee name and bags used are required.");
+    setButtonBusy(btn, false);
     return;
   }
 
-  const supabase = window.supabaseClient;
   if (!supabase) {
     alert("Supabase client not loaded.");
+    setButtonBusy(btn, false);
     return;
   }
 
@@ -247,19 +260,27 @@ async function submitPreCleaning() {
     });
   });
 
-  const { error } = await supabase
-    .from("pre_cleaning_logs")
-    .insert({
-      area: area,
-      employee_name: emp,
-      bags_used: parseInt(bags, 10) || 0,
-      checklist: checklist,
-      status: "submitted",
-      submitted_at: new Date().toISOString()
-    });
+  try {
+    // Audit/webhook safe point: pre-clean submission persisted with who/when/area.
+    const { error } = await supabase
+      .from("pre_cleaning_logs")
+      .insert({
+        area: area,
+        employee_name: emp,
+        bags_used: parseInt(bags, 10) || 0,
+        checklist: checklist,
+        status: "submitted",
+        submitted_at: new Date().toISOString()
+      });
 
-  if (error) {
-    alert("Failed to save pre-cleaning: " + (error.message || "Unknown error"));
+    if (error) {
+      alert("Failed to save pre-cleaning: " + (error.message || "Unknown error"));
+      setButtonBusy(btn, false);
+      return;
+    }
+  } catch (e) {
+    alert("Failed to save pre-cleaning. Please try again.");
+    setButtonBusy(btn, false);
     return;
   }
 

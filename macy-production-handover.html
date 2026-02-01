@@ -231,6 +231,7 @@ async function completeTask(i, type) {
   });
 
   if (type === "task") {
+    // Audit/webhook safe point: task completion with photo evidence.
     const task = tasks[i];
     const { error } = await supabase
       .from("handover_tasks")
@@ -248,6 +249,7 @@ async function completeTask(i, type) {
   }
 
   if (type === "damage") {
+    // Audit/webhook safe point: damage completion with photo evidence.
     const damageIndex = i - tasks.length;
     const damage = damageTasks[damageIndex];
     const { error } = await supabase
@@ -278,22 +280,35 @@ async function finalRelease() {
     return;
   }
 
+  const pendingTasks = await fetchHandoverTasks();
+  const pendingDamages = await fetchDamageHandovers();
+  if (pendingTasks.length || pendingDamages.length) {
+    alert("Line release blocked: pending handovers or damage tasks exist.");
+    return;
+  }
+
   const lead = prompt("Area Lead name for release");
   if (!lead) {
     alert("Area Lead name required.");
     return;
   }
 
-  const { error } = await supabase
-    .from("line_release_logs")
-    .insert({
-      released_by: lead,
-      signature: null,
-      verified_at: new Date().toISOString()
-    });
+  try {
+    // Audit/webhook safe point: line release persisted after all closures.
+    const { error } = await supabase
+      .from("line_release_logs")
+      .insert({
+        released_by: lead,
+        signature: null,
+        verified_at: new Date().toISOString()
+      });
 
-  if (error) {
-    alert("Failed to release line: " + (error.message || "Unknown error"));
+    if (error) {
+      alert("Failed to release line: " + (error.message || "Unknown error"));
+      return;
+    }
+  } catch (e) {
+    alert("Failed to release line. Please try again.");
     return;
   }
 
