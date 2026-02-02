@@ -25,7 +25,7 @@
     <label>Area Lead PIN *</label>
     <input type="password" id="leadPin" placeholder="Enter PIN">
 
-    <button class="primary-btn" onclick="releaseLine()">
+    <button class="primary-btn sticky-cta" onclick="releaseLine()">
       ✅ Official Line Release
     </button>
 
@@ -37,6 +37,13 @@
 <script src="js/supabaseClient.js"></script>
 <script>
 const supabase = window.supabaseClient;
+function updateReleaseButton() {
+  const btn = document.querySelector("button[onclick='releaseLine()']");
+  if (!btn) return;
+  const name = document.getElementById("leadName").value.trim();
+  const pin = document.getElementById("leadPin").value.trim();
+  btn.disabled = !(name && pin);
+}
 function releaseLine() {
 
   const name = document.getElementById("leadName").value.trim();
@@ -103,6 +110,11 @@ window.onload = function () {
   const area =
     localStorage.getItem("selectedArea") || "Area";
   document.getElementById("areaName").innerText = area;
+  document.getElementById("leadName")
+    .addEventListener("input", updateReleaseButton);
+  document.getElementById("leadPin")
+    .addEventListener("input", updateReleaseButton);
+  updateReleaseButton();
 };
 </script>
 </body>

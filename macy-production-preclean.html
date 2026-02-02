@@ -131,7 +131,7 @@ textarea {
 
 </div>
 
-<button class="submit-btn" onclick="submitPreCleaning()">
+<button class="submit-btn sticky-cta" onclick="submitPreCleaning()">
   Submit Pre-Cleaning
 </button>
 
@@ -148,11 +148,22 @@ function setButtonBusy(btn, isBusy) {
   btn.dataset.busy = isBusy ? "1" : "0";
   btn.style.opacity = isBusy ? "0.7" : "1";
 }
+
+function updatePrecleanButton() {
+  const btn = document.querySelector("button[onclick='submitPreCleaning()']");
+  if (!btn || btn.dataset.busy === "1") return;
+  const emp = document.getElementById("employeeName").value.trim();
+  const bags = document.getElementById("bagsUsed").value.trim();
+  const allAnswered = Array.from(document.querySelectorAll(".question select"))
+    .every(sel => sel.value && sel.value.length > 0);
+  btn.disabled = !(emp && bags && allAnswered);
+}
 /* ===============================
    AUTO DATE
 ================================ */
 document.getElementById("dateTime").value =
   new Date().toLocaleString();
+updatePrecleanButton();
 
 /* ===============================
    TOGGLE EXTRA
@@ -188,6 +199,7 @@ function saveDraft() {
     "macyProdPrecleanDraft",
     JSON.stringify(data)
   );
+  updatePrecleanButton();
 }
 
 /* ===============================
@@ -222,6 +234,7 @@ function saveDraft() {
       txt.value = a.comment;
     }
   });
+  updatePrecleanButton();
 })();
 
 /* ===============================

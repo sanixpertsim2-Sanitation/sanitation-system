@@ -163,7 +163,7 @@ onclick="openDamagePopup()">
 ⚠ Review Damage
 </button>
 
-<button class="submit-btn" onclick="submitPostClean()">
+<button class="submit-btn sticky-cta" onclick="submitPostClean()">
 Submit Post-Cleaning
 </button>
 
@@ -191,6 +191,16 @@ function setButtonBusy(btn, isBusy) {
   btn.disabled = isBusy;
   btn.dataset.busy = isBusy ? "1" : "0";
   btn.style.opacity = isBusy ? "0.7" : "1";
+}
+
+function updatePostcleanButton() {
+  const btn = document.querySelector("button[onclick='submitPostClean()']");
+  if (!btn || btn.dataset.busy === "1") return;
+  const bags = document.getElementById("bagsRetrieved").value.trim();
+  const handover = document.getElementById("handoverSelect").value;
+  const allAnswered = Array.from(document.querySelectorAll(".question select"))
+    .every(sel => sel.value && sel.value.length > 0);
+  btn.disabled = !(bags && handover && allAnswered);
 }
 
 async function fetchLatestPreclean(area) {
@@ -255,6 +265,9 @@ window.onload = async () => {
 
   document.getElementById("dateTime").value =
     new Date().toLocaleString();
+  document.getElementById("bagsRetrieved")
+    .addEventListener("input", updatePostcleanButton);
+  updatePostcleanButton();
 };
 
 function toggleNA(sel){
@@ -264,11 +277,13 @@ function toggleNA(sel){
   sel.value==="Acceptable"
     ? (t.classList.add("hidden"),f.classList.add("hidden"))
     : (t.classList.remove("hidden"),f.classList.remove("hidden"));
+  updatePostcleanButton();
 }
 
 function toggleHandover(sel){
   document.getElementById("handoverBox")
     .classList.toggle("hidden", sel.value!=="Yes");
+  updatePostcleanButton();
 }
 
 /* ================= DAMAGE ================= */
@@ -286,7 +301,8 @@ function openDamagePopup(){
     damages.forEach(d=>{
       list.innerHTML+=`
         <div class="damage-card">
-          <b>${d.area}</b><br>${fromStoredDescription(d.description)}
+          <b>${d.area}</b><br>${fromStoredDescription(d.description)}<br>
+          <span class="status-badge status-warning">${d.severity || "Open"}</span>
 
           <label>Action *</label>
           <select onchange="toggleDamage('${d.id}',this.value)">

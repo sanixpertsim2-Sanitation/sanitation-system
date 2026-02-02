@@ -67,7 +67,7 @@
 <p class="small" id="photoTime"></p>
 
 
-  <button class="btn resolve" onclick="submitDamage()">Submit Damage</button>
+  <button class="btn resolve sticky-cta" onclick="submitDamage()">Submit Damage</button>
 </div>
 
 <!-- LIST -->
@@ -96,6 +96,15 @@
 let damagePhotoBase64 = "";
 const supabase = window.supabaseClient;
 
+function updateDamageButton() {
+  const btn = document.querySelector("button[onclick='submitDamage()']");
+  if (!btn) return;
+  const areaVal = document.getElementById("area").value.trim();
+  const descVal = document.getElementById("desc").value.trim();
+  const sevVal = document.getElementById("severity").value;
+  btn.disabled = !(areaVal && descVal && sevVal && damagePhotoBase64);
+}
+
 /* ======================
    PHOTO HANDLER
 ====================== */
@@ -110,6 +119,7 @@ function handleDamagePhoto(input) {
     document.getElementById("preview").style.display = "block";
     document.getElementById("photoTime").innerText =
       "🕒 " + new Date().toLocaleString();
+    updateDamageButton();
   };
   reader.readAsDataURL(file);
 }
@@ -149,6 +159,11 @@ async function getDamages() {
   return data || [];
 }
 
+function statusClass(status) {
+  if (status === "Completed") return "status-success";
+  if (status === "Handover") return "status-pending";
+  return "status-warning";
+}
 async function saveDamageUpdate(id, patch) {
   if (!supabase) return;
   const { error } = await supabase
@@ -232,6 +247,7 @@ function renderList() {
         <b>${d.area}</b> — ${d.severity || "-"}<br>
         ${displayText}<br>
         <span class="small">Reported: ${new Date(d.created_at).toLocaleString()}</span><br>
+        <span class="status-badge ${statusClass(d.status)}">${d.status}</span><br>
         ${actionHTML}
       `;
 
@@ -327,6 +343,10 @@ function renderDamageTable() {
 }
 
 renderList();
+document.getElementById("area").addEventListener("input", updateDamageButton);
+document.getElementById("desc").addEventListener("input", updateDamageButton);
+document.getElementById("severity").addEventListener("change", updateDamageButton);
+updateDamageButton();
 </script>
 
 </body>

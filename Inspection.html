@@ -123,6 +123,15 @@ select, textarea, input {
 <script>
 const supabase = window.supabaseClient;
 
+function updateInspectionButton() {
+  const btn = document.querySelector("button[onclick='submitInspection()']");
+  if (!btn) return;
+  const name = document.getElementById("inspector").value.trim();
+  const allAnswered = Array.from(document.querySelectorAll(".question select"))
+    .every(sel => sel.value && sel.value.length > 0);
+  btn.disabled = !(name && allAnswered);
+}
+
 function toggle(sel) {
   const q = sel.parentElement;
   const t = q.querySelector("textarea");
@@ -137,6 +146,7 @@ function toggle(sel) {
     t.value = "";
     f.value = "";
   }
+  updateInspectionButton();
 }
 
 async function submitInspection() {
@@ -211,6 +221,14 @@ async function submitInspection() {
 
   window.location.href = "control.html";
 }
+</script>
+
+<script>
+document.getElementById("inspector")
+  .addEventListener("input", updateInspectionButton);
+document.querySelectorAll(".question select")
+  .forEach(sel => sel.addEventListener("change", updateInspectionButton));
+updateInspectionButton();
 </script>
 
 </body>
