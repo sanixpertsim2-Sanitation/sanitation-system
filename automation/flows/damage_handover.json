@@ -1,0 +1,21 @@
+{
+  "event": "damage_handover",
+  "occurred_at": "2026-02-01T20:46:00Z",
+  "area": "MACY_PRODUCTION",
+  "line": "MACY Production",
+  "actor_name": "Operator Name",
+  "actor_role": "sanitation_operator",
+  "source": "damage_reports",
+  "record_ids": {
+    "damage_id": "00000000-0000-0000-0000-000000000000"
+  },
+  "damage": {
+    "severity": "Minor",
+    "status": "Handover",
+    "handover_reason": "Parts required"
+  },
+  "evidence": {
+    "initial_photo": "data:image/jpeg;base64,REDACTED"
+  },
+  "status": "handover"
+}

@@ -1,0 +1,20 @@
+{
+  "event": "line_released",
+  "occurred_at": "2026-02-01T20:48:00Z",
+  "area": "MACY_PRODUCTION",
+  "line": "MACY Production",
+  "actor_name": "Area Lead Name",
+  "actor_role": "area_lead",
+  "source": "line_release_logs",
+  "record_ids": {
+    "release_id": "00000000-0000-0000-0000-000000000000"
+  },
+  "release": {
+    "status": "Released",
+    "signature_present": true
+  },
+  "evidence": {
+    "signature": "data:image/png;base64,REDACTED"
+  },
+  "status": "released"
+}

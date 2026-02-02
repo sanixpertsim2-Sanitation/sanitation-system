@@ -1,0 +1,27 @@
+{
+  "event": "post_clean_submitted",
+  "occurred_at": "2026-02-01T20:45:00Z",
+  "area": "MACY_PRODUCTION",
+  "line": "MACY Production",
+  "actor_name": "Operator Name",
+  "actor_role": "sanitation_operator",
+  "source": "post_cleaning_logs",
+  "record_ids": {
+    "preclean_id": "00000000-0000-0000-0000-000000000000",
+    "postclean_id": "00000000-0000-0000-0000-000000000000"
+  },
+  "bags_used": 12,
+  "bags_returned": 12,
+  "handover_required": true,
+  "checklist_summary": {
+    "total_questions": 17,
+    "non_ideal_answers": 1
+  },
+  "evidence": {
+    "photos": [
+      "data:image/jpeg;base64,REDACTED"
+    ]
+  },
+  "status": "submitted",
+  "notes": "Soft bag mismatch allowed if operator confirms."
+}

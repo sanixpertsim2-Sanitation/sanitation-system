@@ -1,0 +1,20 @@
+{
+  "event": "handover_completed",
+  "occurred_at": "2026-02-01T20:47:00Z",
+  "area": "MACY_PRODUCTION",
+  "line": "MACY Production",
+  "actor_name": "Supervisor Name",
+  "actor_role": "supervisor",
+  "source": "handover_tasks",
+  "record_ids": {
+    "handover_id": "00000000-0000-0000-0000-000000000000"
+  },
+  "handover": {
+    "status": "Completed",
+    "completed_by": "Supervisor Name"
+  },
+  "evidence": {
+    "completion_photo": "data:image/jpeg;base64,REDACTED"
+  },
+  "status": "completed"
+}
