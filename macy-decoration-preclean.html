@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY – Decoration Pre-Cleaning</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.section {
+  background: rgba(255,255,255,0.07);
+  border-radius: 18px;
+  padding: 22px;
+  margin-bottom: 25px;
+  box-shadow: 0 0 25px rgba(0,150,255,.25);
+}
+.section h3 {
+  color: #7fd6ff;
+  margin-bottom: 15px;
+}
+.question {
+  margin-bottom: 18px;
+}
+select, input, textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  margin-top: 6px;
+}
+textarea {
+  min-height: 60px;
+}
+.hidden { display:none; }
+.submit-btn {
+  width:100%;
+  padding:16px;
+  font-size:18px;
+  background:linear-gradient(135deg,#00b3ff,#0066ff);
+  border:none;
+  border-radius:16px;
+  color:white;
+  cursor:pointer;
+  box-shadow:0 0 25px rgba(0,140,255,.7);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">MACY – <span id="lineName">MACY Decoration</span></h1>
+<h3>Pre-Cleaning Verification</h3>
+
+<!-- GENERAL -->
+<div class="section">
+  <h3>General Information</h3>
+
+  <label>Employee Name *</label>
+  <input type="text" id="employeeName" oninput="saveDraft()">
+
+  <label>Date & Time</label>
+  <input type="text" id="dateTime" readonly>
+
+  <label>Number of bags used *</label>
+  <input type="number" id="bagsUsed" oninput="saveDraft()">
+</div>
+
+<!-- CHECKLIST -->
+<div class="section">
+  <h3 id="checklistTitle">Decoration Area Checklist</h3>
+  <div id="precleanSections"></div>
+</div>
+
+<button class="submit-btn sticky-cta" onclick="submitPreCleaning()">
+  Submit Pre-Cleaning
+</button>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
+<script>
+const supabase = window.supabaseClient;
+
+function setButtonBusy(btn, isBusy) {
+  if (!btn) return;
+  btn.disabled = isBusy;
+  btn.dataset.busy = isBusy ? "1" : "0";
+  btn.style.opacity = isBusy ? "0.7" : "1";
+}
+
+function updatePrecleanButton() {
+  const btn = document.querySelector("button[onclick='submitPreCleaning()']");
+  if (!btn || btn.dataset.busy === "1") return;
+  const emp = document.getElementById("employeeName").value.trim();
+  const bags = document.getElementById("bagsUsed").value.trim();
+  const covered = document.getElementById("equipmentCovered")
+    ? document.getElementById("equipmentCovered").value.trim()
+    : "";
+  const allAnswered = Array.from(document.querySelectorAll(".question select"))
+    .every(sel => sel.value && sel.value.length > 0);
+  btn.disabled = !(emp && bags && covered && allAnswered);
+}
+/* ===============================
+   AUTO DATE
+================================ */
+document.getElementById("dateTime").value =
+  new Date().toLocaleString();
+updatePrecleanButton();
+
+const line = "MACY_DECORATION";
+localStorage.setItem("selectedArea", line);
+document.getElementById("lineName").innerText = "MACY Decoration";
+document.getElementById("checklistTitle").innerText =
+  "MACY Decoration Area Checklist";
+
+const precleanSets = [
+  {
+    title: "Equipment & Safety",
+    items: [
+      "Verify the equipment for any inadequate condition and safety issues.",
+      "Check sensors and motor.",
+      "Verify damage on all equipment, including: Frame, Conveyor, Pipes, Plugs, Emergency button."
+    ]
+  },
+  {
+    title: "Dismantling (Verification Only)",
+    items: [
+      "Remove Die.",
+      "Icing Pipes.",
+      "Icing Pumps.",
+      "Transfer Pipes.",
+      "Catchpans."
+    ]
+  },
+  {
+    title: "Dry Cleaning",
+    items: [
+      "Frames (Top & Bottom).",
+      "Conveyors (Under & Top).",
+      "Scrapers.",
+      "Floor."
+    ]
+  }
+];
+
+function buildQuestion(text) {
+  const div = document.createElement("div");
+  div.className = "question";
+  div.innerHTML = `
+    ${text}
+    <select onchange="toggleExtra(this);saveDraft()">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>NA</option>
+    </select>
+    <div class="extra hidden">
+      <input type="file" accept="image/*" capture="environment">
+      <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+    </div>
+  `;
+  return div;
+}
+
+function renderPrecleanQuestions() {
+  const container = document.getElementById("precleanSections");
+  container.innerHTML = "";
+  precleanSets.forEach(section => {
+    const wrap = document.createElement("div");
+    wrap.className = "section-card";
+    wrap.innerHTML = `<h3>${section.title}</h3>`;
+    section.items.forEach(item => wrap.appendChild(buildQuestion(item)));
+    container.appendChild(wrap);
+  });
+
+  const coverage = document.createElement("div");
+  coverage.className = "section-card";
+  coverage.innerHTML = `
+    <h3>Coverage</h3>
+    <label>Number of equipment covered *</label>
+    <input type="number" id="equipmentCovered" oninput="saveDraft()">
+  `;
+  container.appendChild(coverage);
+}
+
+renderPrecleanQuestions();
+
+/* ===============================
+   TOGGLE EXTRA
+================================ */
+function toggleExtra(sel) {
+  const extra = sel.parentElement.querySelector(".extra");
+  if (sel.value !== "Acceptable" && sel.value !== "") {
+    extra.classList.remove("hidden");
+  } else {
+    extra.classList.add("hidden");
+  }
+}
+
+/* ===============================
+   SAVE DRAFT
+================================ */
+function saveDraft() {
+
+  const data = {
+    employee: document.getElementById("employeeName").value,
+    bags: document.getElementById("bagsUsed").value,
+    covered: document.getElementById("equipmentCovered")
+      ? document.getElementById("equipmentCovered").value
+      : "",
+    answers: []
+  };
+
+  document.querySelectorAll(".question").forEach(q => {
+    data.answers.push({
+      value: q.querySelector("select").value,
+      comment: q.querySelector("textarea")?.value || ""
+    });
+  });
+
+  localStorage.setItem(
+    "macyDecPrecleanDraft",
+    JSON.stringify(data)
+  );
+  updatePrecleanButton();
+}
+
+/* ===============================
+   LOAD DRAFT
+================================ */
+(function () {
+
+  const draft =
+    JSON.parse(localStorage.getItem("macyDecPrecleanDraft"));
+
+  if (!draft) return;
+
+  document.getElementById("employeeName").value =
+    draft.employee || "";
+
+  document.getElementById("bagsUsed").value =
+    draft.bags || "";
+  if (document.getElementById("equipmentCovered")) {
+    document.getElementById("equipmentCovered").value =
+      draft.covered || "";
+  }
+
+  const questions =
+    document.querySelectorAll(".question");
+
+  draft.answers.forEach((a, i) => {
+    if (!questions[i]) return;
+
+    const sel = questions[i].querySelector("select");
+    const txt = questions[i].querySelector("textarea");
+
+    sel.value = a.value;
+
+    if (a.value && a.value !== "Acceptable") {
+      questions[i].querySelector(".extra").classList.remove("hidden");
+      txt.value = a.comment;
+    }
+  });
+  updatePrecleanButton();
+})();
+
+/* ===============================
+   SUBMIT
+================================ */
+async function submitPreCleaning() {
+
+  const btn = document.querySelector("button[onclick='submitPreCleaning()']");
+  if (btn && btn.dataset.busy === "1") return;
+  setButtonBusy(btn, true);
+
+  const emp = document.getElementById("employeeName").value.trim();
+  const bags = document.getElementById("bagsUsed").value.trim();
+
+  if (!emp || !bags) {
+    alert("Employee name and bags used are required.");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  const checklist = [];
+  document.querySelectorAll(".question").forEach(q => {
+    const questionText = q.childNodes[0].textContent.trim();
+    checklist.push({
+      question: questionText,
+      value: q.querySelector("select").value,
+      comment: q.querySelector("textarea")?.value || ""
+    });
+  });
+  const coveredValue = document.getElementById("equipmentCovered")
+    ? document.getElementById("equipmentCovered").value.trim()
+    : "";
+  if (coveredValue) {
+    checklist.push({
+      question: "Number of equipment covered",
+      value: coveredValue,
+      comment: ""
+    });
+  }
+
+  try {
+    // Audit/webhook safe point: pre-clean submission persisted with who/when/area.
+    const { error } = await supabase
+      .from("pre_cleaning_logs")
+      .insert({
+        area: line,
+        employee_name: emp,
+        bags_used: parseInt(bags, 10) || 0,
+        checklist: checklist,
+        status: "submitted",
+        submitted_at: new Date().toISOString()
+      });
+
+    if (error) {
+      alert("Failed to save pre-cleaning: " + (error.message || "Unknown error"));
+      setButtonBusy(btn, false);
+      return;
+    }
+  } catch (e) {
+    alert("Failed to save pre-cleaning. Please try again.");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  alert("✅ Pre-Cleaning submitted successfully");
+
+  window.location.href =
+    "macy-decoration-control.html";
+}
+</script>
+
+</body>
+</html>

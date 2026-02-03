@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY – Decoration Control</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.status {
+  padding: 22px;
+  border-radius: 18px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: bold;
+}
+
+.blue   { background:#1e3a8a; }
+.yellow { background:#92400e; }
+.orange { background:#9a3412; }
+.green  { background:#065f46; }
+
+.action-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 17px;
+  border-radius: 16px;
+  border: none;
+  margin-top: 15px;
+  background: linear-gradient(135deg,#00aaff,#0066ff);
+  color: white;
+  cursor: pointer;
+}
+
+.lock-btn {
+  background:#1e293b !important;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">MACY – <span id="lineName">MACY Decoration</span></h1>
+<h3>Sanitation Control Panel</h3>
+
+<div id="statusBox"></div>
+<div id="actionBox"></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
+<script>
+const ADMIN_PIN = "0735";
+const supabase = window.supabaseClient;
+
+/* ======================
+   NAVIGATION
+====================== */
+function goPre() {
+  window.location.href = "macy-decoration-preclean.html";
+}
+
+function goPost() {
+  window.location.href = "macy-decoration-postclean.html";
+}
+
+function goDamage() {
+  window.location.href = "macy-decoration-damage.html";
+}
+
+function goHandover() {
+  window.location.href = "macy-decoration-handover.html";
+}
+
+function goInspection() {
+  const pin = prompt("🔐 Area Inspection Access\n\nEnter PIN");
+
+  if (pin === ADMIN_PIN) {
+    window.location.href = "macy-decoration-release.html";
+  } else {
+    alert("❌ Incorrect PIN");
+  }
+}
+
+async function fetchLatestPreclean(area) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("pre_cleaning_logs")
+    .select("*")
+    .eq("area", area)
+    .order("submitted_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load pre-cleaning: " + (error.message || "Unknown error"));
+    return null;
+  }
+  return data && data.length ? data[0] : null;
+}
+
+async function fetchPostclean(precleanId) {
+  if (!supabase || !precleanId) return null;
+  const { data, error } = await supabase
+    .from("post_cleaning_logs")
+    .select("*")
+    .eq("preclean_id", precleanId)
+    .order("submitted_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load post-cleaning: " + (error.message || "Unknown error"));
+    return null;
+  }
+  return data && data.length ? data[0] : null;
+}
+
+async function hasPendingHandovers() {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("handover_tasks")
+    .select("id,status")
+    .eq("status", "Pending")
+    .limit(1);
+  if (error) {
+    alert("Failed to load handover status: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
+async function hasHandoverDamages(area) {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("id,status")
+    .eq("area", area)
+    .eq("status", "Handover")
+    .limit(1);
+  if (error) {
+    alert("Failed to load damage status: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
+async function hasOpenDamages(area) {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("id,status")
+    .eq("area", area)
+    .eq("status", "Open")
+    .limit(1);
+  if (error) {
+    alert("Failed to load damage status: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
+async function hasLineRelease() {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("line_release_logs")
+    .select("id")
+    .order("verified_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load release status: " + (error.message || "Unknown error"));
+    return false;
+  }
+  return data && data.length > 0;
+}
+
+async function renderControl() {
+
+  const area = "MACY_DECORATION";
+  localStorage.setItem("selectedArea", area);
+  document.getElementById("lineName").innerText = "MACY Decoration";
+  const preclean = await fetchLatestPreclean(area);
+  const postclean = await fetchPostclean(preclean ? preclean.id : null);
+  const released = await hasLineRelease();
+  const pendingHandovers = await hasPendingHandovers();
+  const handoverDamages = await hasHandoverDamages(area);
+  const openDamages = await hasOpenDamages(area);
+
+  const status = document.getElementById("statusBox");
+  const action = document.getElementById("actionBox");
+
+  status.innerHTML = "";
+  action.innerHTML = "";
+
+  /* ==========================
+     🟢 LINE RELEASED
+  ========================== */
+  if (released) {
+    status.innerHTML =
+      `<div class="status green">
+        🟢 LINE RELEASED
+      </div>`;
+    return;
+  }
+
+  /* ==========================
+     🟠 POST CLEAN DONE
+     ONLY HANDOVER + INSPECTION
+  ========================== */
+  if (postclean) {
+
+    status.innerHTML =
+      `<div class="status orange">
+        🟠 Post-Cleaning Completed
+      </div>`;
+
+    if (pendingHandovers || handoverDamages || openDamages) {
+      action.innerHTML = `
+        <button class="action-btn" onclick="goHandover()">
+          📋 Handover
+        </button>
+      `;
+    } else {
+      action.innerHTML = `
+        <button class="action-btn" onclick="goHandover()">
+          📋 Handover
+        </button>
+
+        <button class="action-btn lock-btn" onclick="goInspection()">
+          🔒 Area Inspection (Area Lead)
+        </button>
+      `;
+    }
+    return;
+  }
+
+  /* ==========================
+     🟡 PRE CLEAN DONE
+  ========================== */
+  if (preclean) {
+
+    status.innerHTML =
+      `<div class="status yellow">
+        🟡 Pre-Cleaning Completed
+      </div>`;
+
+    action.innerHTML = `
+      <button class="action-btn" onclick="goDamage()">
+        Damage Report
+      </button>
+
+      <button class="action-btn" onclick="goPost()">
+        Start Post-Cleaning
+      </button>
+
+      <div style="
+        margin-top:25px;
+        padding:18px;
+        border:1px dashed rgba(255,255,255,.3);
+        border-radius:14px;
+        background:rgba(255,255,255,.04);
+      ">
+        <div style="font-size:14px;opacity:.7;margin-bottom:8px">
+          🔐 Admin Unlock Pre-Cleaning
+        </div>
+
+        <input
+          id="adminPin"
+          type="password"
+          maxlength="4"
+          inputmode="numeric"
+          placeholder="••••"
+          style="
+            width:100%;
+            padding:14px;
+            font-size:24px;
+            text-align:center;
+            letter-spacing:10px;
+            border-radius:12px;
+            border:none;
+          "
+          oninput="checkAdminPin(this)"
+        >
+      </div>
+    `;
+    return;
+  }
+
+  /* ==========================
+     🔵 FIRST TIME
+  ========================== */
+  status.innerHTML =
+    `<div class="status blue">
+      🔵 Sanitation not started
+    </div>`;
+
+  action.innerHTML =
+    `<button class="action-btn" onclick="goPre()">
+      Start Pre-Cleaning
+    </button>`;
+}
+
+/* =============================
+   ADMIN PIN CHECK
+============================= */
+function checkAdminPin(input) {
+
+  if (input.value.length < 4) return;
+
+  if (input.value === ADMIN_PIN) {
+
+    window.location.href =
+      "macy-decoration-preclean.html";
+
+  } else {
+    input.value = "";
+    alert("❌ Incorrect PIN");
+  }
+}
+
+renderControl();
+</script>
+
+</body>
+</html>

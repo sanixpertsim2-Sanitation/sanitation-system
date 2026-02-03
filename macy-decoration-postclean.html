@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY – Decoration Post Cleaning</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.section{
+  background:rgba(255,255,255,.08);
+  padding:22px;
+  border-radius:18px;
+  margin-bottom:25px;
+}
+
+.question{margin-bottom:20px;}
+
+select,textarea,input{
+  width:100%;
+  padding:11px;
+  border-radius:12px;
+  border:none;
+  margin-top:8px;
+}
+
+.hidden{display:none;}
+
+.submit-btn{
+  width:100%;
+  padding:18px;
+  font-size:18px;
+  border-radius:18px;
+  border:none;
+  background:linear-gradient(135deg,#00c6ff,#0072ff);
+  color:white;
+  cursor:pointer;
+}
+
+.warning{
+  background:rgba(250,204,21,.1);
+  border-left:4px solid #facc15;
+  padding:12px;
+  border-radius:12px;
+  font-size:13px;
+}
+
+.handover-box{
+  margin-top:12px;
+  padding:12px;
+  border-radius:12px;
+  background:rgba(59,130,246,.08);
+  border-left:4px solid #60a5fa;
+}
+
+.damage-card{
+  border:1px solid rgba(255,255,255,.2);
+  padding:16px;
+  border-radius:14px;
+  margin-bottom:18px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">MACY – <span id="areaName"></span></h1>
+<h3>Post-Cleaning Verification</h3>
+
+<!-- EMPLOYEE INFO -->
+<div class="section">
+  <h3>Employee Information</h3>
+
+  <label>Employee Name *</label>
+  <input type="text" id="empName">
+
+  <label>Date & Time</label>
+  <input type="text" id="dateTime" readonly>
+</div>
+
+<!-- BAGS -->
+<div class="section">
+  <h3>Bag Reconciliation</h3>
+  <input type="number" id="bagsRetrieved" placeholder="Enter bags retrieved">
+</div>
+
+<!-- CLEANING -->
+<div class="section">
+  <h3 id="postcleanTitle">Cleaning Verification</h3>
+  <div id="postcleanQuestions"></div>
+</div>
+
+<!-- HANDOVER -->
+<div class="section">
+  <h3>Handover Check</h3>
+
+  <select id="handoverSelect" onchange="toggleHandover(this)">
+    <option value="">Select</option>
+    <option>No</option>
+    <option>Yes</option>
+  </select>
+
+  <div id="handoverBox" class="hidden handover-box">
+    <p style="font-size:13px;opacity:.8">
+      Write one task per box (do not combine tasks).
+    </p>
+    <input placeholder="Task 1">
+    <input placeholder="Task 2">
+    <input placeholder="Task 3">
+    <input placeholder="Task 4">
+    <input placeholder="Task 5">
+  </div>
+</div>
+
+<!-- DAMAGE WARNING -->
+<div class="section" id="damageWarning" style="display:none">
+  <h3>⚠ Damage acknowledgement required</h3>
+  <div class="warning">
+    All open damages must be Completed or Handed over.
+  </div>
+</div>
+
+<button class="submit-btn" style="background:#f59e0b;margin-bottom:15px"
+onclick="openDamagePopup()">
+⚠ Review Damage
+</button>
+
+<button class="submit-btn sticky-cta" onclick="submitPostClean()">
+Submit Post-Cleaning
+</button>
+
+</div>
+
+<!-- DAMAGE POPUP -->
+<div id="damagePopup"
+style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;padding:20px;overflow:auto">
+
+<div style="background:#020617;border-radius:18px;padding:22px;max-width:720px;margin:auto">
+
+<h3>Damage Acknowledgement</h3>
+<div id="popupList"></div>
+
+<button class="submit-btn" onclick="closePopup()">Close</button>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
+<script>
+const supabase = window.supabaseClient;
+function setButtonBusy(btn, isBusy) {
+  if (!btn) return;
+  btn.disabled = isBusy;
+  btn.dataset.busy = isBusy ? "1" : "0";
+  btn.style.opacity = isBusy ? "0.7" : "1";
+}
+
+function updatePostcleanButton() {
+  const btn = document.querySelector("button[onclick='submitPostClean()']");
+  if (!btn || btn.dataset.busy === "1") return;
+  const bags = document.getElementById("bagsRetrieved").value.trim();
+  const handover = document.getElementById("handoverSelect").value;
+  const allAnswered = Array.from(document.querySelectorAll(".question select"))
+    .every(sel => sel.value && sel.value.length > 0);
+  const requiredSatisfied = Array.from(document.querySelectorAll(".question"))
+    .every(q => {
+      const sel = q.querySelector("select");
+      if (!sel || !sel.value) return false;
+      const requiresPhoto = q.dataset.alwaysPhoto === "1" || sel.value === "Not Acceptable";
+      const requiresComment = sel.value === "Not Acceptable";
+      const file = q.querySelector("input[type=file]");
+      const txt = q.querySelector("textarea");
+      if (requiresPhoto && (!file || !file.files || !file.files.length)) return false;
+      if (requiresComment && (!txt || !txt.value.trim())) return false;
+      return true;
+    });
+  btn.disabled = !(bags && handover && allAnswered && requiredSatisfied);
+}
+
+async function fetchLatestPreclean(area) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("pre_cleaning_logs")
+    .select("*")
+    .eq("area", area)
+    .order("submitted_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load pre-cleaning: " + (error.message || "Unknown error"));
+    return null;
+  }
+  return data && data.length ? data[0] : null;
+}
+
+async function fetchOpenDamages(area) {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("*")
+    .eq("area", area)
+    .eq("status", "Open")
+    .order("created_at", { ascending: false });
+  if (error) {
+    alert("Failed to load damages: " + (error.message || "Unknown error"));
+    return [];
+  }
+  return data || [];
+}
+
+function fromStoredDescription(stored) {
+  try {
+    const parsed = JSON.parse(stored);
+    if (parsed && typeof parsed === "object" && "text" in parsed) {
+      return parsed.text || "";
+    }
+  } catch (e) {
+    // keep fallback
+  }
+  return stored || "";
+}
+
+async function readFileBase64(file) {
+  if (!file) return "";
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result || "");
+    reader.readAsDataURL(file);
+  });
+}
+
+window.onload = async () => {
+  const area = "MACY_DECORATION";
+  localStorage.setItem("selectedArea", area);
+  document.getElementById("areaName").innerText = "MACY Decoration";
+  document.getElementById("postcleanTitle").innerText = "Decoration Line Verification";
+
+  const preclean = await fetchLatestPreclean(area);
+  if (preclean && preclean.employee_name) {
+    document.getElementById("empName").value = preclean.employee_name;
+  }
+
+  document.getElementById("dateTime").value =
+    new Date().toLocaleString();
+  document.getElementById("bagsRetrieved")
+    .addEventListener("input", updatePostcleanButton);
+  renderPostcleanQuestions();
+  updatePostcleanButton();
+};
+
+function toggleNA(sel){
+  const q=sel.closest(".question");
+  const t=q.querySelector("textarea");
+  const f=q.querySelector("input");
+  const alwaysPhoto = q.dataset.alwaysPhoto === "1";
+  if (sel.value==="Acceptable") {
+    t.classList.add("hidden");
+    if (!alwaysPhoto) f.classList.add("hidden");
+  } else if (sel.value) {
+    t.classList.remove("hidden");
+    f.classList.remove("hidden");
+  } else {
+    t.classList.add("hidden");
+    if (!alwaysPhoto) f.classList.add("hidden");
+  }
+  updatePostcleanButton();
+}
+
+function toggleHandover(sel){
+  document.getElementById("handoverBox")
+    .classList.toggle("hidden", sel.value!=="Yes");
+  updatePostcleanButton();
+}
+
+const postcleanSets = {
+  MACY_Decoration: [
+    { text: "Covering of motors, sensors, air regulators, and electrical panels" },
+    { text: "Depositor Side A & B — CIP completed; Depositor clean; Open safety guards and inspect for icing wash leakage" },
+    { text: "Injection Unit — Frame clean" },
+    { text: "Hopper Toppers — Icing hopper topper and icing pump clean and assembled" },
+    { text: "Manifold A & B — Clean; Blue pipes attached to Depositor Side A & B" },
+    { text: "Tray Denester — Clean; Stand fixed" },
+    { text: "Sprinkle Depositor & Die — Conveyor clean and air-dried; Die inserted" },
+    { text: "Tray Puller — Extractor clean" },
+    { text: "Filling Belt — Conveyor and rollers clean; Belt air-dried" },
+    { text: "Lid Denester — Clean and air-dried; No water on platform" },
+    { text: "Tray Closer — Rollers and belts clean and air-dried" },
+    { text: "Clamshell Conveyor — Clean and air-dried" },
+    { text: "Floor — Clean and dry; No sanitation equipment left on floor" },
+    { text: "Drains — Strainers and drains clean" }
+  ]
+};
+
+function buildPostcleanQuestion(item) {
+  const div = document.createElement("div");
+  div.className = "question";
+  if (item.alwaysPhoto) div.dataset.alwaysPhoto = "1";
+  div.innerHTML = `
+    ${item.text}
+    <select onchange="toggleNA(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>N/A</option>
+    </select>
+    <textarea class="hidden" placeholder="Comment required"></textarea>
+    <input class="${item.alwaysPhoto ? "" : "hidden"}" type="file" accept="image/*" capture="environment">
+  `;
+  const file = div.querySelector("input[type=file]");
+  const txt = div.querySelector("textarea");
+  if (file) file.addEventListener("change", updatePostcleanButton);
+  if (txt) txt.addEventListener("input", updatePostcleanButton);
+  return div;
+}
+
+function renderPostcleanQuestions() {
+  const set = postcleanSets.MACY_Decoration;
+  const container = document.getElementById("postcleanQuestions");
+  container.innerHTML = "";
+  set.forEach(item => container.appendChild(buildPostcleanQuestion(item)));
+}
+
+/* ================= DAMAGE ================= */
+function openDamagePopup(){
+  const list=document.getElementById("popupList");
+  list.innerHTML="";
+
+  const area = "MACY_DECORATION";
+  fetchOpenDamages(area).then(damages => {
+    if(!damages.length){
+      list.innerHTML="<p>No open damages.</p>";
+      return;
+    }
+
+    damages.forEach(d=>{
+      list.innerHTML+=`
+        <div class="damage-card">
+          <b>${d.area}</b><br>${fromStoredDescription(d.description)}<br>
+          <span class="status-badge status-warning">${d.severity || "Open"}</span>
+
+          <label>Action *</label>
+          <select onchange="toggleDamage('${d.id}',this.value)">
+            <option value="">Select</option>
+            <option value="Completed">Completed</option>
+            <option value="Handover">Handover</option>
+          </select>
+
+          <div id="comp-${d.id}" class="hidden">
+            <label>Completed by *</label>
+            <select id="who-${d.id}">
+              <option value="">Select</option>
+              <option>Maintenance</option>
+              <option>Sanitation</option>
+              <option>Production</option>
+              <option>Contractor</option>
+            </select>
+
+            <label>Completion photo *</label>
+            <input type="file" accept="image/*" capture="environment" id="photo-${d.id}">
+          </div>
+
+          <div id="hand-${d.id}" class="hidden">
+            <label>Handover reason *</label>
+            <select id="reason-${d.id}">
+              <option value="">Select</option>
+              <option>Parts required</option>
+              <option>Partially fixed</option>
+              <option>Maintenance next shift</option>
+            </select>
+          </div>
+
+          <button class="submit-btn" style="margin-top:12px"
+          onclick="saveDamage('${d.id}')">Save</button>
+        </div>`;
+    });
+  });
+
+  document.getElementById("damagePopup").style.display="block";
+}
+
+function toggleDamage(id,val){
+  document.getElementById("comp-"+id).classList.add("hidden");
+  document.getElementById("hand-"+id).classList.add("hidden");
+
+  if(val==="Completed")
+    document.getElementById("comp-"+id).classList.remove("hidden");
+
+  if(val==="Handover")
+    document.getElementById("hand-"+id).classList.remove("hidden");
+}
+
+async function saveDamage(id){
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    return;
+  }
+
+  if(!document.getElementById("comp-"+id).classList.contains("hidden")){
+    if(!document.getElementById("who-"+id).value ||
+       !document.getElementById("photo-"+id).files.length){
+      alert("Completed requires person and photo");
+      return;
+    }
+    const file = document.getElementById("photo-"+id).files[0];
+    const photo = await readFileBase64(file);
+    const { error } = await supabase
+      .from("damage_reports")
+      .update({
+        status: "Completed",
+        completed_by: document.getElementById("who-"+id).value,
+        completed_photo: photo,
+        completed_at: new Date().toISOString()
+      })
+      .eq("id", id);
+    if (error) {
+      alert("Failed to update damage: " + (error.message || "Unknown error"));
+      return;
+    }
+  }
+
+  if(!document.getElementById("hand-"+id).classList.contains("hidden")){
+    if(!document.getElementById("reason-"+id).value){
+      alert("Select handover reason");
+      return;
+    }
+    const { error } = await supabase
+      .from("damage_reports")
+      .update({
+        status: "Handover",
+        handover_reason: document.getElementById("reason-"+id).value,
+        handover_at: new Date().toISOString()
+      })
+      .eq("id", id);
+    if (error) {
+      alert("Failed to update damage: " + (error.message || "Unknown error"));
+      return;
+    }
+  }
+
+  openDamagePopup();
+}
+
+function closePopup(){
+  document.getElementById("damagePopup").style.display="none";
+}
+
+/* ================= SUBMIT ================= */
+async function submitPostClean(){
+
+  const btn = document.querySelector("button[onclick='submitPostClean()']");
+  if (btn && btn.dataset.busy === "1") return;
+  setButtonBusy(btn, true);
+
+  const postBags = Number(document.getElementById("bagsRetrieved").value);
+  if(!postBags){
+    alert("Enter bags retrieved");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  // ✅ BAG VALIDATION
+  const area = "MACY_DECORATION";
+  const preclean = await fetchLatestPreclean(area);
+  const preBags = preclean ? Number(preclean.bags_used || 0) : 0;
+
+  if(preBags && postBags !== preBags){
+    const proceed = confirm(
+      "⚠ Bag count mismatch\n\n" +
+      "Pre-clean: " + preBags +
+      "\nPost-clean: " + postBags +
+      "\n\nContinue anyway?"
+    );
+    if (!proceed) {
+      setButtonBusy(btn, false);
+      return;
+    }
+  }
+
+  const handoverValue = document.getElementById("handoverSelect").value;
+  if(!handoverValue){
+    alert("Select handover option");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  // ✅ SAVE HANDOVER TASKS
+  if(handoverValue === "Yes"){
+    const inputs = document.querySelectorAll("#handoverBox input");
+    const tasks = [];
+    inputs.forEach(i=>{
+      if(i.value.trim()){
+        tasks.push({
+          source: "post-clean",
+          reference_id: preclean ? preclean.id : null,
+          task_description: i.value.trim(),
+          status: "Pending",
+          created_at: new Date().toISOString()
+        });
+      }
+    });
+    if (tasks.length) {
+      try {
+        // Audit/webhook safe point: handover task creation.
+        const { error } = await supabase
+          .from("handover_tasks")
+          .insert(tasks);
+        if (error) {
+          alert("Failed to create handover tasks: " + (error.message || "Unknown error"));
+          setButtonBusy(btn, false);
+          return;
+        }
+      } catch (e) {
+        alert("Failed to create handover tasks.");
+        setButtonBusy(btn, false);
+        return;
+      }
+    }
+  }
+
+  // ✅ AUTO HANDOVER TASKS FROM COMMENTS / FAILURES
+  const autoTasks = [];
+  document.querySelectorAll(".question").forEach(q => {
+    const sel = q.querySelector("select");
+    const txt = q.querySelector("textarea");
+    const questionText = q.childNodes[0].textContent.trim();
+    const failed = sel && sel.value === "Not Acceptable";
+    const hasComment = txt && txt.value.trim();
+    if (failed || hasComment) {
+      autoTasks.push({
+        source: "post-clean",
+        reference_id: preclean ? preclean.id : null,
+        task_description: `${questionText} — ${sel ? sel.value : ""}${hasComment ? " | " + txt.value.trim() : ""}`,
+        status: "Pending",
+        created_at: new Date().toISOString()
+      });
+    }
+  });
+  if (autoTasks.length) {
+    try {
+      const { error } = await supabase
+        .from("handover_tasks")
+        .insert(autoTasks);
+      if (error) {
+        alert("Failed to create auto handover tasks: " + (error.message || "Unknown error"));
+        setButtonBusy(btn, false);
+        return;
+      }
+    } catch (e) {
+      alert("Failed to create auto handover tasks.");
+      setButtonBusy(btn, false);
+      return;
+    }
+  }
+
+  const openDamages = await fetchOpenDamages(area);
+  if(openDamages.some(d=>d.status==="Open")){
+    document.getElementById("damageWarning").style.display="block";
+    alert("All damages must be acknowledged");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  const checklist = [];
+  const questions = document.querySelectorAll(".question");
+  for (let q of questions) {
+    const sel = q.querySelector("select");
+    const txt = q.querySelector("textarea");
+    const file = q.querySelector("input[type=file]");
+    const photo = await readFileBase64(file && file.files ? file.files[0] : null);
+    checklist.push({
+      question: q.childNodes[0].textContent.trim(),
+      value: sel ? sel.value : "",
+      comment: txt ? txt.value || "" : "",
+      photo: photo
+    });
+  }
+
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  try {
+    // Audit/webhook safe point: post-clean submission persisted with who/when.
+    const { error } = await supabase
+      .from("post_cleaning_logs")
+      .insert({
+        preclean_id: preclean ? preclean.id : null,
+        employee_name: document.getElementById("empName").value.trim() || "",
+        bags_returned: postBags,
+        checklist: checklist,
+        handover_required: handoverValue === "Yes" || autoTasks.length > 0,
+        submitted_at: new Date().toISOString()
+      });
+
+    if (error) {
+      alert("Failed to save post-cleaning: " + (error.message || "Unknown error"));
+      setButtonBusy(btn, false);
+      return;
+    }
+  } catch (e) {
+    alert("Failed to save post-cleaning. Please try again.");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  alert("✅ Post-cleaning submitted successfully");
+  window.location.href="macy-decoration-control.html";
+}
+</script>
+
+</body>
+</html>
