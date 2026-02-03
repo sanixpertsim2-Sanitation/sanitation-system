@@ -47,8 +47,17 @@
 <h1 class="page-title" id="lineHeader">MACY – Production Line</h1>
 <h3>Sanitation Control Panel</h3>
 
-<div id="statusBox"></div>
-<div id="actionBox"></div>
+<!-- Default fallback UI: visible even if JS fails -->
+<div id="statusBox">
+  <div class="status blue">
+    🔵 Sanitation not started
+  </div>
+</div>
+<div id="actionBox">
+  <a class="action-btn" href="macy-production-preclean.html">
+    Start Pre-Cleaning
+  </a>
+</div>
 
 </div>
 
