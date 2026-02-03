@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sanitation KPI Comparison</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+table {
+  width:100%;
+  border-collapse: collapse;
+  margin-top: 25px;
+}
+th, td {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  text-align: left;
+}
+th {
+  background: rgba(255,255,255,0.08);
+}
+.green { color:#22c55e; }
+.red { color:#ef4444; }
+.yellow { color:#facc15; }
+.note {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1 class="page-title">Sanitation KPI Comparison</h1>
+<h3>MACY Production vs MACY Decoration</h3>
+
+<div class="note">
+  Release status is tracked in a global release log (no area field).
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Prod Duration (min)</th>
+      <th>Prod Damages</th>
+      <th>Dec Duration (min)</th>
+      <th>Dec Damages</th>
+      <th>Release (Global)</th>
+    </tr>
+  </thead>
+  <tbody id="kpiCompareTable"></tbody>
+</table>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
+<script>
+const supabase = window.supabaseClient;
+const tbody = document.getElementById("kpiCompareTable");
+
+const AREAS = {
+  production: "MACY_PRODUCTION",
+  decoration: "MACY_DECORATION"
+};
+
+function toDateKey(ts) {
+  return new Date(ts).toLocaleDateString();
+}
+
+function ensureRow(rows, key) {
+  if (!rows[key]) {
+    rows[key] = {
+      date: key,
+      prodDuration: "-",
+      prodDamages: 0,
+      decDuration: "-",
+      decDamages: 0,
+      released: false
+    };
+  }
+}
+
+async function loadCompare() {
+  if (!supabase) return;
+
+  const { data: preclean, error: preError } = await supabase
+    .from("pre_cleaning_logs")
+    .select("*")
+    .in("area", [AREAS.production, AREAS.decoration])
+    .order("submitted_at", { ascending: false })
+    .limit(100);
+
+  const { data: postclean, error: postError } = await supabase
+    .from("post_cleaning_logs")
+    .select("*")
+    .order("submitted_at", { ascending: false })
+    .limit(100);
+
+  const { data: damages, error: damageError } = await supabase
+    .from("damage_reports")
+    .select("*")
+    .in("area", [AREAS.production, AREAS.decoration])
+    .order("created_at", { ascending: false })
+    .limit(300);
+
+  const { data: releases, error: releaseError } = await supabase
+    .from("line_release_logs")
+    .select("*")
+    .order("verified_at", { ascending: false })
+    .limit(100);
+
+  if (preError || postError || damageError || releaseError) {
+    alert("Failed to load KPI comparison data.");
+    return;
+  }
+
+  const rows = {};
+
+  (preclean || []).forEach(p => {
+    const key = toDateKey(p.submitted_at);
+    ensureRow(rows, key);
+    const relatedPost = (postclean || []).find(pc => pc.preclean_id === p.id);
+    if (relatedPost) {
+      const mins = Math.round((new Date(relatedPost.submitted_at) - new Date(p.submitted_at)) / 60000);
+      if (p.area === AREAS.production) {
+        rows[key].prodDuration = isNaN(mins) ? "-" : mins;
+      } else if (p.area === AREAS.decoration) {
+        rows[key].decDuration = isNaN(mins) ? "-" : mins;
+      }
+    }
+  });
+
+  (damages || []).forEach(d => {
+    const key = toDateKey(d.created_at);
+    ensureRow(rows, key);
+    if (d.area === AREAS.production) rows[key].prodDamages += 1;
+    if (d.area === AREAS.decoration) rows[key].decDamages += 1;
+  });
+
+  (releases || []).forEach(r => {
+    const key = toDateKey(r.verified_at);
+    ensureRow(rows, key);
+    rows[key].released = true;
+  });
+
+  const data = Object.values(rows).slice(0, 14);
+  data.forEach(row => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${row.date}</td>
+        <td>${row.prodDuration}</td>
+        <td>${row.prodDamages}</td>
+        <td>${row.decDuration}</td>
+        <td>${row.decDamages}</td>
+        <td class="${row.released ? "green" : "red"}">
+          ${row.released ? "Released" : "Blocked"}
+        </td>
+      </tr>
+    `;
+  });
+}
+
+loadCompare();
+</script>
+
+</body>
+</html>
