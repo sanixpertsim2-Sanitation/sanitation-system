@@ -30,7 +30,7 @@
   <h3>Select Area</h3>
 
   <button class="area-btn" onclick="selectArea('MACY_PRODUCTION')">Production</button>
-  <button class="area-btn" onclick="selectArea('MACY_Decoration')">Decoration</button>
+  <button class="area-btn" onclick="selectArea('MACY_DECORATION')">Decoration</button>
   <button class="area-btn" onclick="selectArea('MACY_Spiral')">Spiral</button>
   <button class="area-btn" onclick="selectArea('MACY_Oven')">Oven</button>
   <button class="area-btn" onclick="selectArea('MACY_Palletizer')">Palletizer</button>
@@ -55,6 +55,8 @@ function selectArea(area) {
 
     window.location.href = "macy-production-control.html";
 
+  } else if (area === "MACY_DECORATION") {
+    window.location.href = "macy-decoration-control.html";
   } else {
     alert("This area will be activated soon.");
   }
@@ -66,7 +68,11 @@ window.onload = function () {
   const el = document.getElementById("areaName");
 
   if (el && area) {
-    el.innerText = area.replace("MACY_", "");
+    if (area === "MACY_DECORATION") {
+      el.innerText = "Decoration (Messy Decoration)";
+    } else {
+      el.innerText = area.replace("MACY_", "");
+    }
   }
 };
 </script>
