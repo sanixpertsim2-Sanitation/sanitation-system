@@ -44,7 +44,7 @@
 
 <div class="container">
 
-<h1 class="page-title">MACY – <span id="lineName">Decoration (Messy Decoration)</span></h1>
+<h1 class="page-title">MACY – <span id="lineName">MACY Decoration</span></h1>
 <h3>Sanitation Control Panel</h3>
 
 <div id="statusBox"></div>
@@ -179,7 +179,7 @@ async function renderControl() {
 
   const area = "MACY_DECORATION";
   localStorage.setItem("selectedArea", area);
-  document.getElementById("lineName").innerText = "Decoration (Messy Decoration)";
+  document.getElementById("lineName").innerText = "MACY Decoration";
   const preclean = await fetchLatestPreclean(area);
   const postclean = await fetchPostclean(preclean ? preclean.id : null);
   const released = await hasLineRelease();

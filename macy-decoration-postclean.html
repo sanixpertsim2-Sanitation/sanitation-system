@@ -234,7 +234,7 @@ async function readFileBase64(file) {
 window.onload = async () => {
   const area = "MACY_DECORATION";
   localStorage.setItem("selectedArea", area);
-  document.getElementById("areaName").innerText = "Decoration (Messy Decoration)";
+  document.getElementById("areaName").innerText = "MACY Decoration";
   document.getElementById("postcleanTitle").innerText = "Decoration Line Verification";
 
   const preclean = await fetchLatestPreclean(area);
