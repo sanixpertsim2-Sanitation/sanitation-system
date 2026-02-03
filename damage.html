@@ -46,14 +46,17 @@
 <div class="section">
   <h3>Report New Damage</h3>
 
+  <input id="lineArea" placeholder="Line" readonly>
+  <input id="reportedBy" placeholder="Reported by (Name)">
   <input id="area" placeholder="Component / Location (e.g., Conveyor / Frame)">
+  <input id="reportedAt" placeholder="Date & Time" readonly>
   <textarea id="desc" placeholder="Describe the issue"></textarea>
 
   <select id="severity">
     <option value="">Select severity</option>
-    <option value="Critical">🔴 Critical</option>
-    <option value="Moderate">🟡 Moderate</option>
-    <option value="Minor">🟢 Minor</option>
+    <option value="High">🔴 High</option>
+    <option value="Medium">🟡 Medium</option>
+    <option value="Low">🟢 Low</option>
   </select>
 
   
@@ -92,6 +95,7 @@
   
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/photoUtils.js"></script>
 <script>
 let damagePhotoBase64 = "";
 const supabase = window.supabaseClient;
@@ -99,10 +103,11 @@ const supabase = window.supabaseClient;
 function updateDamageButton() {
   const btn = document.querySelector("button[onclick='submitDamage()']");
   if (!btn) return;
+  const reporterVal = document.getElementById("reportedBy").value.trim();
   const areaVal = document.getElementById("area").value.trim();
   const descVal = document.getElementById("desc").value.trim();
   const sevVal = document.getElementById("severity").value;
-  btn.disabled = !(areaVal && descVal && sevVal && damagePhotoBase64);
+  btn.disabled = !(reporterVal && areaVal && descVal && sevVal && damagePhotoBase64);
 }
 
 /* ======================
@@ -111,27 +116,26 @@ function updateDamageButton() {
 function handleDamagePhoto(input) {
   const file = input.files[0];
   if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    damagePhotoBase64 = reader.result;
-    document.getElementById("preview").src = reader.result;
+  readAndStampImage(file).then(stamped => {
+    damagePhotoBase64 = stamped;
+    document.getElementById("preview").src = stamped;
     document.getElementById("preview").style.display = "block";
     document.getElementById("photoTime").innerText =
       "🕒 " + new Date().toLocaleString();
     updateDamageButton();
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 /* ======================
    STORAGE HELPERS
 ====================== */
-function toStoredDescription(text, photo, component) {
+function toStoredDescription(text, photo, component, reporter, reportedAt) {
   return JSON.stringify({
     text: text,
     photo: photo || "",
-    component: component || ""
+    component: component || "",
+    reporter: reporter || "",
+    reported_at: reportedAt || ""
   });
 }
 
@@ -144,7 +148,7 @@ function fromStoredDescription(stored) {
   } catch (e) {
     // keep fallback
   }
-  return { text: stored || "", photo: "" };
+  return { text: stored || "", photo: "", component: "", reporter: "", reported_at: "" };
 }
 
 async function getDamages() {
@@ -163,7 +167,7 @@ async function getDamages() {
 }
 
 function statusClass(status) {
-  if (status === "Completed") return "status-success";
+  if (status === "Completed" || status === "Closed") return "status-success";
   if (status === "Handover") return "status-pending";
   return "status-warning";
 }
@@ -183,12 +187,13 @@ async function saveDamageUpdate(id, patch) {
 ====================== */
 async function submitDamage() {
 
+  const reporterVal = document.getElementById("reportedBy").value.trim();
   const componentVal = document.getElementById("area").value.trim();
   const descVal = document.getElementById("desc").value.trim();
   const sevVal = document.getElementById("severity").value;
   const lineArea = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
 
-  if (!componentVal || !descVal || !sevVal || !damagePhotoBase64) {
+  if (!reporterVal || !componentVal || !descVal || !sevVal || !damagePhotoBase64) {
     alert("All fields and photo are required");
     return;
   }
@@ -198,7 +203,8 @@ async function submitDamage() {
     return;
   }
 
-  const storedDescription = toStoredDescription(descVal, damagePhotoBase64, componentVal);
+  const reportedAt = new Date().toISOString();
+  const storedDescription = toStoredDescription(descVal, damagePhotoBase64, componentVal, reporterVal, reportedAt);
 
   const { error } = await supabase
     .from("damage_reports")
@@ -207,7 +213,7 @@ async function submitDamage() {
       description: storedDescription,
       severity: sevVal,
       status: "Open",
-      created_at: new Date().toISOString()
+      created_at: reportedAt
     });
 
   if (error) {
@@ -217,7 +223,27 @@ async function submitDamage() {
 
   alert("✅ Damage submitted");
 
+  // Optional webhook for high severity alerts.
+  if (sevVal === "High") {
+    sendDamageAlert({
+      area: lineArea,
+      component: componentVal,
+      severity: sevVal,
+      reporter: reporterVal
+    });
+  }
+
   history.back();
+}
+
+function sendDamageAlert(payload) {
+  const webhook = window.__ENV && window.__ENV.DAMAGE_ALERT_WEBHOOK;
+  if (!webhook) return;
+  fetch(webhook, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
 }
 
 /* ======================
@@ -234,6 +260,8 @@ function renderList() {
       const parsed = fromStoredDescription(d.description);
       const displayText = parsed.text || d.description || "";
       const componentText = parsed.component ? ` (${parsed.component})` : "";
+      const reporterText = parsed.reporter ? ` • ${parsed.reporter}` : "";
+      const reportedAtText = parsed.reported_at ? new Date(parsed.reported_at).toLocaleString() : "";
       const div = document.createElement("div");
       div.className = "card " + (d.severity || "").toLowerCase();
 
@@ -251,7 +279,7 @@ function renderList() {
       div.innerHTML = `
         <b>${d.area}</b>${componentText} — ${d.severity || "-"}<br>
         ${displayText}<br>
-        <span class="small">Reported: ${new Date(d.created_at).toLocaleString()}</span><br>
+        <span class="small">Reported: ${reportedAtText}${reporterText}</span><br>
         <span class="status-badge ${statusClass(d.status)}">${d.status}</span><br>
         ${actionHTML}
       `;
@@ -283,17 +311,13 @@ async function markCompleted(id) {
       alert("Completion photo required.");
       return;
     }
-    const photo = await new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result || "");
-      reader.readAsDataURL(fileInput.files[0]);
-    });
+    const photo = await readAndStampImage(fileInput.files[0]);
     if (!photo) {
       alert("Completion photo required.");
       return;
     }
     await saveDamageUpdate(id, {
-      status: "Completed",
+      status: "Closed",
       completed_by: who,
       completed_photo: photo,
       completed_at: new Date().toISOString()
@@ -326,21 +350,17 @@ async function markHandover(id) {
       alert("Handover photo required.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = async () => {
-      // Store handover evidence in completed_photo (no dedicated column in schema).
-      await saveDamageUpdate(id, {
-        status: "Handover",
-        handover_reason: note,
-        completed_photo: reader.result || "",
-        handover_at: new Date().toISOString()
-      });
-      renderList();
-    };
-    reader.readAsDataURL(fileInput.files[0]);
+    const stamped = await readAndStampImage(fileInput.files[0]);
+    // Store handover evidence in completed_photo (no dedicated column in schema).
+    await saveDamageUpdate(id, {
+      status: "Handover",
+      handover_reason: note,
+      completed_photo: stamped || "",
+      handover_at: new Date().toISOString()
+    });
+    renderList();
   };
   fileInput.click();
-  renderList();
 }
 
 /* ======================
@@ -367,12 +387,16 @@ function renderDamageTable() {
 
 // Ensure selected line is applied to damage records.
 localStorage.setItem("selectedLine", localStorage.getItem("selectedArea") || "MACY_PRODUCTION");
+document.getElementById("lineArea").value = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+document.getElementById("reportedAt").value = new Date().toLocaleString();
 renderList();
+document.getElementById("reportedBy").addEventListener("input", updateDamageButton);
 document.getElementById("area").addEventListener("input", updateDamageButton);
 document.getElementById("desc").addEventListener("input", updateDamageButton);
 document.getElementById("severity").addEventListener("change", updateDamageButton);
 updateDamageButton();
 </script>
+<script src="js/layout.js"></script>
 
 </body>
 </html>

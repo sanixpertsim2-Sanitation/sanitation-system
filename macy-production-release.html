@@ -62,9 +62,13 @@ button{
   <option>Karanpreeth</option>
 </select>
 
+<div class="small" id="faceStatus">Face verification required</div>
+
 <label>Signature *</label>
 <canvas id="signPad"></canvas>
 <button onclick="clearSignature()">Clear Signature</button>
+
+<div class="small" id="declarationText"></div>
 </div>
 
 <!-- QUESTIONS -->
@@ -79,6 +83,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -92,6 +97,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -105,6 +111,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -118,6 +125,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -131,6 +139,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -144,6 +153,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -157,6 +167,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -170,6 +181,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -183,6 +195,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -196,6 +209,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -209,6 +223,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -222,6 +237,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -235,6 +251,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -248,6 +265,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -261,18 +279,36 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
+</div>
+
+<div class="section">
+  <h3>Handover Review</h3>
+  <div id="handoverReview">Loading...</div>
 </div>
 
 <button class="warn" onclick="reviewDamages()">🔧 Review Damages</button>
 <button class="warn" onclick="goHandover()">📋 Review Handover</button>
 
+<label class="small" style="display:block;margin-top:10px;">
+  <input type="checkbox" id="damageAck">
+  I acknowledge all open / handed-over damages (if any).
+</label>
+
 <button class="sticky-cta" onclick="submitArea()">Submit</button>
+<button id="unlockHelp" class="small" style="opacity:0.2;margin-top:10px;background:none;border:none;color:#94a3b8;cursor:pointer;">
+  Help / Unlock
+</button>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/photoUtils.js"></script>
+<script src="js/faceUtils.js"></script>
+<script src="js/lockUtils.js"></script>
+<script src="js/unlockUtils.js"></script>
 <script>
 const supabase = window.supabaseClient;
 // Ensure selected line context is carried for UI routing.
@@ -280,6 +316,44 @@ localStorage.setItem(
   "selectedLine",
   localStorage.getItem("selectedArea") || "MACY_PRODUCTION"
 );
+
+// Face verification + lock on open.
+(async function () {
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+  const face = await ensureFaceVerified({
+    supabase,
+    role: "area-lead",
+    area
+  });
+  if (!face.ok) {
+    alert(face.reason || "Face verification required.");
+    return;
+  }
+  const leadSelect = document.getElementById("leadName");
+  if (leadSelect) {
+    leadSelect.value = face.name || "";
+  }
+  const status = document.getElementById("faceStatus");
+  if (status) status.innerText = `Face verified: ${face.name}`;
+  const declaration = document.getElementById("declarationText");
+  if (declaration) {
+    declaration.innerText = `All areas verified and completed by ${face.name}`;
+  }
+
+  attachUnlock({ supabase, area, task: "inspection" });
+  loadHandoverReview(area);
+
+  const lock = await acquireTaskLock({
+    supabase,
+    area,
+    task: "inspection",
+    userName: face.name
+  });
+  if (!lock.ok) {
+    alert(lock.reason || "Area Lead Verification in progress.");
+    return;
+  }
+})();
 function setButtonBusy(btn, isBusy) {
   if (!btn) return;
   btn.disabled = isBusy;
@@ -297,8 +371,10 @@ function updateInspectionButton() {
     .every(q => {
       const sel = q.querySelector("select");
       const txt = q.querySelector("textarea");
+      const file = q.querySelector("input[type=file]");
       if (!sel || !sel.value) return false;
-      const requiresComment = sel.value === "Not Acceptable";
+      if (!file || !file.files || !file.files.length) return false;
+      const requiresComment = sel.value === "Not Acceptable" || sel.value === "N/A";
       if (requiresComment && (!txt || !txt.value.trim())) return false;
       return true;
     });
@@ -327,8 +403,18 @@ function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height);}
 function toggleFinding(sel){
   const bad = sel.value==="Not Acceptable";
 
-  sel.parentElement.querySelector(".extra")
-    .classList.toggle("hidden",!bad);
+  const extra = sel.parentElement.querySelector(".extra");
+  const txt = extra.querySelector("textarea");
+  const file = extra.querySelector("input[type=file]");
+  extra.classList.remove("hidden");
+  if (file) file.classList.remove("hidden");
+  const needsComment = sel.value === "Not Acceptable" || sel.value === "N/A";
+  if (needsComment) {
+    txt.classList.remove("hidden");
+  } else {
+    txt.classList.add("hidden");
+    txt.value = "";
+  }
   updateInspectionButton();
   updateActionLabel();
 }
@@ -350,6 +436,21 @@ document.querySelectorAll(".section.question select")
     updateInspectionButton();
     updateActionLabel();
   }));
+document.querySelectorAll(".section.question textarea")
+  .forEach(txt => txt.addEventListener("input", updateInspectionButton));
+// Inject camera-only inputs into each question for photo evidence.
+document.querySelectorAll(".section.question .extra").forEach(extra => {
+  let input = extra.querySelector("input[type=file]");
+  if (!input) {
+    input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.capture = "environment";
+    input.multiple = true;
+    extra.appendChild(input);
+  }
+  input.addEventListener("change", updateInspectionButton);
+});
 updateInspectionButton();
 updateActionLabel();
 
@@ -358,7 +459,7 @@ function hasLocalFindings() {
     const sel = q.querySelector("select");
     const txt = q.querySelector("textarea");
     if (!sel || !sel.value) return false;
-    const bad = sel.value === "Not Acceptable";
+    const bad = sel.value === "Not Acceptable" || sel.value === "N/A";
     const hasComment = txt && txt.value.trim();
     return bad || hasComment;
   });
@@ -406,6 +507,25 @@ async function hasPendingHandovers() {
     return true;
   }
   return data && data.length > 0;
+}
+
+async function loadHandoverReview(area) {
+  const container = document.getElementById("handoverReview");
+  if (!container || !supabase) return;
+  const { data, error } = await supabase
+    .from("handover_tasks")
+    .select("*")
+    .eq("status", "Pending")
+    .order("created_at", { ascending: true });
+  if (error) {
+    container.innerHTML = "Unable to load handover tasks.";
+    return;
+  }
+  if (!data || !data.length) {
+    container.innerHTML = "No pending handover tasks.";
+    return;
+  }
+  container.innerHTML = data.map(t => `<div>• ${t.task_description}</div>`).join("");
 }
 
 async function hasHandoverDamages(area) {
@@ -476,6 +596,7 @@ async function submitArea(){
     const label = q.querySelector("label");
     const sel = q.querySelector("select");
     const txt = q.querySelector("textarea");
+    const file = q.querySelector("input[type=file]");
     const questionText = label ? label.innerText.trim() : "Question";
     if (!sel || !sel.value) {
       missing = true;
@@ -484,12 +605,13 @@ async function submitArea(){
     checklist.push({
       question: questionText,
       answer: sel ? sel.value : "",
-      comment: txt ? txt.value || "" : ""
+      comment: txt ? txt.value || "" : "",
+      photos: []
     });
     if (txt && txt.value.trim()) {
       comments.push(txt.value.trim());
     }
-    const bad = sel.value === "Not Acceptable";
+    const bad = sel.value === "Not Acceptable" || sel.value === "N/A";
     if (bad || (txt && txt.value.trim())) {
       issueTasks.push({
         question: questionText,
@@ -497,18 +619,35 @@ async function submitArea(){
         comment: txt ? txt.value.trim() : ""
       });
     }
+    if (!file || !file.files || !file.files.length) {
+      missing = true;
+    }
   });
   checklist.push({
     question: "Signature",
     answer: "Captured",
     comment: "",
-    photo: sign
+    photos: [sign]
   });
 
   if (missing) {
     alert("Complete all inspection items.");
     setButtonBusy(btn, false);
     return;
+  }
+
+  // Stamp photos and attach to checklist.
+  for (let q of document.querySelectorAll(".section.question")) {
+    const label = q.querySelector("label");
+    const file = q.querySelector("input[type=file]");
+    const questionText = label ? label.innerText.trim() : "Question";
+    const record = checklist.find(c => c.question === questionText);
+    if (!record) continue;
+    const files = file && file.files ? Array.from(file.files) : [];
+    for (let f of files) {
+      const stamped = await readAndStampImage(f);
+      record.photos.push(stamped);
+    }
   }
 
   try {
@@ -570,6 +709,12 @@ async function submitArea(){
   const damageHandover = await hasHandoverDamages(area);
   const openDamages = await hasOpenDamages(area);
 
+  if ((pending || damageHandover || openDamages) && !document.getElementById("damageAck").checked) {
+    alert("Acknowledge open/handed-over damages before submitting.");
+    setButtonBusy(btn, false);
+    return;
+  }
+
   if(pending || damageHandover || openDamages){
     alert("⚠ Pending handovers exist");
     window.location.href="macy-production-control.html";
@@ -598,9 +743,16 @@ async function submitArea(){
   }
 
   alert("✅ LINE RELEASED");
+  await completeTaskLock({
+    supabase,
+    area,
+    task: "inspection",
+    userName: lead
+  });
   window.location.href="macy-production-control.html";
 }
 </script>
+<script src="js/layout.js"></script>
 
 </body>
 </html>

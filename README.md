@@ -1,5 +1,5 @@
-# sanitation-system
-Sanitation Digital Hub for MACY production lines.
+# Sanixpert – Intelligent Digital Sanitation Checklist
+Sanitation control platform for Give & Go (Sanixpert).
 
 ## Architecture overview
 - Static HTML/JS frontend (mobile-first)
@@ -9,7 +9,7 @@ Sanitation Digital Hub for MACY production lines.
 
 ## Anonymous vs Authenticated flows
 ### Anonymous (shop-floor, no login)
-- Pre-Clean, Post-Clean, Damage, Handover, Area Inspection
+- Pre-Clean, Post-Clean, Damage, Handover, Area Lead Verification, Post-Release Findings
 - Insert-only access via RLS (see `supabase/rls.sql`)
 
 ### Authenticated (dashboard/admin)
@@ -41,3 +41,4 @@ OAuth is not configured yet. Use these stubs only:
 - `supabase-step1-hardening.sql` — RLS + constraints
 - `supabase-step2-automation.sql` — audit fields + indexes
 - `supabase-step3-views.sql` — reporting views
+- `supabase-step4-identity-locking.sql` — face registry + task locking + findings

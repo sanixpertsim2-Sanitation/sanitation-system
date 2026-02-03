@@ -74,6 +74,8 @@ select,textarea,input{
 <div class="section">
   <h3>Employee Information</h3>
 
+  <div class="small" id="faceStatus">Face verification required</div>
+
   <label>Employee Name *</label>
   <input type="text" id="empName">
 
@@ -131,6 +133,9 @@ onclick="openDamagePopup()">
 <button class="submit-btn sticky-cta" onclick="submitPostClean()">
 Submit Post-Cleaning
 </button>
+<button id="unlockHelp" class="small" style="opacity:0.2;margin-top:10px;background:none;border:none;color:#94a3b8;cursor:pointer;">
+  Help / Unlock
+</button>
 
 </div>
 
@@ -149,6 +154,10 @@ style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/photoUtils.js"></script>
+<script src="js/faceUtils.js"></script>
+<script src="js/lockUtils.js"></script>
+<script src="js/unlockUtils.js"></script>
 <script>
 const supabase = window.supabaseClient;
 function setButtonBusy(btn, isBusy) {
@@ -169,8 +178,8 @@ function updatePostcleanButton() {
     .every(q => {
       const sel = q.querySelector("select");
       if (!sel || !sel.value) return false;
-      const requiresPhoto = q.dataset.alwaysPhoto === "1" || sel.value === "Not Acceptable";
-      const requiresComment = sel.value === "Not Acceptable";
+      const requiresPhoto = q.dataset.alwaysPhoto === "1" || sel.value === "Not Acceptable" || sel.value === "N/A";
+      const requiresComment = sel.value === "Not Acceptable" || sel.value === "N/A";
       const file = q.querySelector("input[type=file]");
       const txt = q.querySelector("textarea");
       if (requiresPhoto && (!file || !file.files || !file.files.length)) return false;
@@ -223,12 +232,7 @@ function fromStoredDescription(stored) {
 }
 
 async function readFileBase64(file) {
-  if (!file) return "";
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result || "");
-    reader.readAsDataURL(file);
-  });
+  return readAndStampImage(file);
 }
 
 window.onload = async () => {
@@ -248,6 +252,34 @@ window.onload = async () => {
   document.getElementById("bagsRetrieved")
     .addEventListener("input", updatePostcleanButton);
   renderPostcleanQuestions();
+
+  const face = await ensureFaceVerified({
+    supabase,
+    role: "sanitation",
+    area
+  });
+  if (!face.ok) {
+    alert(face.reason || "Face verification required.");
+    return;
+  }
+  document.getElementById("empName").value = face.name || "";
+  document.getElementById("empName").readOnly = true;
+  const status = document.getElementById("faceStatus");
+  if (status) status.innerText = `Face verified: ${face.name}`;
+
+  attachUnlock({ supabase, area, task: "postclean" });
+
+  const lock = await acquireTaskLock({
+    supabase,
+    area,
+    task: "postclean",
+    userName: face.name
+  });
+  if (!lock.ok) {
+    alert(lock.reason || "Post-Cleaning currently in progress.");
+    return;
+  }
+
   updatePostcleanButton();
 };
 
@@ -255,16 +287,13 @@ function toggleNA(sel){
   const q=sel.closest(".question");
   const t=q.querySelector("textarea");
   const f=q.querySelector("input");
-  const alwaysPhoto = q.dataset.alwaysPhoto === "1";
-  if (sel.value==="Acceptable") {
-    t.classList.add("hidden");
-    if (!alwaysPhoto) f.classList.add("hidden");
-  } else if (sel.value) {
+  f.classList.remove("hidden");
+  const needsComment = sel.value === "Not Acceptable" || sel.value === "N/A";
+  if (needsComment) {
     t.classList.remove("hidden");
-    f.classList.remove("hidden");
   } else {
     t.classList.add("hidden");
-    if (!alwaysPhoto) f.classList.add("hidden");
+    t.value = "";
   }
   updatePostcleanButton();
 }
@@ -411,7 +440,7 @@ async function saveDamage(id){
     const { error } = await supabase
       .from("damage_reports")
       .update({
-        status: "Completed",
+        status: "Closed",
         completed_by: document.getElementById("who-"+id).value,
         completed_photo: photo,
         completed_at: new Date().toISOString()
@@ -475,7 +504,7 @@ async function submitPostClean(){
 
   if(preBags && postBags !== preBags){
     const proceed = confirm(
-      "⚠ Bag count mismatch\n\n" +
+      "Covering count mismatch – verify thoroughly.\n\n" +
       "Pre-clean: " + preBags +
       "\nPost-clean: " + postBags +
       "\n\nContinue anyway?"
@@ -508,6 +537,11 @@ async function submitPostClean(){
         });
       }
     });
+    if (!tasks.length) {
+      alert("Handover tasks required before submission.");
+      setButtonBusy(btn, false);
+      return;
+    }
     if (tasks.length) {
       try {
         // Audit/webhook safe point: handover task creation.
@@ -616,9 +650,16 @@ async function submitPostClean(){
   }
 
   alert("✅ Post-cleaning submitted successfully");
+  await completeTaskLock({
+    supabase,
+    area,
+    task: "postclean",
+    userName: document.getElementById("empName").value.trim()
+  });
   window.location.href="macy-decoration-control.html";
 }
 </script>
+<script src="js/layout.js"></script>
 
 </body>
 </html>

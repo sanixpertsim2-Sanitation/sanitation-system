@@ -67,17 +67,25 @@ button {
 
 <h1 class="page-title">Handover Tasks</h1>
 <h3>MACY Production – Findings Resolution</h3>
+<div class="small" id="faceStatus">Face verification required</div>
 
 <div id="taskContainer"></div>
 
 <button id="releaseBtn" class="hidden sticky-cta" onclick="finalRelease()">
   ✅ RELEASE LINE
 </button>
+<button id="unlockHelp" class="small" style="opacity:0.2;margin-top:10px;background:none;border:none;color:#94a3b8;cursor:pointer;">
+  Help / Unlock
+</button>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/photoUtils.js"></script>
+<script src="js/faceUtils.js"></script>
+<script src="js/lockUtils.js"></script>
+<script src="js/unlockUtils.js"></script>
 <script>
 const supabase = window.supabaseClient;
 
@@ -87,6 +95,7 @@ const releaseBtn = document.getElementById("releaseBtn");
 let completed = new Set();
 let tasks = [];
 let damageTasks = [];
+let currentUser = "";
 
 function stampPhoto(input) {
   const time = new Date().toLocaleString();
@@ -125,6 +134,37 @@ async function fetchDamageHandovers() {
 }
 
 async function render() {
+
+  localStorage.setItem("selectedArea", "MACY_PRODUCTION");
+  localStorage.setItem("selectedLine", "MACY_PRODUCTION");
+
+  if (!currentUser) {
+    const face = await ensureFaceVerified({
+      supabase,
+      role: "handover",
+      area: "MACY_PRODUCTION"
+    });
+    if (!face.ok) {
+      alert(face.reason || "Face verification required.");
+      return;
+    }
+    currentUser = face.name;
+    const status = document.getElementById("faceStatus");
+    if (status) status.innerText = `Face verified: ${face.name}`;
+
+    attachUnlock({ supabase, area: "MACY_PRODUCTION", task: "handover" });
+
+    const lock = await acquireTaskLock({
+      supabase,
+      area: "MACY_PRODUCTION",
+      task: "handover",
+      userName: face.name
+    });
+    if (!lock.ok) {
+      alert(lock.reason || "Handover currently in progress.");
+      return;
+    }
+  }
 
   tasks = await fetchHandoverTasks();
   damageTasks = await fetchDamageHandovers();
@@ -167,8 +207,11 @@ async function render() {
         onchange="stampPhoto(this)">
       <div class="photo-time"></div>
 
-      <button onclick="completeTask(${index}, 'task')">
+      <button onclick="completeTask(${index}, 'task', 'Completed')">
         ✔ Mark as Completed
+      </button>
+      <button onclick="completeTask(${index}, 'task', 'Cannot Complete')" style="background:#f59e0b;">
+        ⚠ Cannot Complete
       </button>
     `;
 
@@ -202,15 +245,18 @@ async function render() {
         onchange="stampPhoto(this)">
       <div class="photo-time"></div>
 
-      <button onclick="completeTask(${offset}, 'damage')">
+      <button onclick="completeTask(${offset}, 'damage', 'Completed')">
         ✔ Mark as Completed
+      </button>
+      <button onclick="completeTask(${offset}, 'damage', 'Cannot Complete')" style="background:#f59e0b;">
+        ⚠ Cannot Complete
       </button>
     `;
     container.appendChild(div);
   });
 }
 
-async function completeTask(i, type) {
+async function completeTask(i, type, statusLabel) {
 
   const comment =
     document.getElementById(`comment-${i}`).value.trim();
@@ -224,11 +270,7 @@ async function completeTask(i, type) {
   }
 
   const file = input.files[0];
-  const photo = await new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result || "");
-    reader.readAsDataURL(file);
-  });
+  const photo = await readAndStampImage(file);
 
   if (type === "task") {
     // Audit/webhook safe point: task completion with photo evidence.
@@ -237,7 +279,7 @@ async function completeTask(i, type) {
       .from("handover_tasks")
       .update({
         status: "Completed",
-        completed_by: comment,
+        completed_by: `${currentUser} | ${statusLabel} | ${comment}`,
         completed_photo: photo,
         completed_at: new Date().toISOString()
       })
@@ -255,10 +297,12 @@ async function completeTask(i, type) {
     const { error } = await supabase
       .from("damage_reports")
       .update({
-        status: "Completed",
-        completed_by: comment,
+        status: statusLabel === "Cannot Complete" ? "Handover" : "Closed",
+        completed_by: `${currentUser} | ${statusLabel} | ${comment}`,
         completed_photo: photo,
-        completed_at: new Date().toISOString()
+        completed_at: statusLabel === "Cannot Complete" ? null : new Date().toISOString(),
+        handover_reason: statusLabel === "Cannot Complete" ? comment : null,
+        handover_at: statusLabel === "Cannot Complete" ? new Date().toISOString() : null
       })
       .eq("id", damage.id);
     if (error) {
@@ -314,11 +358,19 @@ async function finalRelease() {
 
   alert("✅ All findings closed. Line released.");
 
+  await completeTaskLock({
+    supabase,
+    area: "MACY_PRODUCTION",
+    task: "handover",
+    userName: currentUser || "Sanitation"
+  });
+
   window.location.href = "macy-production-control.html";
 }
 
 render();
 </script>
+<script src="js/layout.js"></script>
 
 </body>
 </html>

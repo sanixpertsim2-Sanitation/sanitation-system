@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Post-Release Findings</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+  <h1 class="page-title">Post-Release Findings</h1>
+  <h3 id="lineName">Line</h3>
+
+  <div class="section">
+    <h3>New Finding</h3>
+    <input id="reporterName" placeholder="Reported by (Name)">
+    <textarea id="findingDesc" placeholder="Describe the finding"></textarea>
+    <input id="findingPhotos" type="file" accept="image/*" capture="environment" multiple>
+    <button class="submit-btn sticky-cta" onclick="submitFinding()">Submit Finding</button>
+  </div>
+
+  <div class="section">
+    <h3>Open Findings</h3>
+    <div id="findingList"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/photoUtils.js"></script>
+<script>
+const supabase = window.supabaseClient;
+const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+document.getElementById("lineName").innerText = area;
+
+async function submitFinding() {
+  const reporter = document.getElementById("reporterName").value.trim();
+  const desc = document.getElementById("findingDesc").value.trim();
+  const files = document.getElementById("findingPhotos").files;
+  if (!reporter || !desc || !files.length) {
+    alert("Name, description, and photos are required.");
+    return;
+  }
+
+  const photos = [];
+  for (let f of Array.from(files)) {
+    photos.push(await readAndStampImage(f));
+  }
+
+  const { error } = await supabase
+    .from("post_release_findings")
+    .insert({
+      area,
+      reported_by: reporter,
+      description: desc,
+      photos,
+      status: "Open",
+      created_at: new Date().toISOString()
+    });
+  if (error) {
+    alert("Failed to submit finding: " + (error.message || "Unknown error"));
+    return;
+  }
+
+  document.getElementById("findingDesc").value = "";
+  document.getElementById("findingPhotos").value = "";
+  loadFindings();
+}
+
+async function closeFinding(id) {
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+  fileInput.capture = "environment";
+  fileInput.onchange = async () => {
+    if (!fileInput.files.length) return;
+    const photo = await readAndStampImage(fileInput.files[0]);
+    const { error } = await supabase
+      .from("post_release_findings")
+      .update({
+        status: "Closed",
+        closed_photo: photo,
+        closed_at: new Date().toISOString()
+      })
+      .eq("id", id);
+    if (error) {
+      alert("Failed to close finding: " + (error.message || "Unknown error"));
+      return;
+    }
+    loadFindings();
+  };
+  fileInput.click();
+}
+
+async function loadFindings() {
+  if (!supabase) return;
+  const { data, error } = await supabase
+    .from("post_release_findings")
+    .select("*")
+    .eq("area", area)
+    .order("created_at", { ascending: false });
+  if (error) return;
+  const list = document.getElementById("findingList");
+  list.innerHTML = "";
+  (data || []).forEach(item => {
+    list.innerHTML += `
+      <div class="section-card">
+        <b>${item.reported_by}</b> — ${new Date(item.created_at).toLocaleString()}<br>
+        ${item.description}<br>
+        <span class="status-badge ${item.status === "Closed" ? "status-success" : "status-warning"}">${item.status}</span><br>
+        ${item.status === "Open" ? `<button class="submit-btn" onclick="closeFinding('${item.id}')">Close Finding</button>` : ""}
+      </div>
+    `;
+  });
+}
+
+loadFindings();
+</script>
+<script src="js/layout.js"></script>
+
+</body>
+</html>
