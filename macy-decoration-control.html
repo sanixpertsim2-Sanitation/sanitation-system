@@ -44,7 +44,7 @@
 
 <div class="container">
 
-<h1 class="page-title">MACY – <span id="lineName">MACY Decoration</span></h1>
+<h1 class="page-title" id="lineHeader">MACY – Decoration Line</h1>
 <h3>Sanitation Control Panel</h3>
 
 <div id="statusBox"></div>
@@ -175,11 +175,38 @@ async function hasLineRelease() {
   return data && data.length > 0;
 }
 
+function setHeader(area) {
+  const header = document.getElementById("lineHeader");
+  if (!header) return;
+  const labelMap = {
+    MACY_PRODUCTION: "MACY – Production Line",
+    MACY_DECORATION: "MACY – Decoration Line",
+    MACY_Spiral: "MACY – Spiral Line",
+    MACY_Oven: "MACY – Oven Line",
+    MACY_Palletizer: "MACY – Palletizer Line"
+  };
+  header.innerText = labelMap[area] || "MACY – Line";
+}
+
+function renderFallback(status, action, area) {
+  // Fallback UI ensures control page never renders empty.
+  setHeader(area);
+  status.innerHTML =
+    `<div class="status blue">
+      🔵 Sanitation not started
+    </div>`;
+  action.innerHTML =
+    `<button class="action-btn" onclick="goPre()">
+      Start Pre-Cleaning
+    </button>`;
+}
+
 async function renderControl() {
 
-  const area = "MACY_DECORATION";
+  const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
+  localStorage.setItem("selectedLine", area);
   localStorage.setItem("selectedArea", area);
-  document.getElementById("lineName").innerText = "MACY Decoration";
+  setHeader(area);
   const preclean = await fetchLatestPreclean(area);
   const postclean = await fetchPostclean(preclean ? preclean.id : null);
   const released = await hasLineRelease();
@@ -319,7 +346,20 @@ function checkAdminPin(input) {
   }
 }
 
-renderControl();
+// Safety wrapper: never allow blank screen due to runtime errors.
+(async function () {
+  const status = document.getElementById("statusBox");
+  const action = document.getElementById("actionBox");
+  const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
+  try {
+    await renderControl();
+    if (!status.innerHTML || !action.innerHTML) {
+      renderFallback(status, action, area);
+    }
+  } catch (e) {
+    renderFallback(status, action, area);
+  }
+})();
 </script>
 
 </body>

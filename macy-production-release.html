@@ -275,6 +275,11 @@ button{
 <script src="js/supabaseClient.js"></script>
 <script>
 const supabase = window.supabaseClient;
+// Ensure selected line context is carried for UI routing.
+localStorage.setItem(
+  "selectedLine",
+  localStorage.getItem("selectedArea") || "MACY_PRODUCTION"
+);
 function setButtonBusy(btn, isBusy) {
   if (!btn) return;
   btn.disabled = isBusy;
@@ -288,7 +293,16 @@ function updateInspectionButton() {
   const lead = document.getElementById("leadName").value;
   const allAnswered = Array.from(document.querySelectorAll(".section.question select"))
     .every(sel => sel.value && sel.value.length > 0);
-  btn.disabled = !(lead && allAnswered);
+  const requiredSatisfied = Array.from(document.querySelectorAll(".section.question"))
+    .every(q => {
+      const sel = q.querySelector("select");
+      const txt = q.querySelector("textarea");
+      if (!sel || !sel.value) return false;
+      const requiresComment = sel.value === "Not Acceptable";
+      if (requiresComment && (!txt || !txt.value.trim())) return false;
+      return true;
+    });
+  btn.disabled = !(lead && allAnswered && requiredSatisfied);
 }
 
 /* SIGN */
@@ -316,6 +330,7 @@ function toggleFinding(sel){
   sel.parentElement.querySelector(".extra")
     .classList.toggle("hidden",!bad);
   updateInspectionButton();
+  updateActionLabel();
 }
 
 function reviewDamages(){
@@ -326,10 +341,43 @@ function goHandover(){
 }
 
 document.getElementById("leadName")
-  .addEventListener("change", updateInspectionButton);
+  .addEventListener("change", () => {
+    updateInspectionButton();
+    updateActionLabel();
+  });
 document.querySelectorAll(".section.question select")
-  .forEach(sel => sel.addEventListener("change", updateInspectionButton));
+  .forEach(sel => sel.addEventListener("change", () => {
+    updateInspectionButton();
+    updateActionLabel();
+  }));
 updateInspectionButton();
+updateActionLabel();
+
+function hasLocalFindings() {
+  return Array.from(document.querySelectorAll(".section.question")).some(q => {
+    const sel = q.querySelector("select");
+    const txt = q.querySelector("textarea");
+    if (!sel || !sel.value) return false;
+    const bad = sel.value === "Not Acceptable";
+    const hasComment = txt && txt.value.trim();
+    return bad || hasComment;
+  });
+}
+
+async function updateActionLabel() {
+  const btn = document.querySelector("button[onclick='submitArea()']");
+  if (!btn) return;
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+  const localIssues = hasLocalFindings();
+  const pending = await hasPendingHandovers();
+  const damageHandover = await hasHandoverDamages(area);
+  const openDamages = await hasOpenDamages(area);
+  if (localIssues || pending || damageHandover || openDamages) {
+    btn.innerText = "Submit to Handover";
+  } else {
+    btn.innerText = "Release Line";
+  }
+}
 
 async function fetchLatestPrecleanId(area) {
   if (!supabase) return null;
@@ -441,10 +489,7 @@ async function submitArea(){
     if (txt && txt.value.trim()) {
       comments.push(txt.value.trim());
     }
-    const bad =
-      sel.value === "No" ||
-      sel.value === "Not up to the mark" ||
-      sel.value === "Need Floor Cleaning";
+    const bad = sel.value === "Not Acceptable";
     if (bad || (txt && txt.value.trim())) {
       issueTasks.push({
         question: questionText,

@@ -140,6 +140,7 @@ async function fetchDamages(area) {
 
 async function fetchLatestRelease() {
   if (!supabase) return null;
+  // line_release_logs has no area column; this is the latest global release.
   const { data, error } = await supabase
     .from("line_release_logs")
     .select("*")

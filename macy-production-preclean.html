@@ -51,7 +51,7 @@ textarea {
 
 <div class="container">
 
-<h1 class="page-title">MACY – Production</h1>
+<h1 class="page-title">MACY – <span id="lineName">Production</span></h1>
 <h3>Pre-Cleaning Verification</h3>
 
 <!-- GENERAL -->
@@ -305,10 +305,23 @@ function updatePrecleanButton() {
   btn.disabled = !(emp && bags && covered && allAnswered);
 }
 /* ===============================
-   AUTO DATE
+   AUTO DATE + LINE LABEL
 ================================ */
 document.getElementById("dateTime").value =
   new Date().toLocaleString();
+const lineLabelMap = {
+  MACY_PRODUCTION: "Production",
+  MACY_DECORATION: "Decoration",
+  MACY_Spiral: "Spiral",
+  MACY_Oven: "Oven",
+  MACY_Palletizer: "Palletizer"
+};
+const currentArea = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+localStorage.setItem("selectedLine", currentArea);
+const lineName = document.getElementById("lineName");
+if (lineName) {
+  lineName.innerText = lineLabelMap[currentArea] || "Line";
+}
 updatePrecleanButton();
 
 /* ===============================

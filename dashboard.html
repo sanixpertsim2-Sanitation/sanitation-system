@@ -73,13 +73,24 @@ async function loadReleases() {
     return;
   }
 
+  const labelMap = {
+    MACY_PRODUCTION: "MACY – Production Line",
+    MACY_DECORATION: "MACY – Decoration Line",
+    MACY_Spiral: "MACY – Spiral Line",
+    MACY_Oven: "MACY – Oven Line",
+    MACY_Palletizer: "MACY – Palletizer Line"
+  };
+  // line_release_logs has no area column, so we label by current UI selection.
+  const currentLine = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+  const lineLabel = labelMap[currentLine] || "MACY – Line";
+
   (data || []).forEach(r => {
     const date = new Date(r.verified_at).toLocaleDateString();
 
     if (date === today) {
       const row = `
         <tr>
-          <td>MACY – Cupcake Line</td>
+          <td>${lineLabel}</td>
           <td class="green">Released</td>
           <td>${r.released_by}</td>
           <td>${new Date(r.verified_at).toLocaleString()}</td>

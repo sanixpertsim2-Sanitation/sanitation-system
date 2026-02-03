@@ -127,6 +127,7 @@ async function fetchDamageHandovers() {
 async function render() {
 
   localStorage.setItem("selectedArea", "MACY_DECORATION");
+  localStorage.setItem("selectedLine", "MACY_DECORATION");
   tasks = await fetchHandoverTasks();
   damageTasks = await fetchDamageHandovers();
 

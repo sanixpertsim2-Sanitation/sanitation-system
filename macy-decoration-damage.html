@@ -61,8 +61,8 @@ textarea, input, select{
 <div class="section">
   <h3>Log New Damage</h3>
 
-  <label>Area</label>
-  <input type="text" id="area" readonly>
+  <label>Component / Location</label>
+  <input type="text" id="area" placeholder="Conveyor / Frame / Guard">
 
   <label>Description *</label>
   <textarea id="damageDesc"></textarea>
@@ -100,21 +100,21 @@ function setButtonBusy(btn, isBusy) {
 function updateDamageButton() {
   const btn = document.querySelector("button[onclick='submitDamage()']");
   if (!btn || btn.dataset.busy === "1") return;
-  const area = document.getElementById("area").value.trim();
+  const component = document.getElementById("area").value.trim();
   const desc = document.getElementById("damageDesc").value.trim();
-  btn.disabled = !(area && desc);
+  btn.disabled = !(component && desc);
 }
 
 function fromStoredDescription(stored) {
   try {
     const parsed = JSON.parse(stored);
     if (parsed && typeof parsed === "object" && "text" in parsed) {
-      return parsed.text || "";
+      return parsed;
     }
   } catch (e) {
     // keep fallback
   }
-  return stored || "";
+  return { text: stored || "", component: "" };
 }
 
 async function readFileBase64(file) {
@@ -132,12 +132,13 @@ async function submitDamage(){
   if (btn && btn.dataset.busy === "1") return;
   setButtonBusy(btn, true);
 
-  const area = document.getElementById("area").value.trim();
+  const component = document.getElementById("area").value.trim();
   const desc = document.getElementById("damageDesc").value.trim();
   const severity = document.getElementById("severity").value;
+  const lineArea = localStorage.getItem("selectedArea") || "MACY_DECORATION";
 
-  if(!area || !desc){
-    alert("Area and description required.");
+  if(!component || !desc){
+    alert("Component and description required.");
     setButtonBusy(btn, false);
     return;
   }
@@ -149,7 +150,8 @@ async function submitDamage(){
   }
 
   const payload = {
-    text: desc
+    text: desc,
+    component: component
   };
 
   try {
@@ -157,7 +159,7 @@ async function submitDamage(){
     const { error } = await supabase
       .from("damage_reports")
       .insert({
-        area: area,
+        area: lineArea,
         description: JSON.stringify(payload),
         severity: severity,
         status: "Open",
@@ -195,7 +197,7 @@ async function loadDamages(){
     return;
   }
 
-  const area = document.getElementById("area").value.trim();
+  const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
 
   const { data, error } = await supabase
     .from("damage_reports")
@@ -211,8 +213,8 @@ async function loadDamages(){
   (data || []).forEach(d=>{
     list.innerHTML+=`
       <div class="damage-card">
-        <b>${d.area}</b><br>
-        ${fromStoredDescription(d.description)}
+        <b>${d.area}</b>${(fromStoredDescription(d.description).component ? " (" + fromStoredDescription(d.description).component + ")" : "")}<br>
+        ${fromStoredDescription(d.description).text || fromStoredDescription(d.description)}
         <br>
         <span class="status-badge ${statusClass(d.status)}">${d.status}</span>
 
@@ -267,7 +269,7 @@ document.getElementById("damageDesc")
 window.onload=()=>{
   const area = "MACY_DECORATION";
   localStorage.setItem("selectedArea", area);
-  document.getElementById("area").value = area;
+  localStorage.setItem("selectedLine", area);
   updateDamageButton();
   loadDamages();
 };
