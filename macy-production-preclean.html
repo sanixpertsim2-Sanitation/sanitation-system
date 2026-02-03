@@ -359,12 +359,14 @@ updatePrecleanButton();
   if (nameField) {
     nameField.value = face.name || "";
     nameField.readOnly = true;
+    nameField.dispatchEvent(new Event("input", { bubbles: true }));
   }
   const status = document.getElementById("faceStatus");
   if (status) {
     status.innerText = `Face verified: ${face.name}`;
   }
 
+  updatePrecleanButton();
   attachUnlock({ supabase, area, task: "preclean" });
 
   const lock = await acquireTaskLock({
