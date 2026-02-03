@@ -503,13 +503,16 @@ async function submitPostClean(){
   const preBags = preclean ? Number(preclean.bags_used || 0) : 0;
 
   if(preBags && postBags !== preBags){
-    alert(
+    const proceed = confirm(
       "Covering count mismatch – verify thoroughly.\n\n" +
       "Pre-clean: " + preBags +
-      "\nPost-clean: " + postBags
+      "\nPost-clean: " + postBags +
+      "\n\nContinue anyway?"
     );
-    setButtonBusy(btn, false);
-    return;
+    if (!proceed) {
+      setButtonBusy(btn, false);
+      return;
+    }
   }
 
   const handoverValue = document.getElementById("handoverSelect").value;

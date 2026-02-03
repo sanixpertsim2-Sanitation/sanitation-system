@@ -83,6 +83,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -96,6 +97,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -109,6 +111,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -122,6 +125,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -135,6 +139,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -148,6 +153,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -161,6 +167,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -174,6 +181,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -187,6 +195,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -200,6 +209,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -213,6 +223,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -226,6 +237,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -239,6 +251,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -252,6 +265,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -265,6 +279,7 @@ button{
 </select>
 <div class="extra hidden">
   <textarea placeholder="Comment required"></textarea>
+  <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
 </div>
 </div>
 
@@ -390,7 +405,9 @@ function toggleFinding(sel){
 
   const extra = sel.parentElement.querySelector(".extra");
   const txt = extra.querySelector("textarea");
+  const file = extra.querySelector("input[type=file]");
   extra.classList.remove("hidden");
+  if (file) file.classList.remove("hidden");
   const needsComment = sel.value === "Not Acceptable" || sel.value === "N/A";
   if (needsComment) {
     txt.classList.remove("hidden");
@@ -423,14 +440,16 @@ document.querySelectorAll(".section.question textarea")
   .forEach(txt => txt.addEventListener("input", updateInspectionButton));
 // Inject camera-only inputs into each question for photo evidence.
 document.querySelectorAll(".section.question .extra").forEach(extra => {
-  if (extra.querySelector("input[type=file]")) return;
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "image/*";
-  input.capture = "environment";
-  input.multiple = true;
+  let input = extra.querySelector("input[type=file]");
+  if (!input) {
+    input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.capture = "environment";
+    input.multiple = true;
+    extra.appendChild(input);
+  }
   input.addEventListener("change", updateInspectionButton);
-  extra.appendChild(input);
 });
 updateInspectionButton();
 updateActionLabel();

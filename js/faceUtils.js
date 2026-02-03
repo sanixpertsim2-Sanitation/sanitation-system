@@ -24,7 +24,21 @@ async function ensureFaceVerified({ supabase, role, area }) {
   input.capture = "user";
 
   const file = await new Promise(resolve => {
-    input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null);
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener("focus", onFocus);
+      resolve(result);
+    };
+    const onFocus = () => {
+      setTimeout(() => {
+        if (input.files && input.files.length) return;
+        finish(null);
+      }, 200);
+    };
+    input.onchange = () => finish(input.files && input.files[0] ? input.files[0] : null);
+    window.addEventListener("focus", onFocus, { once: true });
     input.click();
   });
 

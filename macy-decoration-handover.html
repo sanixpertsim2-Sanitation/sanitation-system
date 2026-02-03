@@ -296,7 +296,7 @@ async function completeTask(i, type, statusLabel) {
     const { error } = await supabase
       .from("damage_reports")
       .update({
-        status: statusLabel === "Cannot Complete" ? "Handover" : "Completed",
+        status: statusLabel === "Cannot Complete" ? "Handover" : "Closed",
         completed_by: `${currentUser} | ${statusLabel} | ${comment}`,
         completed_photo: photo,
         completed_at: statusLabel === "Cannot Complete" ? null : new Date().toISOString(),

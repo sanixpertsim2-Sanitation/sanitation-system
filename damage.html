@@ -224,7 +224,7 @@ async function submitDamage() {
   alert("✅ Damage submitted");
 
   // Optional webhook for high severity alerts.
-  if (sevVal === "High" || sevVal === "Critical") {
+  if (sevVal === "High") {
     sendDamageAlert({
       area: lineArea,
       component: componentVal,
@@ -361,7 +361,6 @@ async function markHandover(id) {
     renderList();
   };
   fileInput.click();
-  renderList();
 }
 
 /* ======================
