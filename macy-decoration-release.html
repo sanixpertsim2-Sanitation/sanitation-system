@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY Decoration – Area Lead Verification</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.section{
+  background:rgba(255,255,255,0.08);
+  padding:22px;
+  border-radius:18px;
+  margin-bottom:25px;
+}
+.question{margin-bottom:22px;}
+select,textarea,input{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  border:none;
+  margin-top:8px;
+}
+.hidden{display:none;}
+canvas{
+  width:100%;
+  height:180px;
+  border:2px dashed #60a5fa;
+  border-radius:14px;
+  background:#020617;
+}
+button{
+  width:100%;
+  padding:18px;
+  font-size:18px;
+  border-radius:18px;
+  border:none;
+  margin-top:20px;
+  background:linear-gradient(135deg,#22c55e,#16a34a);
+  color:white;
+}
+.warn{background:#f59e0b;}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">Area Lead Verification</h1>
+<h3>Final Line Decision</h3>
+
+<!-- LEAD -->
+<div class="section">
+<label>Area Lead Name *</label>
+<select id="leadName">
+  <option value="">Select</option>
+  <option>Adarsh</option>
+  <option>Prabhdeep</option>
+  <option>Arjan</option>
+  <option>Karanpreeth</option>
+</select>
+
+<label>Signature *</label>
+<canvas id="signPad"></canvas>
+<button onclick="clearSignature()">Clear Signature</button>
+</div>
+
+<!-- QUESTIONS -->
+<div class="section">
+  <h3 id="inspectionTitle">Decoration Line Verification</h3>
+  <div id="inspectionQuestions"></div>
+</div>
+
+<button class="warn" onclick="reviewDamages()">🔧 Review Damages</button>
+<button class="warn" onclick="goHandover()">📋 Review Handover</button>
+
+<button class="sticky-cta" onclick="submitArea()">Submit</button>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
+<script>
+const supabase = window.supabaseClient;
+function setButtonBusy(btn, isBusy) {
+  if (!btn) return;
+  btn.disabled = isBusy;
+  btn.dataset.busy = isBusy ? "1" : "0";
+  btn.style.opacity = isBusy ? "0.7" : "1";
+}
+
+function updateInspectionButton() {
+  const btn = document.querySelector("button[onclick='submitArea()']");
+  if (!btn || btn.dataset.busy === "1") return;
+  const lead = document.getElementById("leadName").value;
+  const allAnswered = Array.from(document.querySelectorAll(".question select"))
+    .every(sel => sel.value && sel.value.length > 0);
+  const requiredSatisfied = Array.from(document.querySelectorAll(".question"))
+    .every(q => {
+      const sel = q.querySelector("select");
+      if (!sel || !sel.value) return false;
+      const requiresPhoto = q.dataset.alwaysPhoto === "1" || sel.value === "Not Acceptable";
+      const requiresComment = sel.value === "Not Acceptable";
+      const file = q.querySelector("input[type=file]");
+      const txt = q.querySelector("textarea");
+      if (requiresPhoto && (!file || !file.files || !file.files.length)) return false;
+      if (requiresComment && (!txt || !txt.value.trim())) return false;
+      return true;
+    });
+  btn.disabled = !(lead && allAnswered && requiredSatisfied);
+}
+
+/* SIGN */
+const canvas=document.getElementById("signPad");
+const ctx=canvas.getContext("2d");
+let draw=false;
+canvas.onmousedown=()=>draw=true;
+canvas.onmouseup=()=>{draw=false;ctx.beginPath();};
+canvas.onmousemove=e=>{
+  if(!draw)return;
+  const r=canvas.getBoundingClientRect();
+  ctx.lineWidth=2;
+  ctx.strokeStyle="#38bdf8";
+  ctx.lineTo(e.clientX-r.left,e.clientY-r.top);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(e.clientX-r.left,e.clientY-r.top);
+};
+function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height);}
+
+/* FINDING */
+function toggleFinding(sel){
+  const q = sel.closest(".question");
+  const alwaysPhoto = q.dataset.alwaysPhoto === "1";
+  const t = q.querySelector("textarea");
+  const f = q.querySelector("input[type=file]");
+  const extra = q.querySelector(".extra");
+  if (sel.value === "Acceptable") {
+    t.classList.add("hidden");
+    if (!alwaysPhoto) {
+      f.classList.add("hidden");
+      extra.classList.add("hidden");
+    } else {
+      extra.classList.remove("hidden");
+    }
+  } else if (sel.value) {
+    t.classList.remove("hidden");
+    f.classList.remove("hidden");
+    extra.classList.remove("hidden");
+  } else {
+    t.classList.add("hidden");
+    if (!alwaysPhoto) {
+      f.classList.add("hidden");
+      extra.classList.add("hidden");
+    } else {
+      extra.classList.remove("hidden");
+    }
+  }
+  updateInspectionButton();
+  updateActionLabel();
+}
+
+function reviewDamages(){
+  window.location.href="macy-decoration-postclean.html";
+}
+function goHandover(){
+  window.location.href="macy-decoration-handover.html";
+}
+
+document.getElementById("leadName")
+  .addEventListener("change", () => {
+    updateInspectionButton();
+    updateActionLabel();
+  });
+updateInspectionButton();
+
+const line = "MACY_DECORATION";
+localStorage.setItem("selectedArea", line);
+document.getElementById("inspectionTitle").innerText =
+  "Decoration Line Verification";
+
+const postcleanSets = {
+  MACY_Decoration: [
+    { text: "Covering of motors, sensors, air regulators, and electrical panels" },
+    { text: "Depositor Side A & B — CIP completed; Depositor clean; Open safety guards and inspect for icing wash leakage" },
+    { text: "Injection Unit — Frame clean" },
+    { text: "Hopper Toppers — Icing hopper topper and icing pump clean and assembled" },
+    { text: "Manifold A & B — Clean; Blue pipes attached to Depositor Side A & B" },
+    { text: "Tray Denester — Clean; Stand fixed" },
+    { text: "Sprinkle Depositor & Die — Conveyor clean and air-dried; Die inserted" },
+    { text: "Tray Puller — Extractor clean" },
+    { text: "Filling Belt — Conveyor and rollers clean; Belt air-dried" },
+    { text: "Lid Denester — Clean and air-dried; No water on platform" },
+    { text: "Tray Closer — Rollers and belts clean and air-dried" },
+    { text: "Clamshell Conveyor — Clean and air-dried" },
+    { text: "Floor — Clean and dry; No sanitation equipment left on floor" },
+    { text: "Drains — Strainers and drains clean" }
+  ]
+};
+
+function buildInspectionQuestion(item) {
+  const div = document.createElement("div");
+  div.className = "section question";
+  if (item.alwaysPhoto) div.dataset.alwaysPhoto = "1";
+  div.innerHTML = `
+    <label>${item.text} *</label>
+    <select onchange="toggleFinding(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>N/A</option>
+    </select>
+    <div class="extra hidden">
+      <textarea placeholder="Comment required"></textarea>
+      <input type="file" accept="image/*" capture="environment" class="hidden">
+    </div>
+  `;
+  const file = div.querySelector("input[type=file]");
+  const txt = div.querySelector("textarea");
+  const extra = div.querySelector(".extra");
+  if (item.alwaysPhoto && file && extra) {
+    file.classList.remove("hidden");
+    extra.classList.remove("hidden");
+  }
+  if (file) file.addEventListener("change", () => {
+    updateInspectionButton();
+    updateActionLabel();
+  });
+  if (txt) txt.addEventListener("input", () => {
+    updateInspectionButton();
+    updateActionLabel();
+  });
+  return div;
+}
+
+function renderInspectionQuestions() {
+  const set = postcleanSets[line] || postcleanSets.MACY_Decoration;
+  const container = document.getElementById("inspectionQuestions");
+  container.innerHTML = "";
+  set.forEach(item => container.appendChild(buildInspectionQuestion(item)));
+}
+
+renderInspectionQuestions();
+updateInspectionButton();
+updateActionLabel();
+
+function hasLocalFindings() {
+  return Array.from(document.querySelectorAll(".section.question")).some(q => {
+    const sel = q.querySelector("select");
+    const txt = q.querySelector("textarea");
+    if (!sel || !sel.value) return false;
+    const bad = sel.value === "Not Acceptable";
+    const hasComment = txt && txt.value.trim();
+    return bad || hasComment;
+  });
+}
+
+async function updateActionLabel() {
+  const btn = document.querySelector("button[onclick='submitArea()']");
+  if (!btn) return;
+  const area = "MACY_DECORATION";
+  const localIssues = hasLocalFindings();
+  const pending = await hasPendingHandovers();
+  const damageHandover = await hasHandoverDamages(area);
+  const openDamages = await hasOpenDamages(area);
+  if (localIssues || pending || damageHandover || openDamages) {
+    btn.innerText = "Submit to Handover";
+  } else {
+    btn.innerText = "Release Line";
+  }
+}
+
+async function fetchLatestPrecleanId(area) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("pre_cleaning_logs")
+    .select("id")
+    .eq("area", area)
+    .order("submitted_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    alert("Failed to load pre-cleaning: " + (error.message || "Unknown error"));
+    return null;
+  }
+  return data && data.length ? data[0].id : null;
+}
+
+async function hasPendingHandovers() {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("handover_tasks")
+    .select("id,status")
+    .eq("status", "Pending")
+    .limit(1);
+  if (error) {
+    alert("Failed to load handovers: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
+async function hasHandoverDamages(area) {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("id,status")
+    .eq("area", area)
+    .eq("status", "Handover")
+    .limit(1);
+  if (error) {
+    alert("Failed to load damage status: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
+async function hasOpenDamages(area) {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("id,status")
+    .eq("area", area)
+    .eq("status", "Open")
+    .limit(1);
+  if (error) {
+    alert("Failed to load damage status: " + (error.message || "Unknown error"));
+    return true;
+  }
+  return data && data.length > 0;
+}
+
+async function readFileBase64(file) {
+  if (!file) return "";
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result || "");
+    reader.readAsDataURL(file);
+  });
+}
+
+/* SUBMIT */
+async function submitArea(){
+
+  const btn = document.querySelector("button[onclick='submitArea()']");
+  if (btn && btn.dataset.busy === "1") return;
+  setButtonBusy(btn, true);
+
+  const lead=document.getElementById("leadName").value;
+  if(!lead) {
+    alert("Select Area Lead");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  const sign=canvas.toDataURL();
+  if(sign.length<1000) {
+    alert("Signature required");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  const area = "MACY_DECORATION";
+  const precleanId = await fetchLatestPrecleanId(area);
+
+  const checklist = [];
+  const comments = [];
+  const issueTasks = [];
+  let missing = false;
+  const questionNodes = document.querySelectorAll(".section.question");
+  for (let q of questionNodes) {
+    const label = q.querySelector("label");
+    const sel = q.querySelector("select");
+    const txt = q.querySelector("textarea");
+    const file = q.querySelector("input[type=file]");
+    const questionText = label ? label.innerText.trim() : "Question";
+    if (!sel || !sel.value) {
+      missing = true;
+      continue;
+    }
+    const photo = await readFileBase64(file && file.files ? file.files[0] : null);
+    checklist.push({
+      question: questionText,
+      answer: sel ? sel.value : "",
+      comment: txt ? txt.value || "" : "",
+      photo: photo
+    });
+    if (txt && txt.value.trim()) {
+      comments.push(txt.value.trim());
+    }
+    const bad = sel.value === "Not Acceptable";
+    if (bad || (txt && txt.value.trim())) {
+      issueTasks.push({
+        question: questionText,
+        answer: sel.value,
+        comment: txt ? txt.value.trim() : ""
+      });
+    }
+  }
+  checklist.push({
+    question: "Signature",
+    answer: "Captured",
+    comment: "",
+    photo: sign
+  });
+
+  if (missing) {
+    alert("Complete all inspection items.");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  try {
+    // Audit/webhook safe point: area inspection record persisted.
+    const { error: inspectionError } = await supabase
+      .from("area_inspection_logs")
+      .insert({
+        inspector_name: lead,
+        checklist: checklist,
+        comments: comments.join(" | "),
+        submitted_at: new Date().toISOString()
+      });
+
+    if (inspectionError) {
+      alert("Failed to save inspection: " + (inspectionError.message || "Unknown error"));
+      setButtonBusy(btn, false);
+      return;
+    }
+  } catch (e) {
+    alert("Failed to save inspection. Please try again.");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  let newTasks=[];
+
+  issueTasks.forEach(i => {
+    newTasks.push({
+      source: "area-verification",
+      reference_id: precleanId,
+      task_description: `${i.question} — ${i.answer}${i.comment ? " | " + i.comment : ""}`,
+      status: "Pending",
+      created_at: new Date().toISOString()
+    });
+  });
+
+  if(newTasks.length){
+  try {
+    // Audit/webhook safe point: auto-create handover tasks from inspection issues.
+      const { error } = await supabase
+        .from("handover_tasks")
+        .insert(newTasks);
+      if (error) {
+        alert("Failed to save handover tasks: " + (error.message || "Unknown error"));
+        setButtonBusy(btn, false);
+        return;
+      }
+    } catch (e) {
+      alert("Failed to save handover tasks.");
+      setButtonBusy(btn, false);
+      return;
+    }
+    alert("⚠ Sent to Handover");
+    window.location.href="macy-decoration-control.html";
+    return;
+  }
+
+  const pending = await hasPendingHandovers();
+  const damageHandover = await hasHandoverDamages(area);
+  const openDamages = await hasOpenDamages(area);
+
+  if(pending || damageHandover || openDamages){
+    alert("⚠ Pending handovers exist");
+    window.location.href="macy-decoration-control.html";
+    return;
+  }
+
+  try {
+    // Audit/webhook safe point: line release persisted with who/when/signature.
+    const { error: releaseError } = await supabase
+      .from("line_release_logs")
+      .insert({
+        released_by: lead,
+        signature: sign,
+        verified_at: new Date().toISOString()
+      });
+
+    if (releaseError) {
+      alert("Failed to release line: " + (releaseError.message || "Unknown error"));
+      setButtonBusy(btn, false);
+      return;
+    }
+  } catch (e) {
+    alert("Failed to release line. Please try again.");
+    setButtonBusy(btn, false);
+    return;
+  }
+
+  alert("✅ LINE RELEASED");
+  window.location.href="macy-decoration-control.html";
+}
+</script>
+
+</body>
+</html>
