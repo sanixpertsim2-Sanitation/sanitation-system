@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY Decoration – Handover Tasks</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+.section {
+  background: rgba(255,255,255,0.08);
+  padding: 22px;
+  border-radius: 18px;
+  margin-bottom: 25px;
+}
+
+.task {
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 18px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+
+.task h4 {
+  color: #7dd3fc;
+  margin-bottom: 10px;
+}
+
+img {
+  width: 100%;
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+.photo-time {
+  font-size: 12px;
+  color: #93c5fd;
+  margin-top: 5px;
+}
+
+textarea, input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  margin-top: 8px;
+}
+
+button {
+  width: 100%;
+  padding: 18px;
+  font-size: 18px;
+  border-radius: 18px;
+  border: none;
+  background: linear-gradient(135deg,#22c55e,#16a34a);
+  color: white;
+  cursor: pointer;
+  margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">Handover Tasks</h1>
+<h3>MACY Decoration – Findings Resolution</h3>
+
+<div id="taskContainer"></div>
+
+<button id="releaseBtn" class="hidden sticky-cta" onclick="finalRelease()">
+  ✅ RELEASE LINE
+</button>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
+<script>
+const supabase = window.supabaseClient;
+
+const container = document.getElementById("taskContainer");
+const releaseBtn = document.getElementById("releaseBtn");
+
+let completed = new Set();
+let tasks = [];
+let damageTasks = [];
+
+function stampPhoto(input) {
+  const time = new Date().toLocaleString();
+  input.setAttribute("data-time", time);
+  input.nextElementSibling.innerText = "🕒 " + time;
+}
+
+async function fetchHandoverTasks() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("handover_tasks")
+    .select("*")
+    .eq("status", "Pending")
+    .order("created_at", { ascending: true });
+  if (error) {
+    alert("Failed to load handover tasks: " + (error.message || "Unknown error"));
+    return [];
+  }
+  return data || [];
+}
+
+async function fetchDamageHandovers() {
+  if (!supabase) return [];
+  const area = "MACY_DECORATION";
+  const { data, error } = await supabase
+    .from("damage_reports")
+    .select("*")
+    .eq("area", area)
+    .eq("status", "Handover")
+    .order("created_at", { ascending: true });
+  if (error) {
+    alert("Failed to load handover damages: " + (error.message || "Unknown error"));
+    return [];
+  }
+  return data || [];
+}
+
+async function render() {
+
+  localStorage.setItem("selectedArea", "MACY_DECORATION");
+  tasks = await fetchHandoverTasks();
+  damageTasks = await fetchDamageHandovers();
+
+  container.innerHTML = "";
+  completed = new Set();
+
+  if (tasks.length === 0 && damageTasks.length === 0) {
+    container.innerHTML =
+      "<p>No handover tasks found.</p>";
+    releaseBtn.classList.remove("hidden");
+    return;
+  }
+
+  tasks.forEach((t, index) => {
+
+    const div = document.createElement("div");
+    div.className = "section task";
+
+    div.innerHTML = `
+      <h4>Finding ${index + 1}</h4>
+
+      <b>Issue:</b>
+      <p>${t.task_description}</p>
+
+      <b>Source:</b>
+      <p>${t.source || "—"}</p>
+
+      <b>Reference:</b>
+      <p>${t.reference_id || "—"}</p>
+
+      <hr>
+
+      <label>Sanitation action taken *</label>
+      <textarea id="comment-${index}"
+        placeholder="Explain what action was taken"></textarea>
+
+      <label>Upload fix photo *</label>
+      <input type="file" accept="image/*" capture="environment"
+        onchange="stampPhoto(this)">
+      <div class="photo-time"></div>
+
+      <button onclick="completeTask(${index}, 'task')">
+        ✔ Mark as Completed
+      </button>
+    `;
+
+    container.appendChild(div);
+  });
+
+  damageTasks.forEach((d, index) => {
+    const offset = tasks.length + index;
+    const div = document.createElement("div");
+    div.className = "section task";
+    div.innerHTML = `
+      <h4>Damage Handover ${index + 1}</h4>
+
+      <b>Area:</b>
+      <p>${d.area}</p>
+
+      <b>Description:</b>
+      <p>${d.description}</p>
+
+      <b>Handover Reason:</b>
+      <p>${d.handover_reason || "—"}</p>
+
+      <hr>
+
+      <label>Sanitation action taken *</label>
+      <textarea id="comment-${offset}"
+        placeholder="Explain what action was taken"></textarea>
+
+      <label>Upload fix photo *</label>
+      <input type="file" accept="image/*" capture="environment"
+        onchange="stampPhoto(this)">
+      <div class="photo-time"></div>
+
+      <button onclick="completeTask(${offset}, 'damage')">
+        ✔ Mark as Completed
+      </button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+async function completeTask(i, type) {
+
+  const comment =
+    document.getElementById(`comment-${i}`).value.trim();
+
+  const input =
+    document.querySelectorAll("input[type=file]")[i];
+
+  if (!comment || !input.files.length) {
+    alert("Comment and photo required.");
+    return;
+  }
+
+  const file = input.files[0];
+  const photo = await new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result || "");
+    reader.readAsDataURL(file);
+  });
+
+  if (type === "task") {
+    // Audit/webhook safe point: task completion with photo evidence.
+    const task = tasks[i];
+    const { error } = await supabase
+      .from("handover_tasks")
+      .update({
+        status: "Completed",
+        completed_by: comment,
+        completed_photo: photo,
+        completed_at: new Date().toISOString()
+      })
+      .eq("id", task.id);
+    if (error) {
+      alert("Failed to complete task: " + (error.message || "Unknown error"));
+      return;
+    }
+  }
+
+  if (type === "damage") {
+    // Audit/webhook safe point: damage completion with photo evidence.
+    const damageIndex = i - tasks.length;
+    const damage = damageTasks[damageIndex];
+    const { error } = await supabase
+      .from("damage_reports")
+      .update({
+        status: "Completed",
+        completed_by: comment,
+        completed_photo: photo,
+        completed_at: new Date().toISOString()
+      })
+      .eq("id", damage.id);
+    if (error) {
+      alert("Failed to complete damage: " + (error.message || "Unknown error"));
+      return;
+    }
+  }
+
+  completed.add(i);
+
+  alert(`Finding ${i + 1} completed.`);
+  render();
+}
+
+async function finalRelease() {
+
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    return;
+  }
+
+  const pendingTasks = await fetchHandoverTasks();
+  const pendingDamages = await fetchDamageHandovers();
+  if (pendingTasks.length || pendingDamages.length) {
+    alert("Line release blocked: pending handovers or damage tasks exist.");
+    return;
+  }
+
+  const lead = prompt("Area Lead name for release");
+  if (!lead) {
+    alert("Area Lead name required.");
+    return;
+  }
+
+  try {
+    // Audit/webhook safe point: line release persisted after all closures.
+    const { error } = await supabase
+      .from("line_release_logs")
+      .insert({
+        released_by: lead,
+        signature: null,
+        verified_at: new Date().toISOString()
+      });
+
+    if (error) {
+      alert("Failed to release line: " + (error.message || "Unknown error"));
+      return;
+    }
+  } catch (e) {
+    alert("Failed to release line. Please try again.");
+    return;
+  }
+
+  alert("✅ All findings closed. Line released.");
+
+  window.location.href = "macy-decoration-control.html";
+}
+
+render();
+</script>
+
+</body>
+</html>
