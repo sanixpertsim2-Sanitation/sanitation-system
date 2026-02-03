@@ -61,18 +61,32 @@ textarea, input, select{
 <div class="section">
   <h3>Log New Damage</h3>
 
+  <label>Line</label>
+  <input type="text" id="lineArea" readonly>
+
+  <label>Reported by</label>
+  <input type="text" id="reportedBy" placeholder="Name">
+
   <label>Component / Location</label>
   <input type="text" id="area" placeholder="Conveyor / Frame / Guard">
+
+  <label>Date & Time</label>
+  <input type="text" id="reportedAt" readonly>
 
   <label>Description *</label>
   <textarea id="damageDesc"></textarea>
 
   <label>Severity</label>
   <select id="severity">
-    <option>Low</option>
-    <option>Medium</option>
-    <option>High</option>
+    <option value="">Select</option>
+    <option value="High">High</option>
+    <option value="Medium">Medium</option>
+    <option value="Low">Low</option>
   </select>
+
+<label>Capture Damage Photo *</label>
+<input type="file" id="damagePhoto" accept="image/*" capture="environment">
+<img id="preview" style="width:100%;border-radius:12px;display:none;margin-top:10px">
 
   <button class="submit-btn" onclick="submitDamage()">Submit Damage</button>
 </div>
@@ -87,8 +101,10 @@ textarea, input, select{
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/photoUtils.js"></script>
 <script>
 const supabase = window.supabaseClient;
+let damagePhotoBase64 = "";
 
 function setButtonBusy(btn, isBusy) {
   if (!btn) return;
@@ -100,9 +116,11 @@ function setButtonBusy(btn, isBusy) {
 function updateDamageButton() {
   const btn = document.querySelector("button[onclick='submitDamage()']");
   if (!btn || btn.dataset.busy === "1") return;
+  const reporter = document.getElementById("reportedBy").value.trim();
   const component = document.getElementById("area").value.trim();
   const desc = document.getElementById("damageDesc").value.trim();
-  btn.disabled = !(component && desc);
+  const severity = document.getElementById("severity").value;
+  btn.disabled = !(reporter && component && desc && severity && damagePhotoBase64);
 }
 
 function fromStoredDescription(stored) {
@@ -114,16 +132,11 @@ function fromStoredDescription(stored) {
   } catch (e) {
     // keep fallback
   }
-  return { text: stored || "", component: "" };
+  return { text: stored || "", component: "", reporter: "", reported_at: "" };
 }
 
 async function readFileBase64(file) {
-  if (!file) return "";
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result || "");
-    reader.readAsDataURL(file);
-  });
+  return readAndStampImage(file);
 }
 
 async function submitDamage(){
@@ -132,13 +145,14 @@ async function submitDamage(){
   if (btn && btn.dataset.busy === "1") return;
   setButtonBusy(btn, true);
 
+  const reporter = document.getElementById("reportedBy").value.trim();
   const component = document.getElementById("area").value.trim();
   const desc = document.getElementById("damageDesc").value.trim();
   const severity = document.getElementById("severity").value;
   const lineArea = localStorage.getItem("selectedArea") || "MACY_DECORATION";
 
-  if(!component || !desc){
-    alert("Component and description required.");
+  if(!reporter || !component || !desc || !severity || !damagePhotoBase64){
+    alert("All fields required.");
     setButtonBusy(btn, false);
     return;
   }
@@ -151,7 +165,10 @@ async function submitDamage(){
 
   const payload = {
     text: desc,
-    component: component
+    component: component,
+    reporter: reporter,
+    reported_at: new Date().toISOString(),
+    photo: damagePhotoBase64
   };
 
   try {
@@ -177,13 +194,34 @@ async function submitDamage(){
     return;
   }
 
+  if (severity === "High") {
+    sendDamageAlert({
+      area: lineArea,
+      component,
+      severity,
+      reporter
+    });
+  }
+
   document.getElementById("damageDesc").value = "";
+  document.getElementById("damagePhoto").value = "";
+  damagePhotoBase64 = "";
   setButtonBusy(btn, false);
   loadDamages();
 }
 
+function sendDamageAlert(payload) {
+  const webhook = window.__ENV && window.__ENV.DAMAGE_ALERT_WEBHOOK;
+  if (!webhook) return;
+  fetch(webhook, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+}
+
 function statusClass(status) {
-  if (status === "Completed") return "status-ok";
+  if (status === "Completed" || status === "Closed") return "status-ok";
   if (status === "Handover") return "status-warning";
   return "status-warning";
 }
@@ -215,10 +253,14 @@ async function loadDamages(){
       <div class="damage-card">
         <b>${d.area}</b>${(fromStoredDescription(d.description).component ? " (" + fromStoredDescription(d.description).component + ")" : "")}<br>
         ${fromStoredDescription(d.description).text || fromStoredDescription(d.description)}
+        <div class="small">
+          ${fromStoredDescription(d.description).reporter || ""} •
+          ${(fromStoredDescription(d.description).reported_at ? new Date(fromStoredDescription(d.description).reported_at).toLocaleString() : "")}
+        </div>
         <br>
         <span class="status-badge ${statusClass(d.status)}">${d.status}</span>
 
-        ${d.status==="Completed" && d.completed_photo
+        ${(d.status==="Completed" || d.status==="Closed") && d.completed_photo
           ? `<img src="${d.completed_photo}" alt="Completion" style="width:100%;margin-top:12px;border-radius:10px">`
           : ""
         }
@@ -248,7 +290,7 @@ async function markCompleted(id){
     const { error } = await supabase
       .from("damage_reports")
       .update({
-        status:"Completed",
+        status:"Closed",
         completed_by:who,
         completed_photo:photo,
         completed_at:new Date().toISOString()
@@ -270,10 +312,21 @@ window.onload=()=>{
   const area = "MACY_DECORATION";
   localStorage.setItem("selectedArea", area);
   localStorage.setItem("selectedLine", area);
+  document.getElementById("lineArea").value = area;
+  document.getElementById("reportedAt").value = new Date().toLocaleString();
+  document.getElementById("damagePhoto").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    damagePhotoBase64 = await readFileBase64(file);
+    document.getElementById("preview").src = damagePhotoBase64;
+    document.getElementById("preview").style.display = "block";
+    updateDamageButton();
+  });
   updateDamageButton();
   loadDamages();
 };
 </script>
+<script src="js/layout.js"></script>
 
 </body>
 </html>

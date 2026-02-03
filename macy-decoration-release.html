@@ -62,9 +62,13 @@ button{
   <option>Karanpreeth</option>
 </select>
 
+<div class="small" id="faceStatus">Face verification required</div>
+
 <label>Signature *</label>
 <canvas id="signPad"></canvas>
 <button onclick="clearSignature()">Clear Signature</button>
+
+<div class="small" id="declarationText"></div>
 </div>
 
 <!-- QUESTIONS -->
@@ -73,8 +77,18 @@ button{
   <div id="inspectionQuestions"></div>
 </div>
 
+<div class="section">
+  <h3>Handover Review</h3>
+  <div id="handoverReview">Loading...</div>
+</div>
+
 <button class="warn" onclick="reviewDamages()">🔧 Review Damages</button>
 <button class="warn" onclick="goHandover()">📋 Review Handover</button>
+
+<label class="small" style="display:block;margin-top:10px;">
+  <input type="checkbox" id="damageAck">
+  I acknowledge all open / handed-over damages (if any).
+</label>
 
 <button class="sticky-cta" onclick="submitArea()">Submit</button>
 
@@ -82,6 +96,9 @@ button{
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/photoUtils.js"></script>
+<script src="js/faceUtils.js"></script>
+<script src="js/lockUtils.js"></script>
 <script>
 const supabase = window.supabaseClient;
 function setButtonBusy(btn, isBusy) {
@@ -101,8 +118,8 @@ function updateInspectionButton() {
     .every(q => {
       const sel = q.querySelector("select");
       if (!sel || !sel.value) return false;
-      const requiresPhoto = q.dataset.alwaysPhoto === "1" || sel.value === "Not Acceptable";
-      const requiresComment = sel.value === "Not Acceptable";
+      const requiresPhoto = q.dataset.alwaysPhoto === "1" || sel.value === "Not Acceptable" || sel.value === "N/A";
+      const requiresComment = sel.value === "Not Acceptable" || sel.value === "N/A";
       const file = q.querySelector("input[type=file]");
       const txt = q.querySelector("textarea");
       if (requiresPhoto && (!file || !file.files || !file.files.length)) return false;
@@ -133,30 +150,17 @@ function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height);}
 /* FINDING */
 function toggleFinding(sel){
   const q = sel.closest(".question");
-  const alwaysPhoto = q.dataset.alwaysPhoto === "1";
   const t = q.querySelector("textarea");
   const f = q.querySelector("input[type=file]");
   const extra = q.querySelector(".extra");
-  if (sel.value === "Acceptable") {
-    t.classList.add("hidden");
-    if (!alwaysPhoto) {
-      f.classList.add("hidden");
-      extra.classList.add("hidden");
-    } else {
-      extra.classList.remove("hidden");
-    }
-  } else if (sel.value) {
+  extra.classList.remove("hidden");
+  if (f) f.classList.remove("hidden");
+  const needsComment = sel.value === "Not Acceptable" || sel.value === "N/A";
+  if (needsComment) {
     t.classList.remove("hidden");
-    f.classList.remove("hidden");
-    extra.classList.remove("hidden");
   } else {
     t.classList.add("hidden");
-    if (!alwaysPhoto) {
-      f.classList.add("hidden");
-      extra.classList.add("hidden");
-    } else {
-      extra.classList.remove("hidden");
-    }
+    t.value = "";
   }
   updateInspectionButton();
   updateActionLabel();
@@ -175,12 +179,50 @@ document.getElementById("leadName")
     updateActionLabel();
   });
 updateInspectionButton();
+updateActionLabel();
 
 const line = "MACY_DECORATION";
 localStorage.setItem("selectedArea", line);
 localStorage.setItem("selectedLine", line);
 document.getElementById("inspectionTitle").innerText =
   "Decoration Line Verification";
+
+// Face verification + lock on open.
+(async function () {
+  const face = await ensureFaceVerified({
+    supabase,
+    role: "area-lead",
+    area: line
+  });
+  if (!face.ok) {
+    alert(face.reason || "Face verification required.");
+    return;
+  }
+  const leadSelect = document.getElementById("leadName");
+  if (leadSelect) {
+    leadSelect.value = face.name || "";
+  }
+  const status = document.getElementById("faceStatus");
+  if (status) status.innerText = `Face verified: ${face.name}`;
+  const declaration = document.getElementById("declarationText");
+  if (declaration) {
+    declaration.innerText = `All areas verified and completed by ${face.name}`;
+  }
+
+  attachUnlock({ supabase, area: line, task: "inspection" });
+  loadHandoverReview(line);
+
+  const lock = await acquireTaskLock({
+    supabase,
+    area: line,
+    task: "inspection",
+    userName: face.name
+  });
+  if (!lock.ok) {
+    alert(lock.reason || "Area Lead Verification in progress.");
+    return;
+  }
+})();
 
 const postcleanSets = {
   MACY_Decoration: [
@@ -215,7 +257,7 @@ function buildInspectionQuestion(item) {
     </select>
     <div class="extra hidden">
       <textarea placeholder="Comment required"></textarea>
-      <input type="file" accept="image/*" capture="environment" class="hidden">
+      <input type="file" accept="image/*" capture="environment" class="hidden" multiple>
     </div>
   `;
   const file = div.querySelector("input[type=file]");
@@ -252,7 +294,7 @@ function hasLocalFindings() {
     const sel = q.querySelector("select");
     const txt = q.querySelector("textarea");
     if (!sel || !sel.value) return false;
-    const bad = sel.value === "Not Acceptable";
+    const bad = sel.value === "Not Acceptable" || sel.value === "N/A";
     const hasComment = txt && txt.value.trim();
     return bad || hasComment;
   });
@@ -302,6 +344,25 @@ async function hasPendingHandovers() {
   return data && data.length > 0;
 }
 
+async function loadHandoverReview(area) {
+  const container = document.getElementById("handoverReview");
+  if (!container || !supabase) return;
+  const { data, error } = await supabase
+    .from("handover_tasks")
+    .select("*")
+    .eq("status", "Pending")
+    .order("created_at", { ascending: true });
+  if (error) {
+    container.innerHTML = "Unable to load handover tasks.";
+    return;
+  }
+  if (!data || !data.length) {
+    container.innerHTML = "No pending handover tasks.";
+    return;
+  }
+  container.innerHTML = data.map(t => `<div>• ${t.task_description}</div>`).join("");
+}
+
 async function hasHandoverDamages(area) {
   if (!supabase) return false;
   const { data, error } = await supabase
@@ -333,12 +394,7 @@ async function hasOpenDamages(area) {
 }
 
 async function readFileBase64(file) {
-  if (!file) return "";
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result || "");
-    reader.readAsDataURL(file);
-  });
+  return readAndStampImage(file);
 }
 
 /* SUBMIT */
@@ -386,17 +442,16 @@ async function submitArea(){
       missing = true;
       continue;
     }
-    const photo = await readFileBase64(file && file.files ? file.files[0] : null);
     checklist.push({
       question: questionText,
       answer: sel ? sel.value : "",
       comment: txt ? txt.value || "" : "",
-      photo: photo
+      photos: []
     });
     if (txt && txt.value.trim()) {
       comments.push(txt.value.trim());
     }
-    const bad = sel.value === "Not Acceptable";
+    const bad = sel.value === "Not Acceptable" || sel.value === "N/A";
     if (bad || (txt && txt.value.trim())) {
       issueTasks.push({
         question: questionText,
@@ -404,18 +459,34 @@ async function submitArea(){
         comment: txt ? txt.value.trim() : ""
       });
     }
+    if (!file || !file.files || !file.files.length) {
+      missing = true;
+    }
   }
   checklist.push({
     question: "Signature",
     answer: "Captured",
     comment: "",
-    photo: sign
+    photos: [sign]
   });
 
   if (missing) {
     alert("Complete all inspection items.");
     setButtonBusy(btn, false);
     return;
+  }
+
+  for (let q of questionNodes) {
+    const label = q.querySelector("label");
+    const file = q.querySelector("input[type=file]");
+    const questionText = label ? label.innerText.trim() : "Question";
+    const record = checklist.find(c => c.question === questionText);
+    if (!record) continue;
+    const files = file && file.files ? Array.from(file.files) : [];
+    for (let f of files) {
+      const stamped = await readFileBase64(f);
+      record.photos.push(stamped);
+    }
   }
 
   try {
@@ -477,6 +548,12 @@ async function submitArea(){
   const damageHandover = await hasHandoverDamages(area);
   const openDamages = await hasOpenDamages(area);
 
+  if ((pending || damageHandover || openDamages) && !document.getElementById("damageAck").checked) {
+    alert("Acknowledge open/handed-over damages before submitting.");
+    setButtonBusy(btn, false);
+    return;
+  }
+
   if(pending || damageHandover || openDamages){
     alert("⚠ Pending handovers exist");
     window.location.href="macy-decoration-control.html";
@@ -505,9 +582,16 @@ async function submitArea(){
   }
 
   alert("✅ LINE RELEASED");
+  await completeTaskLock({
+    supabase,
+    area,
+    task: "inspection",
+    userName: lead
+  });
   window.location.href="macy-decoration-control.html";
 }
 </script>
+<script src="js/layout.js"></script>
 
 </body>
 </html>

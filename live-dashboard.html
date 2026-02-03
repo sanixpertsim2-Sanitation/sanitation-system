@@ -75,6 +75,16 @@ body {
 <h1 class="page-title">Sanitation Control Dashboard</h1>
 <h3>Give & Go Bakery – IM2</h3>
 
+<div class="section-card">
+  <h3>Line Overview</h3>
+  <div id="lineOverview"></div>
+</div>
+
+<div class="section-card">
+  <h3>Latest Verified Users</h3>
+  <div id="userPhotos"></div>
+</div>
+
 <!-- KPI TILES -->
 <div class="kpi-row">
   <div class="kpi">Stage<span id="kpiStage">–</span></div>
@@ -158,8 +168,8 @@ async function loadDashboard(){
   const released = await fetchLatestRelease();
 
   const damages = await fetchDamages(area);
-  const openDamages = damages.filter(d => d.status !== "Completed");
-  const critical = openDamages.filter(d => d.severity === "Critical");
+  const openDamages = damages.filter(d => d.status !== "Completed" && d.status !== "Closed");
+  const critical = openDamages.filter(d => d.severity === "High");
 
   let stage = "Not Started";
   let progress = 0;
@@ -184,9 +194,68 @@ async function loadDashboard(){
   document.getElementById("progressBar").style.width = progress + "%";
 }
 
+async function getLineStatus(area) {
+  const pre = await fetchLatestPreclean(area);
+  const post = await fetchLatestPostclean(pre ? pre.id : null);
+  const damages = await fetchDamages(area);
+  const openDamages = damages.filter(d => d.status !== "Closed" && d.status !== "Completed");
+  const released = await fetchLatestRelease();
+  if (released) return "Released";
+  if (post) return openDamages.length ? "Post-Clean (Issues)" : "Post-Clean Complete";
+  if (pre) return "Pre-Clean Complete";
+  return "Not Started";
+}
+
+async function loadLineOverview() {
+  const lines = [
+    { id: "MACY_PRODUCTION", label: "MACY – Production" },
+    { id: "MACY_DECORATION", label: "MACY – Decoration" },
+    { id: "JFK", label: "JFK – Doughnut (Coming Soon)" },
+    { id: "CECE", label: "CECE – Cookies (Coming Soon)" }
+  ];
+  const container = document.getElementById("lineOverview");
+  container.innerHTML = "";
+  for (let line of lines) {
+    if (line.id === "JFK" || line.id === "CECE") {
+      container.innerHTML += `<div>${line.label}</div>`;
+      continue;
+    }
+    const status = await getLineStatus(line.id);
+    container.innerHTML += `<div>${line.label}: <b>${status}</b></div>`;
+  }
+}
+
+async function loadUserPhotos() {
+  if (!supabase) return;
+  const { data, error } = await supabase
+    .from("face_registry")
+    .select("*")
+    .order("last_seen_at", { ascending: false })
+    .limit(6);
+  if (error) return;
+  const container = document.getElementById("userPhotos");
+  container.innerHTML = "";
+  (data || []).forEach(u => {
+    container.innerHTML += `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <img src="${u.photo}" alt="${u.name}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;">
+        <div>
+          <div>${u.name}</div>
+          <div class="small">${u.role}</div>
+        </div>
+      </div>
+    `;
+  });
+}
+
 loadDashboard();
+loadLineOverview();
+loadUserPhotos();
 setInterval(loadDashboard, 5000);
+setInterval(loadLineOverview, 15000);
+setInterval(loadUserPhotos, 20000);
 </script>
+<script src="js/layout.js"></script>
 
 </body>
 </html>

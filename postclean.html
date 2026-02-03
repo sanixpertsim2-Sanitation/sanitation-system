@@ -74,6 +74,8 @@ select,textarea,input{
 <div class="section">
   <h3>Employee Information</h3>
 
+  <div class="small" id="faceStatus">Face verification required</div>
+
   <label>Employee Name *</label>
   <input type="text" id="empName">
 
@@ -310,6 +312,9 @@ onclick="openDamagePopup()">
 <button class="submit-btn sticky-cta" onclick="submitPostClean()">
 Submit Post-Cleaning
 </button>
+<button id="unlockHelp" class="small" style="opacity:0.2;margin-top:10px;background:none;border:none;color:#94a3b8;cursor:pointer;">
+  Help / Unlock
+</button>
 
 </div>
 
@@ -328,6 +333,10 @@ style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/photoUtils.js"></script>
+<script src="js/faceUtils.js"></script>
+<script src="js/lockUtils.js"></script>
+<script src="js/unlockUtils.js"></script>
 <script>
 const supabase = window.supabaseClient;
 function setButtonBusy(btn, isBusy) {
@@ -348,11 +357,11 @@ function updatePostcleanButton() {
     .every(q => {
       const sel = q.querySelector("select");
       if (!sel || !sel.value) return false;
-      const requiresComment = sel.value === "Not Acceptable";
+      const requiresComment = sel.value === "Not Acceptable" || sel.value === "N/A";
       const file = q.querySelector("input[type=file]");
       const txt = q.querySelector("textarea");
+      if (!file || !file.files || !file.files.length) return false;
       if (requiresComment && (!txt || !txt.value.trim())) return false;
-      if (requiresComment && (!file || !file.files || !file.files.length)) return false;
       return true;
     });
   btn.disabled = !(bags && handover && allAnswered && requiredSatisfied);
@@ -401,12 +410,7 @@ function fromStoredDescription(stored) {
 }
 
 async function readFileBase64(file) {
-  if (!file) return "";
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result || "");
-    reader.readAsDataURL(file);
-  });
+  return readAndStampImage(file);
 }
 
 window.onload = async () => {
@@ -416,8 +420,7 @@ window.onload = async () => {
     MACY_PRODUCTION: "Production",
     MACY_DECORATION: "Decoration",
     MACY_Spiral: "Spiral",
-    MACY_Oven: "Oven",
-    MACY_Palletizer: "Palletizer"
+    MACY_Labeller: "Labeller"
   };
   document.getElementById("areaName").innerText = labelMap[area] || area;
 
@@ -430,6 +433,33 @@ window.onload = async () => {
     new Date().toLocaleString();
   document.getElementById("bagsRetrieved")
     .addEventListener("input", updatePostcleanButton);
+  const face = await ensureFaceVerified({
+    supabase,
+    role: "sanitation",
+    area
+  });
+  if (!face.ok) {
+    alert(face.reason || "Face verification required.");
+    return;
+  }
+  document.getElementById("empName").value = face.name || "";
+  document.getElementById("empName").readOnly = true;
+  const status = document.getElementById("faceStatus");
+  if (status) status.innerText = `Face verified: ${face.name}`;
+
+  attachUnlock({ supabase, area, task: "postclean" });
+
+  const lock = await acquireTaskLock({
+    supabase,
+    area,
+    task: "postclean",
+    userName: face.name
+  });
+  if (!lock.ok) {
+    alert(lock.reason || "Post-Cleaning currently in progress.");
+    return;
+  }
+
   updatePostcleanButton();
 };
 
@@ -437,9 +467,14 @@ function toggleNA(sel){
   const q=sel.closest(".question");
   const t=q.querySelector("textarea");
   const f=q.querySelector("input");
-  sel.value==="Acceptable"
-    ? (t.classList.add("hidden"),f.classList.add("hidden"))
-    : (t.classList.remove("hidden"),f.classList.remove("hidden"));
+  f.classList.remove("hidden");
+  const needsComment = sel.value === "Not Acceptable" || sel.value === "N/A";
+  if (needsComment) {
+    t.classList.remove("hidden");
+  } else {
+    t.classList.add("hidden");
+    t.value = "";
+  }
   updatePostcleanButton();
 }
 
@@ -537,7 +572,7 @@ async function saveDamage(id){
     const { error } = await supabase
       .from("damage_reports")
       .update({
-        status: "Completed",
+        status: "Closed",
         completed_by: document.getElementById("who-"+id).value,
         completed_photo: photo,
         completed_at: new Date().toISOString()
@@ -600,16 +635,13 @@ async function submitPostClean(){
   const preBags = preclean ? Number(preclean.bags_used || 0) : 0;
 
   if(preBags && postBags !== preBags){
-    const proceed = confirm(
-      "⚠ Bag count mismatch\n\n" +
+    alert(
+      "Covering count mismatch – verify thoroughly.\n\n" +
       "Pre-clean: " + preBags +
-      "\nPost-clean: " + postBags +
-      "\n\nContinue anyway?"
+      "\nPost-clean: " + postBags
     );
-    if (!proceed) {
-      setButtonBusy(btn, false);
-      return;
-    }
+    setButtonBusy(btn, false);
+    return;
   }
 
   const handoverValue = document.getElementById("handoverSelect").value;
@@ -634,6 +666,11 @@ async function submitPostClean(){
         });
       }
     });
+    if (!tasks.length) {
+      alert("Handover tasks required before submission.");
+      setButtonBusy(btn, false);
+      return;
+    }
     if (tasks.length) {
       try {
         // Audit/webhook safe point: handover task creation.
@@ -738,9 +775,16 @@ async function submitPostClean(){
   }
 
   alert("✅ Post-cleaning submitted successfully");
+  await completeTaskLock({
+    supabase,
+    area,
+    task: "postclean",
+    userName: document.getElementById("empName").value.trim()
+  });
   window.location.href="macy-production-control.html";
 }
 </script>
+<script src="js/layout.js"></script>
 
 </body>
 </html>

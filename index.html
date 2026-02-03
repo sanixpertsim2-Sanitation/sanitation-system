@@ -8,40 +8,42 @@
 </head>
 
 <body>
-  <button id="startSanitation">
-  Start Sanitation
-</button>
-  <div class="card center">
+  <div class="container">
+    <div class="card">
+      <h1>Sanixpert – Intelligent Digital Sanitation Checklist</h1>
+      <h2>Give & Go • Sanitation Department</h2>
+      <p>Select a line to begin sanitation</p>
+    </div>
 
-    <h1>GIVE & GO BAKERY – IM2</h1>
-    <h2>Sanitation Digital Verification</h2>
+    <div class="card" style="margin-top:18px;">
+      <div class="line-card" onclick="selectLine('MACY')" role="button" tabindex="0">
+        <img class="line-image" src="https://image.pollinations.ai/prompt/clean%20cupcake%20production%20line%20industrial%20facility%20high%20detail" alt="MACY Cupcake Line">
+        <div class="line-content">
+          <div class="line-title">MACY (Cupcake)</div>
+          <div class="line-sub">Active</div>
+        </div>
+      </div>
 
-    <p>Select a line to begin sanitation</p>
+      <div class="line-card line-card--disabled">
+        <img class="line-image" src="https://image.pollinations.ai/prompt/donut%20production%20line%20industrial%20facility%20high%20detail" alt="JFK Doughnut Line">
+        <div class="line-content">
+          <div class="line-title">JFK (Doughnut)</div>
+          <div class="line-sub">Coming Soon</div>
+        </div>
+      </div>
 
-    <button class="primary-btn" onclick="selectLine('MACY')">
-      🧁 MACY – Cupcake Line
-    </button>
-
-    <button class="disabled-btn" disabled>
-      🍩 JFK – Donut Line (Coming Soon)
-    </button>
-
-    <button class="disabled-btn" disabled>
-      🍪 CECE – Cookie Line (Coming Soon)
-    </button>
-
+      <div class="line-card line-card--disabled">
+        <img class="line-image" src="https://image.pollinations.ai/prompt/cookie%20production%20line%20industrial%20facility%20high%20detail" alt="CECE Cookie Line">
+        <div class="line-content">
+          <div class="line-title">CECE (Cookies)</div>
+          <div class="line-sub">Coming Soon</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="js/app.js"></script>
-  <script>
-    // Entry point: always route to line selection.
-    const startBtn = document.getElementById("startSanitation");
-    if (startBtn) {
-      startBtn.addEventListener("click", () => {
-        window.location.href = "area.html";
-      });
-    }
-  </script>
+  <script src="js/layout.js"></script>
 </body>
 
 </html>

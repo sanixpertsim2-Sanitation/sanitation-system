@@ -58,6 +58,8 @@ textarea {
 <div class="section">
   <h3>General Information</h3>
 
+  <div class="small" id="faceStatus">Face verification required</div>
+
   <label>Employee Name *</label>
   <input type="text" id="employeeName" oninput="saveDraft()">
 
@@ -277,11 +279,18 @@ textarea {
 <button class="submit-btn sticky-cta" onclick="submitPreCleaning()">
   Submit Pre-Cleaning
 </button>
+<button id="unlockHelp" class="small" style="opacity:0.2;margin-top:10px;background:none;border:none;color:#94a3b8;cursor:pointer;">
+  Help / Unlock
+</button>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/photoUtils.js"></script>
+<script src="js/faceUtils.js"></script>
+<script src="js/lockUtils.js"></script>
+<script src="js/unlockUtils.js"></script>
 <script>
 const supabase = window.supabaseClient;
 
@@ -302,7 +311,18 @@ function updatePrecleanButton() {
     : "";
   const allAnswered = Array.from(document.querySelectorAll(".question select"))
     .every(sel => sel.value && sel.value.length > 0);
-  btn.disabled = !(emp && bags && covered && allAnswered);
+  const requiredSatisfied = Array.from(document.querySelectorAll(".question"))
+    .every(q => {
+      const sel = q.querySelector("select");
+      const file = q.querySelector("input[type=file]");
+      const txt = q.querySelector("textarea");
+      if (!sel || !sel.value) return false;
+      if (!file || !file.files || !file.files.length) return false;
+      const needsComment = sel.value === "Not Acceptable" || sel.value === "NA";
+      if (needsComment && (!txt || !txt.value.trim())) return false;
+      return true;
+    });
+  btn.disabled = !(emp && bags && covered && allAnswered && requiredSatisfied);
 }
 /* ===============================
    AUTO DATE + LINE LABEL
@@ -313,8 +333,7 @@ const lineLabelMap = {
   MACY_PRODUCTION: "Production",
   MACY_DECORATION: "Decoration",
   MACY_Spiral: "Spiral",
-  MACY_Oven: "Oven",
-  MACY_Palletizer: "Palletizer"
+  MACY_Labeller: "Labeller"
 };
 const currentArea = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
 localStorage.setItem("selectedLine", currentArea);
@@ -324,15 +343,56 @@ if (lineName) {
 }
 updatePrecleanButton();
 
+// Lock + face verification
+(async function () {
+  const area = currentArea;
+  const face = await ensureFaceVerified({
+    supabase,
+    role: "sanitation",
+    area
+  });
+  if (!face.ok) {
+    alert(face.reason || "Face verification required.");
+    return;
+  }
+  const nameField = document.getElementById("employeeName");
+  if (nameField) {
+    nameField.value = face.name || "";
+    nameField.readOnly = true;
+  }
+  const status = document.getElementById("faceStatus");
+  if (status) {
+    status.innerText = `Face verified: ${face.name}`;
+  }
+
+  attachUnlock({ supabase, area, task: "preclean" });
+
+  const lock = await acquireTaskLock({
+    supabase,
+    area,
+    task: "preclean",
+    userName: face.name
+  });
+  if (!lock.ok) {
+    alert(lock.reason || "Pre-Cleaning currently in progress.");
+    return;
+  }
+})();
+
 /* ===============================
    TOGGLE EXTRA
 ================================ */
 function toggleExtra(sel) {
   const extra = sel.parentElement.querySelector(".extra");
-  if (sel.value !== "Acceptable" && sel.value !== "") {
-    extra.classList.remove("hidden");
+  const comment = extra.querySelector("textarea");
+  // Camera is mandatory for ALL responses; comment only for NA/Not Acceptable.
+  extra.classList.remove("hidden");
+  const needsComment = sel.value === "Not Acceptable" || sel.value === "NA";
+  if (needsComment) {
+    comment.classList.remove("hidden");
   } else {
-    extra.classList.add("hidden");
+    comment.classList.add("hidden");
+    comment.value = "";
   }
 }
 
@@ -430,14 +490,20 @@ async function submitPreCleaning() {
   const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
 
   const checklist = [];
-  document.querySelectorAll(".question").forEach(q => {
+  const questions = document.querySelectorAll(".question");
+  for (let q of questions) {
     const questionText = q.childNodes[0].textContent.trim();
+    const sel = q.querySelector("select");
+    const txt = q.querySelector("textarea");
+    const file = q.querySelector("input[type=file]");
+    const photo = await readAndStampImage(file && file.files ? file.files[0] : null);
     checklist.push({
       question: questionText,
-      value: q.querySelector("select").value,
-      comment: q.querySelector("textarea")?.value || ""
+      value: sel ? sel.value : "",
+      comment: txt ? txt.value || "" : "",
+      photo: photo
     });
-  });
+  }
   const coveredValue = document.getElementById("equipmentCovered")
     ? document.getElementById("equipmentCovered").value.trim()
     : "";
@@ -458,7 +524,7 @@ async function submitPreCleaning() {
         employee_name: emp,
         bags_used: parseInt(bags, 10) || 0,
         checklist: checklist,
-        status: "submitted",
+        status: "Under Wash",
         submitted_at: new Date().toISOString()
       });
 
@@ -475,10 +541,18 @@ async function submitPreCleaning() {
 
   alert("✅ Pre-Cleaning submitted successfully");
 
+  await completeTaskLock({
+    supabase,
+    area,
+    task: "preclean",
+    userName: emp
+  });
+
   window.location.href =
     "macy-production-control.html";
 }
 </script>
+<script src="js/layout.js"></script>
 
 </body>
 </html>

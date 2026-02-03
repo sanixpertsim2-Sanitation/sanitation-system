@@ -113,7 +113,7 @@ async function loadKpi() {
     const key = toDateKey(d.created_at);
     if (!rows[key]) rows[key] = { date: key, duration: "-", damageCount: 0, criticalCount: 0, released: false };
     rows[key].damageCount += 1;
-    if (d.severity === "Critical") rows[key].criticalCount += 1;
+    if (d.severity === "High") rows[key].criticalCount += 1;
   });
 
   (releases || []).forEach(r => {
@@ -142,6 +142,7 @@ async function loadKpi() {
 
 loadKpi();
 </script>
+<script src="js/layout.js"></script>
 
 </body>
 </html>

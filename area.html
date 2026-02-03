@@ -29,9 +29,8 @@
 
   <button class="area-btn" onclick="selectArea('MACY_PRODUCTION')">Production</button>
   <button class="area-btn" onclick="selectArea('MACY_DECORATION')">Decoration</button>
-  <button class="area-btn" onclick="selectArea('MACY_Spiral')">Spiral</button>
-  <button class="area-btn" onclick="selectArea('MACY_Oven')">Oven</button>
-  <button class="area-btn" onclick="selectArea('MACY_Palletizer')">Palletizer</button>
+  <button class="area-btn" disabled>Spiral (Coming Soon)</button>
+  <button class="area-btn" disabled>Labeller (Coming Soon)</button>
 </div>
 
 <script>
@@ -55,13 +54,6 @@ function selectArea(area) {
 
   } else if (area === "MACY_DECORATION") {
     window.location.href = "macy-decoration-control.html";
-  } else if (
-    area === "MACY_Spiral" ||
-    area === "MACY_Oven" ||
-    area === "MACY_Palletizer"
-  ) {
-    // Reuse the production flow for other MACY lines.
-    window.location.href = "macy-production-control.html";
   } else {
     alert("This area will be activated soon.");
   }
@@ -72,6 +64,7 @@ window.onload = function () {
   // No default line display on selection screen.
 };
 </script>
+<script src="js/layout.js"></script>
 </body>
 </html>
 
