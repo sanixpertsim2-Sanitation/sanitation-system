@@ -344,7 +344,18 @@ function updatePostcleanButton() {
   const handover = document.getElementById("handoverSelect").value;
   const allAnswered = Array.from(document.querySelectorAll(".question select"))
     .every(sel => sel.value && sel.value.length > 0);
-  btn.disabled = !(bags && handover && allAnswered);
+  const requiredSatisfied = Array.from(document.querySelectorAll(".question"))
+    .every(q => {
+      const sel = q.querySelector("select");
+      if (!sel || !sel.value) return false;
+      const requiresComment = sel.value === "Not Acceptable";
+      const file = q.querySelector("input[type=file]");
+      const txt = q.querySelector("textarea");
+      if (requiresComment && (!txt || !txt.value.trim())) return false;
+      if (requiresComment && (!file || !file.files || !file.files.length)) return false;
+      return true;
+    });
+  btn.disabled = !(bags && handover && allAnswered && requiredSatisfied);
 }
 
 async function fetchLatestPreclean(area) {
@@ -399,8 +410,16 @@ async function readFileBase64(file) {
 }
 
 window.onload = async () => {
-  const area = localStorage.getItem("selectedArea") || "Area";
-  document.getElementById("areaName").innerText = area;
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+  localStorage.setItem("selectedLine", area);
+  const labelMap = {
+    MACY_PRODUCTION: "Production",
+    MACY_DECORATION: "Decoration",
+    MACY_Spiral: "Spiral",
+    MACY_Oven: "Oven",
+    MACY_Palletizer: "Palletizer"
+  };
+  document.getElementById("areaName").innerText = labelMap[area] || area;
 
   const preclean = await fetchLatestPreclean(area);
   if (preclean && preclean.employee_name) {
@@ -477,6 +496,8 @@ function openDamagePopup(){
               <option>Partially fixed</option>
               <option>Maintenance next shift</option>
             </select>
+            <label>Handover photo *</label>
+            <input type="file" accept="image/*" capture="environment" id="hand-photo-${d.id}">
           </div>
 
           <button class="submit-btn" style="margin-top:12px"
@@ -529,15 +550,20 @@ async function saveDamage(id){
   }
 
   if(!document.getElementById("hand-"+id).classList.contains("hidden")){
-    if(!document.getElementById("reason-"+id).value){
-      alert("Select handover reason");
+    if(!document.getElementById("reason-"+id).value ||
+       !document.getElementById("hand-photo-"+id).files.length){
+      alert("Handover requires reason and photo");
       return;
     }
+    const handFile = document.getElementById("hand-photo-"+id).files[0];
+    const handPhoto = await readFileBase64(handFile);
     const { error } = await supabase
       .from("damage_reports")
       .update({
         status: "Handover",
         handover_reason: document.getElementById("reason-"+id).value,
+        // Store handover evidence in completed_photo (no dedicated column in schema).
+        completed_photo: handPhoto,
         handover_at: new Date().toISOString()
       })
       .eq("id", id);
@@ -637,22 +663,54 @@ async function submitPostClean(){
 
   const checklist = [];
   const questions = document.querySelectorAll(".question");
+  const autoTasks = [];
   for (let q of questions) {
     const sel = q.querySelector("select");
     const txt = q.querySelector("textarea");
     const file = q.querySelector("input[type=file]");
     const photo = await readFileBase64(file && file.files ? file.files[0] : null);
+    const questionText = q.childNodes[0].textContent.trim();
     checklist.push({
+      question: questionText,
       value: sel ? sel.value : "",
       comment: txt ? txt.value || "" : "",
       photo: photo
     });
+    const failed = sel && sel.value === "Not Acceptable";
+    const hasComment = txt && txt.value.trim();
+    if (failed || hasComment) {
+      autoTasks.push({
+        source: "post-clean",
+        reference_id: preclean ? preclean.id : null,
+        task_description: `${questionText} — ${sel ? sel.value : ""}${hasComment ? " | " + txt.value.trim() : ""}`,
+        status: "Pending",
+        created_at: new Date().toISOString()
+      });
+    }
   }
 
   if (!supabase) {
     alert("Supabase client not loaded.");
     setButtonBusy(btn, false);
     return;
+  }
+
+  if (autoTasks.length) {
+    try {
+      // Audit/webhook safe point: auto-create handover tasks from comments/failures.
+      const { error } = await supabase
+        .from("handover_tasks")
+        .insert(autoTasks);
+      if (error) {
+        alert("Failed to create auto handover tasks: " + (error.message || "Unknown error"));
+        setButtonBusy(btn, false);
+        return;
+      }
+    } catch (e) {
+      alert("Failed to create auto handover tasks.");
+      setButtonBusy(btn, false);
+      return;
+    }
   }
 
   try {
@@ -664,7 +722,7 @@ async function submitPostClean(){
         employee_name: document.getElementById("empName").value.trim() || "",
         bags_returned: postBags,
         checklist: checklist,
-        handover_required: handoverValue === "Yes",
+        handover_required: handoverValue === "Yes" || autoTasks.length > 0,
         submitted_at: new Date().toISOString()
       });
 

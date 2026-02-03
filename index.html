@@ -16,7 +16,7 @@
     <h1>GIVE & GO BAKERY – IM2</h1>
     <h2>Sanitation Digital Verification</h2>
 
-    <p>Select Production Line</p>
+    <p>Select a line to begin sanitation</p>
 
     <button class="primary-btn" onclick="selectLine('MACY')">
       🧁 MACY – Cupcake Line
@@ -33,6 +33,15 @@
   </div>
 
   <script src="js/app.js"></script>
+  <script>
+    // Entry point: always route to line selection.
+    const startBtn = document.getElementById("startSanitation");
+    if (startBtn) {
+      startBtn.addEventListener("click", () => {
+        window.location.href = "area.html";
+      });
+    }
+  </script>
 </body>
 
 </html>

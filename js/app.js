@@ -1,5 +1,6 @@
 function selectLine(line) {
-  localStorage.setItem("line", line);
+  // UI-state only: selected line for routing/header display.
+  localStorage.setItem("selectedLine", line);
   window.location.href = "area.html";
 }
 

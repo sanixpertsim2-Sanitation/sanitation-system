@@ -234,6 +234,7 @@ async function readFileBase64(file) {
 window.onload = async () => {
   const area = "MACY_DECORATION";
   localStorage.setItem("selectedArea", area);
+  localStorage.setItem("selectedLine", area);
   document.getElementById("areaName").innerText = "MACY Decoration";
   document.getElementById("postcleanTitle").innerText = "Decoration Line Verification";
 
@@ -369,6 +370,8 @@ function openDamagePopup(){
               <option>Partially fixed</option>
               <option>Maintenance next shift</option>
             </select>
+            <label>Handover photo *</label>
+            <input type="file" accept="image/*" capture="environment" id="hand-photo-${d.id}">
           </div>
 
           <button class="submit-btn" style="margin-top:12px"
@@ -421,15 +424,20 @@ async function saveDamage(id){
   }
 
   if(!document.getElementById("hand-"+id).classList.contains("hidden")){
-    if(!document.getElementById("reason-"+id).value){
-      alert("Select handover reason");
+    if(!document.getElementById("reason-"+id).value ||
+       !document.getElementById("hand-photo-"+id).files.length){
+      alert("Handover requires reason and photo");
       return;
     }
+    const handFile = document.getElementById("hand-photo-"+id).files[0];
+    const handPhoto = await readFileBase64(handFile);
     const { error } = await supabase
       .from("damage_reports")
       .update({
         status: "Handover",
         handover_reason: document.getElementById("reason-"+id).value,
+        // Store handover evidence in completed_photo (no dedicated column in schema).
+        completed_photo: handPhoto,
         handover_at: new Date().toISOString()
       })
       .eq("id", id);

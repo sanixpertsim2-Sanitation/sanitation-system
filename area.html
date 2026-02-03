@@ -24,10 +24,8 @@
 <body>
 
 <div class="container">
-  <h1 class="page-title">
-  MACY – <span id="areaName"></span>
-</h1>
-  <h3>Select Area</h3>
+  <h1 class="page-title">MACY’S LINES</h1>
+  <h3>Select Line</h3>
 
   <button class="area-btn" onclick="selectArea('MACY_PRODUCTION')">Production</button>
   <button class="area-btn" onclick="selectArea('MACY_DECORATION')">Decoration</button>
@@ -38,8 +36,8 @@
 
 <script>
 function selectArea(area) {
-
-  // Save selected area
+  // UI-state only: track selected line/area for routing + headers.
+  localStorage.setItem("selectedLine", area);
   localStorage.setItem("selectedArea", area);
 
   if (area === "MACY_PRODUCTION") {
@@ -57,6 +55,13 @@ function selectArea(area) {
 
   } else if (area === "MACY_DECORATION") {
     window.location.href = "macy-decoration-control.html";
+  } else if (
+    area === "MACY_Spiral" ||
+    area === "MACY_Oven" ||
+    area === "MACY_Palletizer"
+  ) {
+    // Reuse the production flow for other MACY lines.
+    window.location.href = "macy-production-control.html";
   } else {
     alert("This area will be activated soon.");
   }
@@ -64,16 +69,7 @@ function selectArea(area) {
 </script>
 <script>
 window.onload = function () {
-  const area = localStorage.getItem("selectedArea");
-  const el = document.getElementById("areaName");
-
-  if (el && area) {
-    if (area === "MACY_DECORATION") {
-      el.innerText = "MACY Decoration";
-    } else {
-      el.innerText = area.replace("MACY_", "");
-    }
-  }
+  // No default line display on selection screen.
 };
 </script>
 </body>
