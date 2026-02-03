@@ -72,60 +72,203 @@ textarea {
 <div class="section">
   <h3>Production Area Checklist</h3>
 
-  <!-- QUESTION TEMPLATE -->
-  <div class="question">
-    No product residue present
-    <select onchange="toggleExtra(this);saveDraft()">
-      <option value="">Select</option>
-      <option>Acceptable</option>
-      <option>Not Acceptable</option>
-      <option>NA</option>
-    </select>
-    <div class="extra hidden">
-      <input type="file" accept="image/*" capture="environment">
-      <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+  <div class="section-card">
+    <h3>Equipment & Safety</h3>
+    <div class="question">
+      Verify the equipment for any inadequate condition and safety issues.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
+    </div>
+    <div class="question">
+      Check sensors and motor.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
+    </div>
+    <div class="question">
+      Verify damage on all equipments.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
+    </div>
+    <div class="question">
+      Frame, conveyor.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
+    </div>
+    <div class="question">
+      Pipes and plugs.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
+    </div>
+    <div class="question">
+      Emergency button.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
     </div>
   </div>
 
-  <div class="question">
-    Conveyor belts accessible
-    <select onchange="toggleExtra(this);saveDraft()">
-      <option value="">Select</option>
-      <option>Acceptable</option>
-      <option>Not Acceptable</option>
-      <option>NA</option>
-    </select>
-    <div class="extra hidden">
-      <input type="file" accept="image/*" capture="environment">
-      <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+  <div class="section-card">
+    <h3>Coverage</h3>
+    <label>No. of equipment covered *</label>
+    <input type="number" id="equipmentCovered" oninput="saveDraft()">
+  </div>
+
+  <div class="section-card">
+    <h3>Dismantling</h3>
+    <div class="question">
+      Dismantling.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
+    </div>
+    <div class="question">
+      Remove Die.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
+    </div>
+    <div class="question">
+      Batter Pump.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
+    </div>
+    <div class="question">
+      Transfer Pipes.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
+    </div>
+    <div class="question">
+      Divider (if applicable).
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
+    </div>
+    <div class="question">
+      Catchpans and hopper unit.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
     </div>
   </div>
 
-  <div class="question">
-    Frames and structure accessible
-    <select onchange="toggleExtra(this);saveDraft()">
-      <option value="">Select</option>
-      <option>Acceptable</option>
-      <option>Not Acceptable</option>
-      <option>NA</option>
-    </select>
-    <div class="extra hidden">
-      <input type="file" accept="image/*" capture="environment">
-      <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+  <div class="section-card">
+    <h3>Dry Cleaning</h3>
+    <div class="question">
+      Dry cleaning both frame and conveyors (top & bottom).
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
     </div>
-  </div>
-
-  <div class="question">
-    Guards and covers removed
-    <select onchange="toggleExtra(this);saveDraft()">
-      <option value="">Select</option>
-      <option>Acceptable</option>
-      <option>Not Acceptable</option>
-      <option>NA</option>
-    </select>
-    <div class="extra hidden">
-      <input type="file" accept="image/*" capture="environment">
-      <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+    <div class="question">
+      Scrappers, and floor.
+      <select onchange="toggleExtra(this);saveDraft()">
+        <option value="">Select</option>
+        <option>Acceptable</option>
+        <option>Not Acceptable</option>
+        <option>NA</option>
+      </select>
+      <div class="extra hidden">
+        <input type="file" accept="image/*" capture="environment">
+        <textarea placeholder="Comment required..." oninput="saveDraft()"></textarea>
+      </div>
     </div>
   </div>
 
@@ -154,9 +297,12 @@ function updatePrecleanButton() {
   if (!btn || btn.dataset.busy === "1") return;
   const emp = document.getElementById("employeeName").value.trim();
   const bags = document.getElementById("bagsUsed").value.trim();
+  const covered = document.getElementById("equipmentCovered")
+    ? document.getElementById("equipmentCovered").value.trim()
+    : "";
   const allAnswered = Array.from(document.querySelectorAll(".question select"))
     .every(sel => sel.value && sel.value.length > 0);
-  btn.disabled = !(emp && bags && allAnswered);
+  btn.disabled = !(emp && bags && covered && allAnswered);
 }
 /* ===============================
    AUTO DATE
@@ -185,6 +331,9 @@ function saveDraft() {
   const data = {
     employee: document.getElementById("employeeName").value,
     bags: document.getElementById("bagsUsed").value,
+    covered: document.getElementById("equipmentCovered")
+      ? document.getElementById("equipmentCovered").value
+      : "",
     answers: []
   };
 
@@ -217,6 +366,10 @@ function saveDraft() {
 
   document.getElementById("bagsUsed").value =
     draft.bags || "";
+  if (document.getElementById("equipmentCovered")) {
+    document.getElementById("equipmentCovered").value =
+      draft.covered || "";
+  }
 
   const questions =
     document.querySelectorAll(".question");
@@ -272,6 +425,16 @@ async function submitPreCleaning() {
       comment: q.querySelector("textarea")?.value || ""
     });
   });
+  const coveredValue = document.getElementById("equipmentCovered")
+    ? document.getElementById("equipmentCovered").value.trim()
+    : "";
+  if (coveredValue) {
+    checklist.push({
+      question: "No. of equipment covered",
+      value: coveredValue,
+      comment: ""
+    });
+  }
 
   try {
     // Audit/webhook safe point: pre-clean submission persisted with who/when/area.
