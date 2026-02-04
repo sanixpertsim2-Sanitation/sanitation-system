@@ -166,6 +166,7 @@ style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99
 <script src="js/lockUtils.js"></script>
 <script src="js/errorHandler.js"></script>
 <script src="js/validationUtils.js"></script>
+<script src="js/performanceOptimizer.js"></script>
 <script src="js/photoStorage.js"></script>
 <script src="js/dataCleanup.js"></script>
 <script src="js/backupManager.js"></script>
@@ -293,6 +294,7 @@ window.onload = async () => {
 
   // Cache preclean data to avoid duplicate database calls
   const preclean = await fetchLatestPreclean(area);
+  AppState.currentPreclean = preclean; // Fix: Assign to AppState for reference in submitPostClean
   if (preclean && preclean.employee_name) {
     document.getElementById("empName").value = preclean.employee_name;
   }
@@ -334,6 +336,15 @@ window.onload = async () => {
   if (status) status.innerText = `Face verified: ${face.name}`;
 
   attachUnlock({ supabase, area, task: "postclean" });
+
+  // Add cleanup for page unload to prevent memory leaks
+  window.addEventListener('beforeunload', () => {
+    if (AppState.dateTimeInterval) {
+      clearInterval(AppState.dateTimeInterval);
+      AppState.dateTimeInterval = null;
+    }
+    ValidationUtils.cleanup();
+  });
 
   const lock = await acquireTaskLock({
     supabase,
@@ -671,7 +682,7 @@ async function submitPostClean(){
         handoverTasksToSave.push({
           area: AREA,
           source: "post-clean",
-          reference_id: AppState.currentPreclean ? AppState.currentPreclean.id : null,
+          reference_id: (AppState.currentPreclean && AppState.currentPreclean.id) ? AppState.currentPreclean.id : null,
           task_description: i.value.trim(),
           status: "Pending",
           created_at: new Date().toISOString()
@@ -697,7 +708,7 @@ async function submitPostClean(){
       autoTasksToSave.push({
         area: AREA,
         source: "post-clean",
-        reference_id: AppState.currentPreclean ? AppState.currentPreclean.id : null,
+        reference_id: (AppState.currentPreclean && AppState.currentPreclean.id) ? AppState.currentPreclean.id : null,
         task_description: `${questionText} — ${sel ? sel.value : ""}${hasComment ? " | " + txt.value.trim() : ""}`,
         status: "Pending",
         created_at: new Date().toISOString()
@@ -720,6 +731,9 @@ async function submitPostClean(){
     const txt = q.querySelector("textarea");
     const file = q.querySelector("input[type=file]");
     let photo = null;
+    
+    // Extract question text with null safety
+    const questionText = q.childNodes && q.childNodes[0] ? q.childNodes[0].textContent.trim() : "";
     
     // Handle file reading with proper error handling and validation
     if (file && file.files && file.files.length > 0) {
@@ -791,7 +805,7 @@ async function submitPostClean(){
     const { error: postCleanError } = await supabase
       .from("post_cleaning_logs")
       .insert({
-        preclean_id: AppState.currentPreclean ? AppState.currentPreclean.id : null,
+        preclean_id: (AppState.currentPreclean && AppState.currentPreclean.id) ? AppState.currentPreclean.id : null,
         employee_name: document.getElementById("empName").value.trim() || "",
         bags_returned: postEquipment,
         checklist: checklist,
