@@ -1,4 +1,20 @@
 // Utilities for camera-only capture and timestamp stamping.
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+function validateFile(file) {
+  if (!file) return { valid: false, error: "No file provided" };
+  
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return { valid: false, error: "Invalid file type. Only JPEG, PNG, and WebP are allowed." };
+  }
+  
+  if (file.size > MAX_FILE_SIZE) {
+    return { valid: false, error: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.` };
+  }
+  
+  return { valid: true };
+}
 function stampImageWithTimestamp(image) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -18,13 +34,24 @@ function stampImageWithTimestamp(image) {
 
 async function readAndStampImage(file) {
   if (!file) return "";
+  
+  const validation = validateFile(file);
+  if (!validation.valid) {
+    throw new Error(validation.error);
+  }
+  
   const image = new Image();
   const fileUrl = URL.createObjectURL(file);
-  image.src = fileUrl;
-  await new Promise(resolve => {
-    image.onload = resolve;
-  });
-  const stamped = stampImageWithTimestamp(image);
-  URL.revokeObjectURL(fileUrl);
-  return stamped;
+  
+  try {
+    image.src = fileUrl;
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error("Failed to load image"));
+    });
+    const stamped = stampImageWithTimestamp(image);
+    return stamped;
+  } finally {
+    URL.revokeObjectURL(fileUrl); // Always cleanup, even on error
+  }
 }

@@ -101,6 +101,7 @@ button{
 <script src="js/photoUtils.js"></script>
 <script src="js/faceUtils.js"></script>
 <script src="js/lockUtils.js"></script>
+<script src="js/errorHandler.js"></script>
 <script>
 const supabase = window.supabaseClient;
 function setButtonBusy(btn, isBusy) {
@@ -305,7 +306,7 @@ function hasLocalFindings() {
 async function updateActionLabel() {
   const btn = document.querySelector("button[onclick='submitArea()']");
   if (!btn) return;
-  const area = "MACY_DECORATION";
+  const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
   const localIssues = hasLocalFindings();
   const pending = await hasPendingHandovers();
   const damageHandover = await hasHandoverDamages(area);
@@ -334,7 +335,7 @@ async function fetchLatestPrecleanId(area) {
 
 async function hasPendingHandovers() {
   if (!supabase) return false;
-  const area = "MACY_DECORATION";
+  const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
   const { data, error } = await supabase
     .from("handover_tasks")
     .select("id,status")
@@ -429,7 +430,7 @@ async function submitArea(){
     return;
   }
 
-  const area = "MACY_DECORATION";
+  const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
   const precleanId = await fetchLatestPrecleanId(area);
 
   const checklist = [];
@@ -489,8 +490,14 @@ async function submitArea(){
     if (!record) continue;
     const files = file && file.files ? Array.from(file.files) : [];
     for (let f of files) {
-      const stamped = await readFileBase64(f);
-      record.photos.push(stamped);
+      try {
+        const stamped = await readFileBase64(f);
+        record.photos.push(stamped);
+      } catch (error) {
+        alert(`Error processing photo for "${questionText}": ${error.message}`);
+        setButtonBusy(btn, false);
+        return;
+      }
     }
   }
 
@@ -506,12 +513,12 @@ async function submitArea(){
       });
 
     if (inspectionError) {
-      alert("Failed to save inspection: " + (inspectionError.message || "Unknown error"));
+      ErrorHandler.handleDatabaseError(inspectionError, "save inspection");
       setButtonBusy(btn, false);
       return;
     }
   } catch (e) {
-    alert("Failed to save inspection. Please try again.");
+    ErrorHandler.showError("Failed to save inspection. Please try again.", e);
     setButtonBusy(btn, false);
     return;
   }
@@ -536,16 +543,16 @@ async function submitArea(){
         .from("handover_tasks")
         .insert(newTasks);
       if (error) {
-        alert("Failed to save handover tasks: " + (error.message || "Unknown error"));
+        ErrorHandler.handleDatabaseError(error, "save handover tasks");
         setButtonBusy(btn, false);
         return;
       }
     } catch (e) {
-      alert("Failed to save handover tasks.");
+      ErrorHandler.showError("Failed to save handover tasks.", e);
       setButtonBusy(btn, false);
       return;
     }
-    alert("⚠ Sent to Handover");
+    SuccessHandler.showSuccess("⚠ Sent to Handover");
     window.location.href="macy-decoration-control.html";
     return;
   }
@@ -577,17 +584,17 @@ async function submitArea(){
       });
 
     if (releaseError) {
-      alert("Failed to release line: " + (releaseError.message || "Unknown error"));
+      ErrorHandler.handleDatabaseError(releaseError, "release line");
       setButtonBusy(btn, false);
       return;
     }
   } catch (e) {
-    alert("Failed to release line. Please try again.");
+    ErrorHandler.showError("Failed to release line. Please try again.", e);
     setButtonBusy(btn, false);
     return;
   }
 
-  alert("✅ LINE RELEASED");
+  SuccessHandler.showSuccess("✅ LINE RELEASED");
   await completeTaskLock({
     supabase,
     area,

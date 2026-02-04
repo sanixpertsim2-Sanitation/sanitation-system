@@ -1,14 +1,51 @@
 // Minimal face verification using FaceDetector when available.
 async function detectFaceFromFile(file) {
   if (!file) return false;
-  if (!("FaceDetector" in window)) {
-    // Fallback: accept capture if browser lacks FaceDetector.
-    return true;
+  
+  // Method 1: Use FaceDetector API if available
+  if ("FaceDetector" in window) {
+    try {
+      const detector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+      const bitmap = await createImageBitmap(file);
+      const faces = await detector.detect(bitmap);
+      return faces && faces.length > 0;
+    } catch (error) {
+      console.warn("FaceDetector failed, falling back to basic validation");
+    }
   }
-  const detector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
-  const bitmap = await createImageBitmap(file);
-  const faces = await detector.detect(bitmap);
-  return faces && faces.length > 0;
+  
+  // Method 2: Basic image validation fallback
+  return await validateFaceImageBasic(file);
+}
+
+// Basic validation for face images when FaceDetector is unavailable
+async function validateFaceImageBasic(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      
+      // Basic heuristics for face photos
+      const aspectRatio = img.width / img.height;
+      const minSize = Math.min(img.width, img.height);
+      
+      // Face photos typically have aspect ratio between 0.7 and 1.5
+      // and minimum dimension of at least 200px
+      const validAspectRatio = aspectRatio >= 0.7 && aspectRatio <= 1.5;
+      const validSize = minSize >= 200;
+      
+      resolve(validAspectRatio && validSize);
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(false);
+    };
+    
+    img.src = url;
+  });
 }
 
 async function ensureFaceVerified({ supabase, role, area }) {
