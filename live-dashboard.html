@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
 <style>
 body {
@@ -85,6 +87,11 @@ body {
   <div id="userPhotos"></div>
 </div>
 
+<div class="section-card">
+  <h3>Open Damages & Findings</h3>
+  <div id="issueOverview"></div>
+</div>
+
 <!-- KPI TILES -->
 <div class="kpi-row">
   <div class="kpi">Stage<span id="kpiStage">–</span></div>
@@ -141,6 +148,17 @@ async function fetchDamages(area) {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("damage_reports")
+    .select("*")
+    .eq("area", area)
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return data || [];
+}
+
+async function fetchFindings(area) {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("post_release_findings")
     .select("*")
     .eq("area", area)
     .order("created_at", { ascending: false });
@@ -220,8 +238,31 @@ async function loadLineOverview() {
       container.innerHTML += `<div>${line.label}</div>`;
       continue;
     }
+    const pre = await fetchLatestPreclean(line.id);
+    const post = await fetchLatestPostclean(pre ? pre.id : null);
     const status = await getLineStatus(line.id);
-    container.innerHTML += `<div>${line.label}: <b>${status}</b></div>`;
+    let percent = 0;
+    if (pre) percent = 35;
+    if (post) percent = 70;
+    if (status === "Released") percent = 100;
+    container.innerHTML += `<div>${line.label}: <b>${status}</b> • ${percent}%</div>`;
+  }
+}
+
+async function loadIssueOverview() {
+  const areas = ["MACY_PRODUCTION", "MACY_DECORATION"];
+  const container = document.getElementById("issueOverview");
+  container.innerHTML = "";
+  for (let area of areas) {
+    const damages = await fetchDamages(area);
+    const findings = await fetchFindings(area);
+    const openDamages = damages.filter(d => d.status !== "Closed" && d.status !== "Completed");
+    const openFindings = findings.filter(f => f.status !== "Closed");
+    container.innerHTML += `
+      <div style="margin-bottom:10px">
+        <b>${area}</b> — Open Damages: ${openDamages.length}, Open Findings: ${openFindings.length}
+      </div>
+    `;
   }
 }
 
@@ -251,9 +292,11 @@ async function loadUserPhotos() {
 loadDashboard();
 loadLineOverview();
 loadUserPhotos();
+loadIssueOverview();
 setInterval(loadDashboard, 5000);
 setInterval(loadLineOverview, 15000);
 setInterval(loadUserPhotos, 20000);
+setInterval(loadIssueOverview, 20000);
 </script>
 <script src="js/layout.js"></script>
 

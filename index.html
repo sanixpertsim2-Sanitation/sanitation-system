@@ -5,6 +5,8 @@
   <title>Sanitation Hub</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 </head>
 
 <body>
@@ -12,12 +14,12 @@
     <div class="card">
       <h1>Sanixpert – Intelligent Digital Sanitation Checklist</h1>
       <h2>Give & Go • Sanitation Department</h2>
-      <p>Select a line to begin sanitation</p>
+      <p>Select a line to begin sanitation checks</p>
     </div>
 
     <div class="card" style="margin-top:18px;">
       <div class="line-card" onclick="selectLine('MACY')" role="button" tabindex="0">
-        <img class="line-image" src="https://image.pollinations.ai/prompt/clean%20cupcake%20production%20line%20industrial%20facility%20high%20detail" alt="MACY Cupcake Line">
+        <img class="line-image" src="images/macy.jpg" alt="MACY Cupcake Line">
         <div class="line-content">
           <div class="line-title">MACY (Cupcake)</div>
           <div class="line-sub">Active</div>
@@ -25,18 +27,18 @@
       </div>
 
       <div class="line-card line-card--disabled">
-        <img class="line-image" src="https://image.pollinations.ai/prompt/donut%20production%20line%20industrial%20facility%20high%20detail" alt="JFK Doughnut Line">
+        <img class="line-image" src="images/jfk.jpg" alt="JFK Doughnut Line">
         <div class="line-content">
           <div class="line-title">JFK (Doughnut)</div>
-          <div class="line-sub">Coming Soon</div>
+          <div class="line-sub">Coming Soon — Stay Tuned</div>
         </div>
       </div>
 
       <div class="line-card line-card--disabled">
-        <img class="line-image" src="https://image.pollinations.ai/prompt/cookie%20production%20line%20industrial%20facility%20high%20detail" alt="CECE Cookie Line">
+        <img class="line-image" src="images/cece.jpg" alt="CECE Cookie Line">
         <div class="line-content">
           <div class="line-title">CECE (Cookies)</div>
-          <div class="line-sub">Coming Soon</div>
+          <div class="line-sub">Coming Soon — Stay Tuned</div>
         </div>
       </div>
     </div>

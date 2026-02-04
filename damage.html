@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
 <style>
 .section {
@@ -44,7 +46,7 @@
 
 <!-- NEW DAMAGE -->
 <div class="section">
-  <h3>Report New Damage</h3>
+<h3>Log New Damage</h3>
 
   <input id="lineArea" placeholder="Line" readonly>
   <input id="reportedBy" placeholder="Reported by (Name)">
@@ -60,14 +62,13 @@
   </select>
 
   
-  <label class="upload-btn">
-  📷 Capture Damage Photo
-  <input type="file" accept="image/*" capture="environment"
+<label class="upload-btn">
+  📷 Capture Damage Photos
+  <input type="file" accept="image/*" capture="environment" multiple
          onchange="handleDamagePhoto(this)" hidden>
 </label>
 
-<img id="preview" style="width:100%;border-radius:12px;display:none;margin-top:10px">
-<p class="small" id="photoTime"></p>
+<div id="previewList"></div>
 
 
   <button class="btn resolve sticky-cta" onclick="submitDamage()">Submit Damage</button>
@@ -75,7 +76,7 @@
 
 <!-- LIST -->
 <div class="section">
-  <h3>Damage List</h3>
+<h3>Damage Log</h3>
   <div id="damageList"></div>
 </div>
 <div style="max-height:300px;overflow-y:auto">
@@ -98,6 +99,7 @@
 <script src="js/photoUtils.js"></script>
 <script>
 let damagePhotoBase64 = "";
+let damagePhotos = [];
 const supabase = window.supabaseClient;
 
 function updateDamageButton() {
@@ -107,32 +109,45 @@ function updateDamageButton() {
   const areaVal = document.getElementById("area").value.trim();
   const descVal = document.getElementById("desc").value.trim();
   const sevVal = document.getElementById("severity").value;
-  btn.disabled = !(reporterVal && areaVal && descVal && sevVal && damagePhotoBase64);
+  btn.disabled = !(reporterVal && areaVal && descVal && sevVal && damagePhotos.length);
 }
 
 /* ======================
    PHOTO HANDLER
 ====================== */
-function handleDamagePhoto(input) {
-  const file = input.files[0];
-  if (!file) return;
-  readAndStampImage(file).then(stamped => {
-    damagePhotoBase64 = stamped;
-    document.getElementById("preview").src = stamped;
-    document.getElementById("preview").style.display = "block";
-    document.getElementById("photoTime").innerText =
-      "🕒 " + new Date().toLocaleString();
-    updateDamageButton();
-  });
+async function handleDamagePhoto(input) {
+  const files = input.files ? Array.from(input.files) : [];
+  if (!files.length) return;
+  damagePhotos = [];
+  damagePhotoBase64 = "";
+  const previewList = document.getElementById("previewList");
+  previewList.innerHTML = "";
+  for (let file of files) {
+    const stamped = await readAndStampImage(file);
+    if (stamped) {
+      damagePhotos.push(stamped);
+      if (!damagePhotoBase64) {
+        damagePhotoBase64 = stamped;
+      }
+      previewList.innerHTML += `
+        <div style="margin-top:10px">
+          <img src="${stamped}" style="width:100%;border-radius:12px">
+          <p class="small">🕒 ${new Date().toLocaleString()}</p>
+        </div>
+      `;
+    }
+  }
+  updateDamageButton();
 }
 
 /* ======================
    STORAGE HELPERS
 ====================== */
-function toStoredDescription(text, photo, component, reporter, reportedAt) {
+function toStoredDescription(text, photo, component, reporter, reportedAt, photos) {
   return JSON.stringify({
     text: text,
     photo: photo || "",
+    photos: photos || [],
     component: component || "",
     reporter: reporter || "",
     reported_at: reportedAt || ""
@@ -148,7 +163,7 @@ function fromStoredDescription(stored) {
   } catch (e) {
     // keep fallback
   }
-  return { text: stored || "", photo: "", component: "", reporter: "", reported_at: "" };
+  return { text: stored || "", photo: "", photos: [], component: "", reporter: "", reported_at: "" };
 }
 
 async function getDamages() {
@@ -193,7 +208,7 @@ async function submitDamage() {
   const sevVal = document.getElementById("severity").value;
   const lineArea = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
 
-  if (!reporterVal || !componentVal || !descVal || !sevVal || !damagePhotoBase64) {
+  if (!reporterVal || !componentVal || !descVal || !sevVal || !damagePhotos.length) {
     alert("All fields and photo are required");
     return;
   }
@@ -204,7 +219,14 @@ async function submitDamage() {
   }
 
   const reportedAt = new Date().toISOString();
-  const storedDescription = toStoredDescription(descVal, damagePhotoBase64, componentVal, reporterVal, reportedAt);
+  const storedDescription = toStoredDescription(
+    descVal,
+    damagePhotoBase64,
+    componentVal,
+    reporterVal,
+    reportedAt,
+    damagePhotos
+  );
 
   const { error } = await supabase
     .from("damage_reports")
@@ -233,6 +255,7 @@ async function submitDamage() {
     });
   }
 
+  document.getElementById("reportedAt").value = new Date().toLocaleString();
   history.back();
 }
 
@@ -264,6 +287,9 @@ function renderList() {
       const reportedAtText = parsed.reported_at ? new Date(parsed.reported_at).toLocaleString() : "";
       const div = document.createElement("div");
       div.className = "card " + (d.severity || "").toLowerCase();
+      const photos = parsed.photos && parsed.photos.length
+        ? parsed.photos
+        : (parsed.photo ? [parsed.photo] : []);
 
       let actionHTML = "";
 
@@ -281,6 +307,7 @@ function renderList() {
         ${displayText}<br>
         <span class="small">Reported: ${reportedAtText}${reporterText}</span><br>
         <span class="status-badge ${statusClass(d.status)}">${d.status}</span><br>
+        ${photos.map(p => `<img src="${p}" style="width:100%;margin-top:10px;border-radius:10px">`).join("")}
         ${actionHTML}
       `;
 

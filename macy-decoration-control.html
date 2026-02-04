@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
 <style>
 .status {
@@ -45,7 +47,7 @@
 <div class="container">
 
 <h1 class="page-title" id="lineHeader">MACY – Decoration Line</h1>
-<h3>Sanitation Control Panel</h3>
+<h3>Sanitation Control Center</h3>
 
 <!-- Default fallback UI: visible even if JS fails -->
 <div id="statusBox">
@@ -55,10 +57,10 @@
 </div>
 <div id="actionBox">
   <a class="action-btn" href="macy-decoration-preclean.html">
-    Start Pre-Cleaning
+    Begin Pre-Clean
   </a>
   <a class="action-btn" href="macy-decoration-damage.html">
-    Damage Report
+    Report Damage
   </a>
 </div>
 
@@ -67,8 +69,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
 <script src="js/workflow.js"></script>
+<script src="js/faceUtils.js"></script>
+<script src="js/lockUtils.js"></script>
+<script src="js/unlockUtils.js"></script>
 <script>
-const ADMIN_PIN = "0735";
 const supabase = window.supabaseClient;
 
 /* ======================
@@ -91,13 +95,7 @@ function goHandover() {
 }
 
 function goInspection() {
-  const pin = prompt("🔐 Area Inspection Access\n\nEnter PIN");
-
-  if (pin === ADMIN_PIN) {
-    window.location.href = "macy-decoration-release.html";
-  } else {
-    alert("❌ Incorrect PIN");
-  }
+  window.location.href = "macy-decoration-release.html";
 }
 
 async function fetchLatestPreclean(area) {
@@ -209,10 +207,10 @@ function renderFallback(status, action, area) {
     </div>`;
   action.innerHTML =
     `<button class="action-btn" onclick="goPre()">
-      Start Pre-Cleaning
+      Begin Pre-Clean
     </button>
     <button class="action-btn" onclick="goDamage()">
-      Damage Report
+      Report Damage
     </button>`;
 }
 
@@ -261,11 +259,11 @@ async function renderControl() {
   if (workflow.state === "PostCleanCompleted") {
     status.innerHTML =
       `<div class="status orange">
-        🟠 Post-Cleaning Completed
+        🟠 Post-Clean Completed
       </div>`;
     action.innerHTML = `
       <button class="action-btn" onclick="goDamage()">
-        Damage Report
+        Report Damage
       </button>
       <button class="action-btn" onclick="goHandover()">
         📋 Handover
@@ -277,11 +275,11 @@ async function renderControl() {
   if (workflow.state === "ReadyForAreaLead") {
     status.innerHTML =
       `<div class="status orange">
-        🟠 Post-Cleaning Completed
+        🟠 Post-Clean Completed
       </div>`;
     action.innerHTML = `
       <button class="action-btn" onclick="goDamage()">
-        Damage Report
+        Report Damage
       </button>
       <button class="action-btn lock-btn" onclick="goInspection()">
         ✅ Release to Area Lead Verification
@@ -293,44 +291,20 @@ async function renderControl() {
   if (workflow.state === "PreCleanCompleted") {
     status.innerHTML =
       `<div class="status yellow">
-        🟡 Pre-Cleaning Completed
+        🟡 Pre-Clean Completed
       </div>`;
     action.innerHTML = `
       <button class="action-btn" onclick="goDamage()">
-        Damage Report
+        Report Damage
       </button>
       <button class="action-btn" onclick="goPost()">
-        Start Post-Cleaning
+        Begin Post-Clean
       </button>
-      <div style="
-        margin-top:25px;
-        padding:18px;
-        border:1px dashed rgba(255,255,255,.3);
-        border-radius:14px;
-        background:rgba(255,255,255,.04);
-      ">
-        <div style="font-size:14px;opacity:.7;margin-bottom:8px">
-          🔐 Admin Unlock Pre-Cleaning
-        </div>
-        <input
-          id="adminPin"
-          type="password"
-          maxlength="4"
-          inputmode="numeric"
-          placeholder="••••"
-          style="
-            width:100%;
-            padding:14px;
-            font-size:24px;
-            text-align:center;
-            letter-spacing:10px;
-            border-radius:12px;
-            border:none;
-          "
-          oninput="checkAdminPin(this)"
-        >
-      </div>
+      <button id="unlockHelp" class="small" style="opacity:0.6;margin-top:12px;background:none;border:none;color:#94a3b8;cursor:pointer;">
+        Help / Unlock
+      </button>
     `;
+    attachUnlock({ supabase, area, task: "preclean" });
     return;
   }
 
@@ -340,29 +314,11 @@ async function renderControl() {
     </div>`;
   action.innerHTML =
     `<button class="action-btn" onclick="goPre()">
-      Start Pre-Cleaning
+      Begin Pre-Clean
     </button>
     <button class="action-btn" onclick="goDamage()">
-      Damage Report
+      Report Damage
     </button>`;
-}
-
-/* =============================
-   ADMIN PIN CHECK
-============================= */
-function checkAdminPin(input) {
-
-  if (input.value.length < 4) return;
-
-  if (input.value === ADMIN_PIN) {
-
-    window.location.href =
-      "macy-decoration-preclean.html";
-
-  } else {
-    input.value = "";
-    alert("❌ Incorrect PIN");
-  }
 }
 
 // Safety wrapper: never allow blank screen due to runtime errors.

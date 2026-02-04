@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
 <style>
 .section {
@@ -66,13 +68,25 @@ button {
 <div class="container">
 
 <h1 class="page-title">Handover Tasks</h1>
-<h3>MACY Production – Findings Resolution</h3>
+<h3>MACY Production – Handover Resolution</h3>
 <div class="small" id="faceStatus">Face verification required</div>
 
 <div id="taskContainer"></div>
 
+<div class="section">
+  <h3>Findings / Observations</h3>
+  <div class="small">Add one observation per line.</div>
+  <div id="findingInputs"></div>
+  <button id="addFindingBtn" type="button" style="background:#0ea5e9;margin-top:12px">
+    ➕ Add Finding Line
+  </button>
+  <button id="submitFindingsBtn" type="button" style="background:#38bdf8;margin-top:10px">
+    Submit Findings
+  </button>
+</div>
+
 <button id="releaseBtn" class="hidden sticky-cta" onclick="finalRelease()">
-  ✅ RELEASE LINE
+  ✅ Release to Area Lead Verification
 </button>
 <button id="unlockHelp" class="small" style="opacity:0.2;margin-top:10px;background:none;border:none;color:#94a3b8;cursor:pointer;">
   Help / Unlock
@@ -95,6 +109,7 @@ const releaseBtn = document.getElementById("releaseBtn");
 let completed = new Set();
 let tasks = [];
 let damageTasks = [];
+let renderMap = [];
 let currentUser = "";
 
 function stampPhoto(input) {
@@ -131,6 +146,45 @@ async function fetchDamageHandovers() {
     return [];
   }
   return data || [];
+}
+
+function renderSection(title, items, typeLabel) {
+  if (!items.length) return;
+  const header = document.createElement("div");
+  header.className = "section";
+  header.innerHTML = `<h3>${title}</h3>`;
+  container.appendChild(header);
+  items.forEach((t, index) => {
+    const cardIndex = renderMap.length;
+    renderMap.push({ type: typeLabel, record: t });
+    const div = document.createElement("div");
+    div.className = "section task";
+    div.innerHTML = `
+      <h4>${typeLabel} ${index + 1}</h4>
+      <b>Issue:</b>
+      <p>${t.task_description || t.description || "—"}</p>
+      <b>Source:</b>
+      <p>${t.source || "—"}</p>
+      <b>Reference:</b>
+      <p>${t.reference_id || "—"}</p>
+      <hr>
+      <label>Sanitation action taken *</label>
+      <textarea id="comment-${cardIndex}"
+        placeholder="Explain what action was taken"></textarea>
+      <label>Capture fix photo *</label>
+      <input type="file" accept="image/*" capture="environment"
+        onchange="stampPhoto(this)">
+      <div class="photo-time"></div>
+      <button onclick="completeTask(${cardIndex}, '${typeLabel}', 'Completed')">
+        ✔ Mark as Completed
+      </button>
+      <button onclick="completeTask(${cardIndex}, '${typeLabel}', 'Cannot Complete')" style="background:#f59e0b;">
+        ⚠ Cannot Complete
+      </button>
+    `;
+    container.appendChild(div);
+  });
+  return;
 }
 
 async function render() {
@@ -171,6 +225,7 @@ async function render() {
 
   container.innerHTML = "";
   completed = new Set();
+  renderMap = [];
 
   if (tasks.length === 0 && damageTasks.length === 0) {
     container.innerHTML =
@@ -178,82 +233,14 @@ async function render() {
     releaseBtn.classList.remove("hidden");
     return;
   }
+  const postCleanTasks = tasks.filter(t => t.source === "post-clean");
+  const inspectionTasks = tasks.filter(t => t.source === "area-verification");
+  const otherTasks = tasks.filter(t => !t.source || (t.source !== "post-clean" && t.source !== "area-verification"));
 
-  tasks.forEach((t, index) => {
-
-    const div = document.createElement("div");
-    div.className = "section task";
-
-    div.innerHTML = `
-      <h4>Finding ${index + 1}</h4>
-
-      <b>Issue:</b>
-      <p>${t.task_description}</p>
-
-      <b>Area Lead Comment:</b>
-      <p>${t.source || "—"}</p>
-
-      <b>Reference:</b>
-      <p>${t.reference_id || "—"}</p>
-
-      <hr>
-
-      <label>Sanitation action taken *</label>
-      <textarea id="comment-${index}"
-        placeholder="Explain what action was taken"></textarea>
-
-      <label>Upload fix photo *</label>
-      <input type="file" accept="image/*" capture="environment"
-        onchange="stampPhoto(this)">
-      <div class="photo-time"></div>
-
-      <button onclick="completeTask(${index}, 'task', 'Completed')">
-        ✔ Mark as Completed
-      </button>
-      <button onclick="completeTask(${index}, 'task', 'Cannot Complete')" style="background:#f59e0b;">
-        ⚠ Cannot Complete
-      </button>
-    `;
-
-    container.appendChild(div);
-  });
-
-  damageTasks.forEach((d, index) => {
-    const offset = tasks.length + index;
-    const div = document.createElement("div");
-    div.className = "section task";
-    div.innerHTML = `
-      <h4>Damage Handover ${index + 1}</h4>
-
-      <b>Area:</b>
-      <p>${d.area}</p>
-
-      <b>Description:</b>
-      <p>${d.description}</p>
-
-      <b>Handover Reason:</b>
-      <p>${d.handover_reason || "—"}</p>
-
-      <hr>
-
-      <label>Sanitation action taken *</label>
-      <textarea id="comment-${offset}"
-        placeholder="Explain what action was taken"></textarea>
-
-      <label>Upload fix photo *</label>
-      <input type="file" accept="image/*" capture="environment"
-        onchange="stampPhoto(this)">
-      <div class="photo-time"></div>
-
-      <button onclick="completeTask(${offset}, 'damage', 'Completed')">
-        ✔ Mark as Completed
-      </button>
-      <button onclick="completeTask(${offset}, 'damage', 'Cannot Complete')" style="background:#f59e0b;">
-        ⚠ Cannot Complete
-      </button>
-    `;
-    container.appendChild(div);
-  });
+  renderSection("Post-Clean Handover Tasks", postCleanTasks, "post-clean");
+  renderSection("Area Inspection Findings", inspectionTasks, "area-verification");
+  renderSection("Additional Handover Tasks", otherTasks, "handover");
+  renderSection("Damage Handovers", damageTasks, "damage");
 }
 
 async function completeTask(i, type, statusLabel) {
@@ -272,9 +259,13 @@ async function completeTask(i, type, statusLabel) {
   const file = input.files[0];
   const photo = await readAndStampImage(file);
 
-  if (type === "task") {
+  if (type === "post-clean" || type === "area-verification" || type === "handover" || type === "handover-finding") {
     // Audit/webhook safe point: task completion with photo evidence.
-    const task = tasks[i];
+    const task = renderMap[i] ? renderMap[i].record : null;
+    if (!task) {
+      alert("Task not found.");
+      return;
+    }
     const { error } = await supabase
       .from("handover_tasks")
       .update({
@@ -292,8 +283,11 @@ async function completeTask(i, type, statusLabel) {
 
   if (type === "damage") {
     // Audit/webhook safe point: damage completion with photo evidence.
-    const damageIndex = i - tasks.length;
-    const damage = damageTasks[damageIndex];
+    const damage = renderMap[i] ? renderMap[i].record : null;
+    if (!damage) {
+      alert("Damage not found.");
+      return;
+    }
     const { error } = await supabase
       .from("damage_reports")
       .update({
@@ -327,36 +321,9 @@ async function finalRelease() {
   const pendingTasks = await fetchHandoverTasks();
   const pendingDamages = await fetchDamageHandovers();
   if (pendingTasks.length || pendingDamages.length) {
-    alert("Line release blocked: pending handovers or damage tasks exist.");
+    alert("Handover blocked: pending tasks or damage handovers exist.");
     return;
   }
-
-  const lead = prompt("Area Lead name for release");
-  if (!lead) {
-    alert("Area Lead name required.");
-    return;
-  }
-
-  try {
-    // Audit/webhook safe point: line release persisted after all closures.
-    const { error } = await supabase
-      .from("line_release_logs")
-      .insert({
-        released_by: lead,
-        signature: null,
-        verified_at: new Date().toISOString()
-      });
-
-    if (error) {
-      alert("Failed to release line: " + (error.message || "Unknown error"));
-      return;
-    }
-  } catch (e) {
-    alert("Failed to release line. Please try again.");
-    return;
-  }
-
-  alert("✅ All findings closed. Line released.");
 
   await completeTaskLock({
     supabase,
@@ -365,10 +332,55 @@ async function finalRelease() {
     userName: currentUser || "Sanitation"
   });
 
-  window.location.href = "macy-production-control.html";
+  window.location.href = "macy-production-release.html";
 }
 
 render();
+</script>
+<script>
+const findingInputs = document.getElementById("findingInputs");
+const addFindingBtn = document.getElementById("addFindingBtn");
+const submitFindingsBtn = document.getElementById("submitFindingsBtn");
+
+function addFindingRow() {
+  const input = document.createElement("input");
+  input.placeholder = "Enter observation / task";
+  findingInputs.appendChild(input);
+}
+
+addFindingBtn.addEventListener("click", () => addFindingRow());
+addFindingRow();
+
+submitFindingsBtn.addEventListener("click", async () => {
+  const lines = Array.from(findingInputs.querySelectorAll("input"))
+    .map(i => i.value.trim())
+    .filter(Boolean);
+  if (!lines.length) {
+    alert("Add at least one finding.");
+    return;
+  }
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    return;
+  }
+  const payload = lines.map(text => ({
+    source: "handover-finding",
+    reference_id: null,
+    task_description: text,
+    status: "Pending",
+    created_at: new Date().toISOString()
+  }));
+  const { error } = await supabase
+    .from("handover_tasks")
+    .insert(payload);
+  if (error) {
+    alert("Failed to save findings: " + (error.message || "Unknown error"));
+    return;
+  }
+  findingInputs.innerHTML = "";
+  addFindingRow();
+  render();
+});
 </script>
 <script src="js/layout.js"></script>
 
