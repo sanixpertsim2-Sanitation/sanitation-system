@@ -359,10 +359,11 @@ function updatePostcleanButton() {
     .every(q => {
       const sel = q.querySelector("select");
       if (!sel || !sel.value) return false;
+      const requiresPhoto = q.dataset.alwaysPhoto === "1" || sel.value === "Not Acceptable" || sel.value === "N/A";
       const requiresComment = sel.value === "Not Acceptable" || sel.value === "N/A";
       const file = q.querySelector("input[type=file]");
       const txt = q.querySelector("textarea");
-      if (!file || !file.files || !file.files.length) return false;
+      if (requiresPhoto && (!file || !file.files || !file.files.length)) return false;
       if (requiresComment && (!txt || !txt.value.trim())) return false;
       return true;
     });
@@ -663,6 +664,7 @@ async function submitPostClean(){
     inputs.forEach(i=>{
       if(i.value.trim()){
         tasks.push({
+          area: area,
           source: "post-clean",
           reference_id: preclean ? preclean.id : null,
           task_description: i.value.trim(),
@@ -722,6 +724,7 @@ async function submitPostClean(){
     const hasComment = txt && txt.value.trim();
     if (failed || hasComment) {
       autoTasks.push({
+        area: area,
         source: "post-clean",
         reference_id: preclean ? preclean.id : null,
         task_description: `${questionText} — ${sel ? sel.value : ""}${hasComment ? " | " + txt.value.trim() : ""}`,
