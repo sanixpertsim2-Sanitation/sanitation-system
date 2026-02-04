@@ -135,7 +135,7 @@ function fromStoredDescription(stored) {
   } catch (e) {
     // keep fallback
   }
-  return { text: stored || "", component: "", reporter: "", reported_at: "" };
+  return { text: stored || "", photo: "", photos: [], component: "", reporter: "", reported_at: "" };
 }
 
 async function readFileBase64(file) {

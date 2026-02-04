@@ -120,9 +120,11 @@ function stampPhoto(input) {
 
 async function fetchHandoverTasks() {
   if (!supabase) return [];
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
   const { data, error } = await supabase
     .from("handover_tasks")
     .select("*")
+    .eq("area", area)
     .eq("status", "Pending")
     .order("created_at", { ascending: true });
   if (error) {
@@ -363,7 +365,9 @@ submitFindingsBtn.addEventListener("click", async () => {
     alert("Supabase client not loaded.");
     return;
   }
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
   const payload = lines.map(text => ({
+    area: area,
     source: "handover-finding",
     reference_id: null,
     task_description: text,

@@ -24,6 +24,17 @@ begin
   end if;
 end $$;
 
+do $$
+begin
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'handover_tasks'
+  ) then
+    alter table handover_tasks
+      add column if not exists area text;
+  end if;
+end $$;
+
 -- 2.1 Audit columns
 alter table pre_cleaning_logs
   add column if not exists created_at timestamptz default now();
@@ -96,6 +107,19 @@ on damage_reports(status);
 
 create index if not exists idx_handover_open
 on handover_tasks(status);
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'handover_tasks'
+      and column_name = 'area'
+  ) then
+    create index if not exists idx_handover_area_status
+    on handover_tasks(area, status);
+  end if;
+end $$;
 
 do $$
 begin

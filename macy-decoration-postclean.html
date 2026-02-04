@@ -531,6 +531,7 @@ async function submitPostClean(){
     inputs.forEach(i=>{
       if(i.value.trim()){
         tasks.push({
+          area: area,
           source: "post-clean",
           reference_id: preclean ? preclean.id : null,
           task_description: i.value.trim(),
@@ -573,6 +574,7 @@ async function submitPostClean(){
     const hasComment = txt && txt.value.trim();
     if (failed || hasComment) {
       autoTasks.push({
+        area: area,
         source: "post-clean",
         reference_id: preclean ? preclean.id : null,
         task_description: `${questionText} — ${sel ? sel.value : ""}${hasComment ? " | " + txt.value.trim() : ""}`,

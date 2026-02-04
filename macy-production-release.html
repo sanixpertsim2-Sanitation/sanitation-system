@@ -499,9 +499,11 @@ async function fetchLatestPrecleanId(area) {
 
 async function hasPendingHandovers() {
   if (!supabase) return false;
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
   const { data, error } = await supabase
     .from("handover_tasks")
     .select("id,status")
+    .eq("area", area)
     .eq("status", "Pending")
     .limit(1);
   if (error) {
@@ -517,6 +519,7 @@ async function loadHandoverReview(area) {
   const { data, error } = await supabase
     .from("handover_tasks")
     .select("*")
+    .eq("area", area)
     .eq("status", "Pending")
     .order("created_at", { ascending: true });
   if (error) {
@@ -678,6 +681,7 @@ async function submitArea(){
 
   issueTasks.forEach(i => {
     newTasks.push({
+      area: area,
       source: "area-verification",
       reference_id: precleanId,
       task_description: `${i.question} — ${i.answer}${i.comment ? " | " + i.comment : ""}`,
