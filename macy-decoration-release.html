@@ -99,11 +99,17 @@ button{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
 <script src="js/photoUtils.js"></script>
+<script src="js/constants.js"></script>
 <script src="js/faceUtils.js"></script>
 <script src="js/lockUtils.js"></script>
 <script src="js/errorHandler.js"></script>
 <script>
 const supabase = window.supabaseClient;
+
+function getSelectedArea() {
+  return localStorage.getItem("selectedArea") || "MACY_DECORATION";
+}
+
 function setButtonBusy(btn, isBusy) {
   if (!btn) return;
   btn.disabled = isBusy;
@@ -306,7 +312,7 @@ function hasLocalFindings() {
 async function updateActionLabel() {
   const btn = document.querySelector("button[onclick='submitArea()']");
   if (!btn) return;
-  const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
+  const area = getSelectedArea();
   const localIssues = hasLocalFindings();
   const pending = await hasPendingHandovers();
   const damageHandover = await hasHandoverDamages(area);
@@ -335,7 +341,7 @@ async function fetchLatestPrecleanId(area) {
 
 async function hasPendingHandovers() {
   if (!supabase) return false;
-  const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
+  const area = getSelectedArea();
   const { data, error } = await supabase
     .from("handover_tasks")
     .select("id,status")
@@ -430,7 +436,7 @@ async function submitArea(){
     return;
   }
 
-  const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
+  const area = getSelectedArea();
   const precleanId = await fetchLatestPrecleanId(area);
 
   const checklist = [];
@@ -494,7 +500,7 @@ async function submitArea(){
         const stamped = await readFileBase64(f);
         record.photos.push(stamped);
       } catch (error) {
-        alert(`Error processing photo for "${questionText}": ${error.message}`);
+        ErrorHandler.showError(`Error processing photo for "${questionText}"`, error);
         setButtonBusy(btn, false);
         return;
       }

@@ -1,16 +1,34 @@
 // Utilities for camera-only capture and timestamp stamping.
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+// Import shared constants (if available) or define fallbacks
+// In a browser environment, these will be defined below
+let ALLOWED_TYPES, MAX_FILE_SIZE;
+
+// Try to load from constants file (for Node.js environments)
+if (typeof require !== 'undefined') {
+  try {
+    const constants = require('./constants.js');
+    ALLOWED_TYPES = constants.ALLOWED_IMAGE_TYPES;
+    MAX_FILE_SIZE = constants.MAX_FILE_SIZE;
+  } catch (e) {
+    // Fallback if constants file not available
+    ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  }
+} else {
+  // Browser environment - define constants
+  ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+}
 
 function validateFile(file) {
   if (!file) return { valid: false, error: "No file provided" };
   
   if (!ALLOWED_TYPES.includes(file.type)) {
-    return { valid: false, error: "Invalid file type. Only JPEG, PNG, and WebP are allowed." };
+    return { valid: false, error: "Invalid file type. Only JPEG, PNG, and WebP are allowed" };
   }
   
   if (file.size > MAX_FILE_SIZE) {
-    return { valid: false, error: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.` };
+    return { valid: false, error: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB` };
   }
   
   return { valid: true };
@@ -33,7 +51,7 @@ function stampImageWithTimestamp(image) {
 }
 
 async function readAndStampImage(file) {
-  if (!file) return "";
+  if (!file) throw new Error("No file provided");
   
   const validation = validateFile(file);
   if (!validation.valid) {

@@ -22,6 +22,7 @@ class ErrorHandler {
     } else {
       console.error(`${message}:`, error);
     }
+    console.error("Full error details:", error);
     alert(`${message}: ${error.message || "Unknown error"}`);
   }
 }
