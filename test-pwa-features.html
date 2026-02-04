@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PWA Features Test - Sanixpert</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Essential scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+  <script src="js/pwa-registration.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">🔧 PWA Test</div>
+    <div class="text-subtitle">Progressive Web App Features</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- PWA Status -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">PWA Status</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="serviceWorkerStatus">🔄</div>
+          <div class="text-small">Service Worker</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="manifestStatus">🔄</div>
+          <div class="text-small">Manifest</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(251, 191, 36, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #fbbf24;" id="installStatus">🔄</div>
+          <div class="text-small">Installable</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #ef4444;" id="offlineStatus">🔄</div>
+          <div class="text-small">Offline Ready</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Service Worker Tests -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Service Worker Tests</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <button class="btn-enhanced btn-primary-enhanced" onclick="testServiceWorker()">
+          <span>🔧 Test Service Worker</span>
+        </button>
+        <button class="btn-enhanced btn-secondary-enhanced" onclick="testCaching()">
+          <span>💾 Test Caching</span>
+        </button>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn btn-secondary" onclick="testBackgroundSync()">
+          <span>🔄 Test Background Sync</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testPushNotifications()">
+          <span>📬 Test Push Notifications</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Installation Tests -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Installation Tests</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <button class="btn btn-secondary" onclick="testInstallPrompt()">
+          <span>📱 Test Install Prompt</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testAppShortcuts()">
+          <span>⚡ Test App Shortcuts</span>
+        </button>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn btn-secondary" onclick="testShareTarget()">
+          <span>📤 Test Share Target</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testDisplayMode()">
+          <span>🖥️ Test Display Mode</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Offline Tests -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Offline Functionality</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <button class="btn btn-secondary" onclick="testOfflineAccess()">
+          <span>📱 Test Offline Access</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testOfflineForms()">
+          <span>📝 Test Offline Forms</span>
+        </button>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn btn-secondary" onclick="testOfflineStorage()">
+          <span>💾 Test Offline Storage</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testSyncQueue()">
+          <span>🔄 Test Sync Queue</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Performance Tests -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Performance Tests</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="cacheSize">0MB</div>
+          <div class="text-small">Cache Size</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="loadTime">0.3s</div>
+          <div class="text-small">Load Time</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn btn-secondary" onclick="testCachePerformance()">
+          <span>⚡ Test Cache Performance</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testResourceLoading()">
+          <span>📦 Test Resource Loading</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Network Tests -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Network Tests</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <button class="btn btn-secondary" onclick="testNetworkStatus()">
+          <span>🌐 Test Network Status</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testConnectionType()">
+          <span>📶 Test Connection Type</span>
+        </button>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn btn-secondary" onclick="testDataSaver()">
+          <span>💾 Test Data Saver</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testOnlineOffline()">
+          <span>🔄 Test Online/Offline</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Test Results -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Test Results</div>
+      <div id="testResults"></div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" onclick="runAllPWATests()">
+      <span>🚀 Run All PWA Tests</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="generatePWAReport()">
+      <span>📊 Generate PWA Report</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext Enhanced
+const mobileNext = window.MobileNext;
+const mobileNextEnhanced = window.MobileNextEnhanced;
+const mobileAnalytics = window.MobileAnalytics;
+const pwaRegistration = window.PWARegistration;
+
+// Test results
+let testResults = [];
+let pwaStatus = {};
+
+// Initialize testing
+document.addEventListener('DOMContentLoaded', function() {
+  checkPWAStatus();
+  setupEventListeners();
+  console.log('🔧 PWA Features Test loaded');
+});
+
+// Check PWA status
+function checkPWAStatus() {
+  // Check service worker
+  const swSupported = 'serviceWorker' in navigator;
+  const swRegistered = navigator.serviceWorker.controller;
+  
+  document.getElementById('serviceWorkerStatus').textContent = swSupported ? (swRegistered ? '✅' : '⚠️') : '❌';
+  
+  // Check manifest
+  const manifestSupported = 'manifest' in document.head || document.querySelector('link[rel="manifest"]');
+  document.getElementById('manifestStatus').textContent = manifestSupported ? '✅' : '❌';
+  
+  // Check installability
+  const installable = 'beforeinstallprompt' in window || window.matchMedia('(display-mode: standalone)').matches;
+  document.getElementById('installStatus').textContent = installable ? '✅' : '❌';
+  
+  // Check offline readiness
+  const offlineReady = 'caches' in window && 'serviceWorker' in navigator;
+  document.getElementById('offlineStatus').textContent = offlineReady ? '✅' : '❌';
+  
+  // Store status
+  pwaStatus = {
+    serviceWorker: swSupported && swRegistered,
+    manifest: manifestSupported,
+    installable: installable,
+    offlineReady: offlineReady
+  };
+  
+  addTestResult('PWA Status Check', '✅ PWA features detected', true);
+}
+
+// Setup event listeners
+function setupEventListeners() {
+  // Listen for online/offline events
+  window.addEventListener('online', () => {
+    addTestResult('Network Status', '✅ Online', true);
+    mobileNext.showToast('Connection restored', 'success');
+  });
+  
+  window.addEventListener('offline', () => {
+    addTestResult('Network Status', '⚠️ Offline', false);
+    mobileNext.showToast('Connection lost', 'warning');
+  });
+  
+  // Listen for install prompt
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    window.deferredPrompt = e;
+    addTestResult('Install Prompt', '✅ Install prompt available', true);
+  });
+  
+  // Listen for app installed
+  window.addEventListener('appinstalled', () => {
+    addTestResult('App Installation', '✅ App installed successfully', true);
+    mobileNext.showToast('App installed successfully', 'success');
+  });
+}
+
+// Test service worker
+async function testServiceWorker() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      
+      if (registration) {
+        addTestResult('Service Worker', '✅ Service worker registered', true);
+        
+        // Test service worker update
+        await registration.update();
+        addTestResult('Service Worker Update', '✅ Update check successful', true);
+        
+      } else {
+        addTestResult('Service Worker', '⚠️ No service worker registered', false);
+      }
+    } else {
+      addTestResult('Service Worker', '❌ Service workers not supported', false);
+    }
+  } catch (error) {
+    addTestResult('Service Worker', `❌ ${error.message}`, false);
+  }
+}
+
+// Test caching
+async function testCaching() {
+  try {
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      const cacheCount = cacheNames.length;
+      
+      addTestResult('Cache API', `✅ ${cacheCount} caches found`, true);
+      
+      // Test cache size
+      let totalSize = 0;
+      for (const cacheName of cacheNames) {
+        const cache = await caches.open(cacheName);
+        const requests = await cache.keys();
+        totalSize += requests.length;
+      }
+      
+      document.getElementById('cacheSize').textContent = `${totalSize} items`;
+      addTestResult('Cache Contents', `✅ ${totalSize} cached items`, true);
+      
+    } else {
+      addTestResult('Cache API', '❌ Cache API not supported', false);
+    }
+  } catch (error) {
+    addTestResult('Cache API', `❌ ${error.message}`, false);
+  }
+}
+
+// Test background sync
+async function testBackgroundSync() {
+  try {
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      const registration = await navigator.serviceWorker.ready;
+      
+      // Test sync registration
+      await registration.sync.register('test-sync');
+      addTestResult('Background Sync', '✅ Background sync supported', true);
+      
+    } else {
+      addTestResult('Background Sync', '❌ Background sync not supported', false);
+    }
+  } catch (error) {
+    addTestResult('Background Sync', `❌ ${error.message}`, false);
+  }
+}
+
+// Test push notifications
+async function testPushNotifications() {
+  try {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      
+      if (permission === 'granted') {
+        addTestResult('Push Notifications', '✅ Permission granted', true);
+        
+        // Test notification
+        const notification = new Notification('Test Notification', {
+          body: 'This is a test notification from Sanixpert',
+          icon: '/icon-192x192.png'
+        });
+        
+        setTimeout(() => notification.close(), 3000);
+        
+      } else {
+        addTestResult('Push Notifications', `❌ Permission denied (${permission})`, false);
+      }
+    } else {
+      addTestResult('Push Notifications', '❌ Notifications not supported', false);
+    }
+  } catch (error) {
+    addTestResult('Push Notifications', `❌ ${error.message}`, false);
+  }
+}
+
+// Test install prompt
+function testInstallPrompt() {
+  if (window.deferredPrompt) {
+    window.deferredPrompt.prompt();
+    
+    window.deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        addTestResult('Install Prompt', '✅ User accepted install', true);
+      } else {
+        addTestResult('Install Prompt', '⚠️ User dismissed install', false);
+      }
+      window.deferredPrompt = null;
+    });
+  } else {
+    addTestResult('Install Prompt', '⚠️ No install prompt available', false);
+  }
+}
+
+// Test app shortcuts
+function testAppShortcuts() {
+  if ('navigator' in window && 'mediaSession' in navigator) {
+    addTestResult('App Shortcuts', '✅ Media session supported', true);
+  } else {
+    addTestResult('App Shortcuts', '❌ App shortcuts not supported', false);
+  }
+}
+
+// Test share target
+function testShareTarget() {
+  if ('share' in navigator) {
+    addTestResult('Share Target', '✅ Web Share API supported', true);
+    
+    // Test share functionality
+    navigator.share({
+      title: 'Sanixpert Test',
+      text: 'Testing PWA share functionality',
+      url: window.location.href
+    }).catch(() => {
+      // User cancelled or share failed
+    });
+  } else {
+    addTestResult('Share Target', '❌ Web Share API not supported', false);
+  }
+}
+
+// Test display mode
+function testDisplayMode() {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const isFullscreen = window.matchMedia('(display-mode: fullscreen)').matches;
+  const isMinimalUI = window.matchMedia('(display-mode: minimal-ui)').matches;
+  
+  let displayMode = 'browser';
+  if (isStandalone) displayMode = 'standalone';
+  else if (isFullscreen) displayMode = 'fullscreen';
+  else if (isMinimalUI) displayMode = 'minimal-ui';
+  
+  addTestResult('Display Mode', `✅ ${displayMode}`, true);
+}
+
+// Test offline access
+async function testOfflineAccess() {
+  try {
+    // Test if cached pages are available offline
+    const cache = await caches.open('sanixpert-static-v1.0.0');
+    const cachedResponse = await cache.match(window.location.href);
+    
+    if (cachedResponse) {
+      addTestResult('Offline Access', '✅ Page cached for offline access', true);
+    } else {
+      addTestResult('Offline Access', '⚠️ Page not cached', false);
+    }
+  } catch (error) {
+    addTestResult('Offline Access', `❌ ${error.message}`, false);
+  }
+}
+
+// Test offline forms
+function testOfflineForms() {
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    addTestResult('Offline Forms', '✅ Background sync available for forms', true);
+  } else {
+    addTestResult('Offline Forms', '⚠️ Limited offline form support', false);
+  }
+}
+
+// Test offline storage
+function testOfflineStorage() {
+  const storageTests = [
+    { name: 'localStorage', test: () => typeof(Storage) !== "undefined" },
+    { name: 'sessionStorage', test: () => typeof(sessionStorage) !== "undefined" },
+    { name: 'IndexedDB', test: () => 'indexedDB' in window }
+  ];
+  
+  storageTests.forEach(storage => {
+    const supported = storage.test();
+    addTestResult(`${storage.name}`, supported ? '✅ Available' : '❌ Not available', supported);
+  });
+}
+
+// Test sync queue
+function testSyncQueue() {
+  if ('serviceWorker' in navigator) {
+    addTestResult('Sync Queue', '✅ Service worker available for sync', true);
+  } else {
+    addTestResult('Sync Queue', '❌ Service worker not available', false);
+  }
+}
+
+// Test cache performance
+async function testCachePerformance() {
+  try {
+    const startTime = performance.now();
+    
+    // Test cache access
+    const cache = await caches.open('sanixpert-static-v1.0.0');
+    const response = await cache.match('/css/mobile-next.css');
+    
+    const endTime = performance.now();
+    const accessTime = (endTime - startTime).toFixed(2);
+    
+    addTestResult('Cache Performance', `✅ Cache access in ${accessTime}ms`, true);
+    
+  } catch (error) {
+    addTestResult('Cache Performance', `❌ ${error.message}`, false);
+  }
+}
+
+// Test resource loading
+function testResourceLoading() {
+  const resources = performance.getEntriesByType('resource');
+  const loadTimes = resources.map(r => r.duration);
+  const avgLoadTime = loadTimes.reduce((a, b) => a + b, 0) / loadTimes.length;
+  
+  addTestResult('Resource Loading', `✅ Avg load time: ${avgLoadTime.toFixed(2)}ms`, true);
+}
+
+// Test network status
+function testNetworkStatus() {
+  const isOnline = navigator.onLine;
+  addTestResult('Network Status', isOnline ? '✅ Online' : '⚠️ Offline', isOnline);
+}
+
+// Test connection type
+function testConnectionType() {
+  if ('connection' in navigator) {
+    const connection = navigator.connection;
+    const effectiveType = connection.effectiveType || 'unknown';
+    addTestResult('Connection Type', `✅ ${effectiveType}`, true);
+  } else {
+    addTestResult('Connection Type', '⚠️ Connection API not available', false);
+  }
+}
+
+// Test data saver
+function testDataSaver() {
+  if ('connection' in navigator) {
+    const connection = navigator.connection;
+    const dataSaver = connection.saveData || false;
+    addTestResult('Data Saver', dataSaver ? '⚠️ Data saver enabled' : '✅ Data saver disabled', !dataSaver);
+  } else {
+    addTestResult('Data Saver', '⚠️ Connection API not available', false);
+  }
+}
+
+// Test online/offline
+function testOnlineOffline() {
+  const currentStatus = navigator.onLine;
+  addTestResult('Online/Offline', currentStatus ? '✅ Currently online' : '⚠️ Currently offline', currentStatus);
+}
+
+// Run all PWA tests
+async function runAllPWATests() {
+  await testServiceWorker();
+  await testCaching();
+  await testBackgroundSync();
+  await testPushNotifications();
+  testInstallPrompt();
+  testAppShortcuts();
+  testShareTarget();
+  testDisplayMode();
+  await testOfflineAccess();
+  testOfflineForms();
+  testOfflineStorage();
+  testSyncQueue();
+  await testCachePerformance();
+  testResourceLoading();
+  testNetworkStatus();
+  testConnectionType();
+  testDataSaver();
+  testOnlineOffline();
+  
+  mobileNext.showToast('All PWA tests completed', 'success');
+}
+
+// Add test result
+function addTestResult(testName, result, passed) {
+  const resultsContainer = document.getElementById('testResults');
+  const resultElement = document.createElement('div');
+  resultElement.className = 'mb-2';
+  
+  const statusColor = passed ? '#22c55e' : '#ef4444';
+  
+  resultElement.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span class="text-body" style="font-weight: 500;">${testName}</span>
+      <span class="text-small" style="color: ${statusColor};">${result}</span>
+    </div>
+  `;
+  
+  resultsContainer.appendChild(resultElement);
+  
+  testResults.push({ testName, result, passed, timestamp: Date.now() });
+}
+
+// Generate PWA report
+function generatePWAReport() {
+  const report = {
+    timestamp: new Date().toISOString(),
+    pwaStatus: pwaStatus,
+    testResults: testResults,
+    capabilities: {
+      serviceWorker: 'serviceWorker' in navigator,
+      cache: 'caches' in window,
+      notifications: 'Notification' in window,
+      share: 'share' in navigator,
+      backgroundSync: 'SyncManager' in window,
+      indexedDB: 'indexedDB' in window
+    },
+    performance: {
+      cacheSize: document.getElementById('cacheSize').textContent,
+      loadTime: document.getElementById('loadTime').textContent
+    }
+  };
+  
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pwa-test-report-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  mobileNext.showToast('PWA test report generated', 'success');
+}
+</script>
+
+</body>
+</html>

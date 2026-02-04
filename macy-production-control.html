@@ -3,41 +3,130 @@
 <head>
 <meta charset="UTF-8">
 <title>MACY – Production Control</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <link rel="stylesheet" href="css/style.css">
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<link rel="stylesheet" href="css/mobile.css">
+<!-- Load GSAP asynchronously to improve performance -->
+<script>
+// Load GSAP asynchronously
+(function() {
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js';
+  script.async = true;
+  document.head.appendChild(script);
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
 <style>
+/* Optimized CSS with better button alignment and performance */
 .status {
-  padding: 22px;
-  border-radius: 18px;
+  padding: 20px;
+  border-radius: 16px;
   margin-bottom: 20px;
   text-align: center;
-  font-size: 17px;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
-.blue   { background:#1e3a8a; }
-.yellow { background:#92400e; }
-.orange { background:#9a3412; }
-.green  { background:#065f46; }
+.status:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.blue   { background: linear-gradient(135deg, #1e3a8a, #1e40af); }
+.yellow { background: linear-gradient(135deg, #92400e, #b45309); }
+.orange { background: linear-gradient(135deg, #9a3412, #dc2626); }
+.green  { background: linear-gradient(135deg, #065f46, #059669); }
+
+/* Improved button layout with proper alignment */
+.action-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
 
 .action-btn {
   width: 100%;
-  padding: 16px;
-  font-size: 17px;
-  border-radius: 16px;
+  padding: 16px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
   border: none;
-  margin-top: 15px;
-  background: linear-gradient(135deg,#00aaff,#0066ff);
+  background: linear-gradient(135deg, #00aaff, #0066ff);
   color: white;
   cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.lock-btn {
-  background:#1e293b !important;
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 102, 255, 0.4);
+  background: linear-gradient(135deg, #0066ff, #0044cc);
+}
+
+.action-btn:active {
+  transform: translateY(0);
+}
+
+.action-btn.lock-btn {
+  background: linear-gradient(135deg, #1e293b, #334155) !important;
+}
+
+.action-btn.lock-btn:hover {
+  background: linear-gradient(135deg, #334155, #475569) !important;
+  box-shadow: 0 6px 20px rgba(30, 41, 59, 0.4);
+}
+
+/* Loading state for better UX */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .action-btn {
+    padding: 14px 16px;
+    font-size: 15px;
+  }
+  
+  .status {
+    padding: 16px;
+    font-size: 15px;
+  }
+}
+
+/* Performance optimizations */
+.action-container {
+  contain: layout style paint;
+}
+
+.status {
+  contain: layout style paint;
 }
 </style>
 </head>
@@ -49,29 +138,60 @@
 <h1 class="page-title" id="lineHeader">MACY – Production Line</h1>
 <h3>Sanitation Control Center</h3>
 
-<!-- Default fallback UI: visible even if JS fails -->
+<!-- Optimized fallback UI with better structure -->
 <div id="statusBox">
   <div class="status blue">
-    🔵 Sanitation not started
+    🔵 Loading...
   </div>
 </div>
-<div id="actionBox">
-  <a class="action-btn" href="macy-production-preclean.html">
+<div id="actionBox" class="action-container">
+  <button class="action-btn loading" id="preCleanBtn" onclick="goPre()">
     Begin Pre-Clean
-  </a>
-  <a class="action-btn" href="damage.html">
+  </button>
+  <button class="action-btn loading" id="damageBtn" onclick="goDamage()">
     Report Damage
-  </a>
+  </button>
 </div>
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabaseClient.js"></script>
-<script src="js/workflow.js"></script>
-<script src="js/faceUtils.js"></script>
-<script src="js/lockUtils.js"></script>
-<script src="js/unlockUtils.js"></script>
+<!-- Optimized script loading -->
+<script>
+// Load scripts asynchronously for better performance
+function loadScript(src, async = true) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = async;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+// Initialize application
+(async function() {
+  try {
+    // Load critical scripts first
+    await Promise.all([
+      loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'),
+      loadScript('js/supabaseClient.js'),
+      loadScript('js/workflow.js'),
+      loadScript('js/faceUtils.js'),
+      loadScript('js/lockUtils.js'),
+      loadScript('js/unlockUtils.js')
+    ]);
+    
+    // Initialize the control panel
+    await initializeControlPanel();
+  } catch (error) {
+    console.error('Failed to load scripts:', error);
+    // Show fallback UI even if scripts fail
+    showFallbackUI();
+  }
+})();
+</script>
+
 <script>
 const supabase = window.supabaseClient;
 
@@ -99,96 +219,122 @@ function goInspection() {
 }
 
 /* =============================
-   RENDER CONTROL PANEL
+   OPTIMIZED DATA FETCHING
 ============================= */
+// Cache for API responses to reduce redundant calls
+const apiCache = new Map();
+const CACHE_DURATION = 30000; // 30 seconds
+
+async function cachedFetch(key, fetchFn) {
+  const cached = apiCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  
+  const data = await fetchFn();
+  apiCache.set(key, { data, timestamp: Date.now() });
+  return data;
+}
+
 async function fetchLatestPreclean(area) {
   if (!supabase) return null;
-  const { data, error } = await supabase
-    .from("pre_cleaning_logs")
-    .select("*")
-    .eq("area", area)
-    .order("submitted_at", { ascending: false })
-    .limit(1);
-  if (error) {
-    alert("Failed to load pre-cleaning: " + (error.message || "Unknown error"));
-    return null;
-  }
-  return data && data.length ? data[0] : null;
+  return cachedFetch(`preclean-${area}`, async () => {
+    const { data, error } = await supabase
+      .from("pre_cleaning_logs")
+      .select("*")
+      .eq("area", area)
+      .order("submitted_at", { ascending: false })
+      .limit(1);
+    if (error) {
+      console.error("Failed to load pre-cleaning:", error);
+      return null;
+    }
+    return data && data.length ? data[0] : null;
+  });
 }
 
 async function fetchPostclean(precleanId) {
   if (!supabase || !precleanId) return null;
-  const { data, error } = await supabase
-    .from("post_cleaning_logs")
-    .select("*")
-    .eq("preclean_id", precleanId)
-    .order("submitted_at", { ascending: false })
-    .limit(1);
-  if (error) {
-    alert("Failed to load post-cleaning: " + (error.message || "Unknown error"));
-    return null;
-  }
-  return data && data.length ? data[0] : null;
+  return cachedFetch(`postclean-${precleanId}`, async () => {
+    const { data, error } = await supabase
+      .from("post_cleaning_logs")
+      .select("*")
+      .eq("preclean_id", precleanId)
+      .order("submitted_at", { ascending: false })
+      .limit(1);
+    if (error) {
+      console.error("Failed to load post-cleaning:", error);
+      return null;
+    }
+    return data && data.length ? data[0] : null;
+  });
 }
 
-async function hasPendingHandovers() {
-  if (!supabase) return false;
-  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
-  const { data, error } = await supabase
-    .from("handover_tasks")
-    .select("id,status")
-    .eq("area", area)
-    .eq("status", "Pending")
-    .limit(1);
-  if (error) {
-    alert("Failed to load handover status: " + (error.message || "Unknown error"));
-    return true;
-  }
-  return data && data.length > 0;
-}
+// Batch fetch all status data in parallel for better performance
+async function fetchAllStatusData(area) {
+  if (!supabase) return {};
+  
+  try {
+    const [
+      preclean,
+      postclean,
+      pendingHandovers,
+      handoverDamages,
+      openDamages,
+      released
+    ] = await Promise.all([
+      fetchLatestPreclean(area),
+      fetchPostclean((await fetchLatestPreclean(area))?.id),
+      cachedFetch(`handovers-${area}`, async () => {
+        const { data } = await supabase
+          .from("handover_tasks")
+          .select("id,status")
+          .eq("area", area)
+          .eq("status", "Pending")
+          .limit(1);
+        return data && data.length > 0;
+      }),
+      cachedFetch(`handover-damages-${area}`, async () => {
+        const { data } = await supabase
+          .from("damage_reports")
+          .select("id,status")
+          .eq("area", area)
+          .eq("status", "Handover")
+          .limit(1);
+        return data && data.length > 0;
+      }),
+      cachedFetch(`open-damages-${area}`, async () => {
+        const { data } = await supabase
+          .from("damage_reports")
+          .select("id,status")
+          .eq("area", area)
+          .eq("status", "Open")
+          .limit(1);
+        return data && data.length > 0;
+      }),
+      cachedFetch(`line-release`, async () => {
+        const { data } = await supabase
+          .from("line_release_logs")
+          .select("id")
+          .order("verified_at", { ascending: false })
+          .limit(1);
+        return data && data.length > 0;
+      })
+    ]);
 
-async function hasHandoverDamages(area) {
-  if (!supabase) return false;
-  const { data, error } = await supabase
-    .from("damage_reports")
-    .select("id,status")
-    .eq("area", area)
-    .eq("status", "Handover")
-    .limit(1);
-  if (error) {
-    alert("Failed to load damage status: " + (error.message || "Unknown error"));
-    return true;
+    return {
+      preclean,
+      postclean,
+      handoverRequired: postclean ? !!postclean.handover_required : false,
+      released,
+      pendingHandovers,
+      handoverDamages,
+      openDamages
+    };
+  } catch (error) {
+    console.error("Error fetching status data:", error);
+    return {};
   }
-  return data && data.length > 0;
-}
-
-async function hasOpenDamages(area) {
-  if (!supabase) return false;
-  const { data, error } = await supabase
-    .from("damage_reports")
-    .select("id,status")
-    .eq("area", area)
-    .eq("status", "Open")
-    .limit(1);
-  if (error) {
-    alert("Failed to load damage status: " + (error.message || "Unknown error"));
-    return true;
-  }
-  return data && data.length > 0;
-}
-
-async function hasLineRelease() {
-  if (!supabase) return false;
-  const { data, error } = await supabase
-    .from("line_release_logs")
-    .select("id")
-    .order("verified_at", { ascending: false })
-    .limit(1);
-  if (error) {
-    alert("Failed to load release status: " + (error.message || "Unknown error"));
-    return false;
-  }
-  return data && data.length > 0;
 }
 
 function setHeader(area) {
@@ -203,146 +349,144 @@ function setHeader(area) {
   header.innerText = labelMap[area] || "MACY – Line";
 }
 
-function renderFallback(status, action, area) {
-  // Fallback UI ensures control page never renders empty.
-  setHeader(area);
-  status.innerHTML =
-    `<div class="status blue">
-      🔵 Sanitation not started
-    </div>`;
-  action.innerHTML =
-    `<button class="action-btn" onclick="goPre()">
-      Begin Pre-Clean
-    </button>
-    <button class="action-btn" onclick="goDamage()">
-      Report Damage
-    </button>`;
+// Optimized UI rendering with proper button alignment
+function renderStatusAndActions(statusData, area) {
+  const status = document.getElementById("statusBox");
+  const action = document.getElementById("actionBox");
+  
+  if (!status || !action) return;
+
+  // Remove loading state
+  document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('loading'));
+
+  const workflow = computeWorkflowState(statusData);
+
+  // Use template literals for cleaner HTML generation
+  const statusHTML = getStatusHTML(workflow);
+  const actionHTML = getActionHTML(workflow);
+
+  status.innerHTML = statusHTML;
+  action.innerHTML = actionHTML;
+
+  // Attach unlock functionality if needed
+  if (workflow.state === "PreCleanCompleted") {
+    attachUnlock({ supabase, area, task: "preclean" });
+  }
 }
 
-async function renderControl() {
+function getStatusHTML(workflow) {
+  const statusConfig = {
+    "Released": { class: "green", text: "🟢 LINE RELEASED" },
+    "PostCleanCompleted": { class: "orange", text: "🟠 Post-Clean Completed" },
+    "ReadyForAreaLead": { class: "orange", text: "🟠 Post-Clean Completed" },
+    "PreCleanCompleted": { class: "yellow", text: "🟡 Pre-Clean Completed" },
+    "default": { class: "blue", text: "🔵 Sanitation not started" }
+  };
 
+  const config = statusConfig[workflow.state] || statusConfig.default;
+  return `<div class="status ${config.class}">${config.text}</div>`;
+}
+
+function getActionHTML(workflow) {
+  const buttonConfigs = {
+    "Released": [
+      { text: "Submit Post-Release Finding", action: "window.location.href='post-release-findings.html'" }
+    ],
+    "PostCleanCompleted": [
+      { text: "Report Damage", action: "goDamage()" },
+      { text: "📋 Handover", action: "goHandover()" }
+    ],
+    "ReadyForAreaLead": [
+      { text: "Report Damage", action: "goDamage()" },
+      { text: "✅ Release to Area Lead Verification", action: "goInspection()", class: "lock-btn" }
+    ],
+    "PreCleanCompleted": [
+      { text: "Report Damage", action: "goDamage()" },
+      { text: "Begin Post-Clean", action: "goPost()" }
+    ],
+    "default": [
+      { text: "Begin Pre-Clean", action: "goPre()" },
+      { text: "Report Damage", action: "goDamage()" }
+    ]
+  };
+
+  const buttons = buttonConfigs[workflow.state] || buttonConfigs.default;
+  
+  return buttons.map(btn => 
+    `<button class="action-btn ${btn.class || ''}" onclick="${btn.action}">${btn.text}</button>`
+  ).join('') + (workflow.state === "PreCleanCompleted" ? 
+    '<button id="unlockHelp" class="small" style="opacity:0.6;margin-top:12px;background:none;border:none;color:#94a3b8;cursor:pointer;">Help / Unlock</button>' : '');
+}
+
+function showFallbackUI() {
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+  setHeader(area);
+  
+  const status = document.getElementById("statusBox");
+  const action = document.getElementById("actionBox");
+  
+  if (status) {
+    status.innerHTML = '<div class="status blue">🔵 Sanitation not started</div>';
+  }
+  
+  if (action) {
+    action.innerHTML = `
+      <button class="action-btn" onclick="goPre()">Begin Pre-Clean</button>
+      <button class="action-btn" onclick="goDamage()">Report Damage</button>
+    `;
+  }
+  
+  // Remove loading states
+  document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('loading'));
+}
+
+/* =============================
+   MAIN INITIALIZATION
+============================= */
+async function initializeControlPanel() {
   const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
   localStorage.setItem("selectedLine", area);
+  
   setHeader(area);
-  const preclean = await fetchLatestPreclean(area);
-  const postclean = await fetchPostclean(preclean ? preclean.id : null);
-  const handoverRequired = postclean ? !!postclean.handover_required : false;
-  const released = await hasLineRelease();
-  const pendingHandovers = await hasPendingHandovers();
-  const handoverDamages = await hasHandoverDamages(area);
-  const openDamages = await hasOpenDamages(area);
-
-  const status = document.getElementById("statusBox");
-  const action = document.getElementById("actionBox");
-
-  status.innerHTML = "";
-  action.innerHTML = "";
-
-  const workflow = computeWorkflowState({
-    preclean,
-    postclean,
-    released,
-    pendingHandovers,
-    handoverDamages,
-    openDamages,
-    handoverRequired
-  });
-
-  if (workflow.state === "Released") {
-    status.innerHTML =
-      `<div class="status green">
-        🟢 LINE RELEASED
-      </div>`;
-    action.innerHTML =
-      `<button class="action-btn" onclick="window.location.href='post-release-findings.html'">
-        Submit Post-Release Finding
-      </button>`;
-    return;
+  
+  try {
+    // Fetch all data in parallel for better performance
+    const statusData = await fetchAllStatusData(area);
+    
+    // Render the UI
+    renderStatusAndActions(statusData, area);
+    
+  } catch (error) {
+    console.error("Error initializing control panel:", error);
+    showFallbackUI();
   }
-
-  if (workflow.state === "PostCleanCompleted") {
-    status.innerHTML =
-      `<div class="status orange">
-        🟠 Post-Clean Completed
-      </div>`;
-    action.innerHTML = `
-      <button class="action-btn" onclick="goDamage()">
-        Report Damage
-      </button>
-      <button class="action-btn" onclick="goHandover()">
-        📋 Handover
-      </button>
-    `;
-    return;
-  }
-
-  if (workflow.state === "ReadyForAreaLead") {
-    status.innerHTML =
-      `<div class="status orange">
-        🟠 Post-Clean Completed
-      </div>`;
-    action.innerHTML = `
-      <button class="action-btn" onclick="goDamage()">
-        Report Damage
-      </button>
-      <button class="action-btn lock-btn" onclick="goInspection()">
-        ✅ Release to Area Lead Verification
-      </button>
-    `;
-    return;
-  }
-
-  if (workflow.state === "PreCleanCompleted") {
-    status.innerHTML =
-      `<div class="status yellow">
-        🟡 Pre-Clean Completed
-      </div>`;
-    action.innerHTML = `
-      <button class="action-btn" onclick="goDamage()">
-        Report Damage
-      </button>
-      <button class="action-btn" onclick="goPost()">
-        Begin Post-Clean
-      </button>
-      <button id="unlockHelp" class="small" style="opacity:0.6;margin-top:12px;background:none;border:none;color:#94a3b8;cursor:pointer;">
-        Help / Unlock
-      </button>
-    `;
-    attachUnlock({ supabase, area, task: "preclean" });
-    return;
-  }
-
-  status.innerHTML =
-    `<div class="status blue">
-      🔵 Sanitation not started
-    </div>`;
-  action.innerHTML =
-    `<button class="action-btn" onclick="goPre()">
-      Begin Pre-Clean
-    </button>
-    <button class="action-btn" onclick="goDamage()">
-      Report Damage
-    </button>`;
 }
 
-// Safety wrapper: never allow blank screen due to runtime errors.
-(async function () {
+// Safety wrapper: never allow blank screen due to runtime errors
+function showFallbackUI() {
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+  setHeader(area);
+  
   const status = document.getElementById("statusBox");
   const action = document.getElementById("actionBox");
-  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
-  try {
-    await renderControl();
-    if (!status.innerHTML || !action.innerHTML) {
-      renderFallback(status, action, area);
-    }
-  } catch (e) {
-    renderFallback(status, action, area);
+  
+  if (status) {
+    status.innerHTML = '<div class="status blue">🔵 Sanitation not started</div>';
   }
-})();
+  
+  if (action) {
+    action.innerHTML = `
+      <button class="action-btn" onclick="goPre()">Begin Pre-Clean</button>
+      <button class="action-btn" onclick="goDamage()">Report Damage</button>
+    `;
+  }
+  
+  // Remove loading states
+  document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('loading'));
+}
 </script>
+<script src="js/mobileUtils.js"></script>
 <script src="js/layout.js"></script>
 
 </body>
 </html>
-
-

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Database Connectivity Test - Sanixpert</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+  
+  <!-- Essential scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">🗄️ Database Test</div>
+    <div class="text-subtitle">Connectivity & Storage Testing</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- Connection Status -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Connection Status</div>
+      
+      <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+        <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="connectionStatus">🔄</div>
+        <div class="text-small" id="connectionText">Testing connection...</div>
+      </div>
+    </div>
+
+    <!-- Database Tests -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Database Tests</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <button class="btn-enhanced btn-primary-enhanced" onclick="testConnection()">
+          <span>🔗 Test Connection</span>
+        </button>
+        <button class="btn-enhanced btn-secondary-enhanced" onclick="testTables()">
+          <span>📋 Test Tables</span>
+        </button>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <button class="btn btn-secondary" onclick="testRead()">
+          <span>📖 Test Read</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testWrite()">
+          <span>✍️ Test Write</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testUpdate()">
+          <span>🔄 Test Update</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testDelete()">
+          <span>🗑️ Test Delete</span>
+        </button>
+      </div>
+      
+      <button class="btn btn-primary btn-block" onclick="runAllDatabaseTests()">
+        <span>🚀 Run All Database Tests</span>
+      </button>
+    </div>
+
+    <!-- Test Results -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Test Results</div>
+      <div id="testResults"></div>
+    </div>
+
+    <!-- Sample Data Form -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Sample Data Test</div>
+      
+      <div class="form-group">
+        <label class="text-label">Employee Name</label>
+        <input type="text" class="input-enhanced" id="testEmployeeName" placeholder="Enter test employee name">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Area</label>
+        <select class="select-enhanced" id="testArea">
+          <option value="MACY_PRODUCTION">MACY Production</option>
+          <option value="MACY_DECORATION">MACY Decoration</option>
+          <option value="MACY_SPIRAL">MACY Spiral</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Bags Used</label>
+        <input type="number" class="input-enhanced" id="testBagsUsed" placeholder="Number of bags used" min="0">
+      </div>
+      
+      <button class="btn-enhanced btn-primary-enhanced btn-block" onclick="submitTestData()">
+        <span>📝 Submit Test Data</span>
+      </button>
+    </div>
+
+    <!-- Data Viewer -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Recent Data</div>
+      <div id="dataViewer"></div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" onclick="exportTestData()">
+      <span>📊 Export Test Data</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="clearTestData()">
+      <span>🗑️ Clear Test Data</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext Enhanced
+const mobileNext = window.MobileNext;
+const mobileNextEnhanced = window.MobileNextEnhanced;
+const mobileAnalytics = window.MobileAnalytics;
+const supabase = window.supabaseClient;
+
+// Test results
+let testResults = [];
+let testData = [];
+
+// Initialize testing
+document.addEventListener('DOMContentLoaded', function() {
+  testConnection();
+  loadRecentData();
+  console.log('🗄️ Database Connectivity Test loaded');
+});
+
+// Test database connection
+async function testConnection() {
+  const statusElement = document.getElementById('connectionStatus');
+  const textElement = document.getElementById('connectionText');
+  
+  statusElement.textContent = '🔄';
+  textElement.textContent = 'Testing connection...';
+  
+  try {
+    // Test basic connection
+    const { data, error } = await supabase.from('pre_cleaning_logs').select('count').limit(1);
+    
+    if (error) {
+      throw error;
+    }
+    
+    statusElement.textContent = '✅';
+    textElement.textContent = 'Connected successfully';
+    
+    addTestResult('Connection Test', '✅ Database connected successfully', true);
+    
+  } catch (error) {
+    statusElement.textContent = '❌';
+    textElement.textContent = 'Connection failed';
+    
+    addTestResult('Connection Test', `❌ ${error.message}`, false);
+  }
+}
+
+// Test all tables
+async function testTables() {
+  const tables = [
+    'pre_cleaning_logs',
+    'post_cleaning_logs', 
+    'damage_reports',
+    'handover_tasks',
+    'area_inspection_logs',
+    'line_release_logs'
+  ];
+  
+  addTestResult('Table Access Test', 'Starting table access tests...', true);
+  
+  for (const table of tables) {
+    try {
+      const { data, error } = await supabase.from(table).select('count').limit(1);
+      
+      if (error) {
+        addTestResult(`Table: ${table}`, `❌ ${error.message}`, false);
+      } else {
+        addTestResult(`Table: ${table}`, '✅ Accessible', true);
+      }
+    } catch (error) {
+      addTestResult(`Table: ${table}`, `❌ ${error.message}`, false);
+    }
+  }
+}
+
+// Test read operations
+async function testRead() {
+  addTestResult('Read Test', 'Starting read operations test...', true);
+  
+  try {
+    // Test reading from pre_cleaning_logs
+    const { data, error } = await supabase
+      .from('pre_cleaning_logs')
+      .select('*')
+      .limit(5)
+      .order('submitted_at', { ascending: false });
+    
+    if (error) {
+      throw error;
+    }
+    
+    addTestResult('Read: pre_cleaning_logs', `✅ Read ${data.length} records`, true);
+    
+    // Test reading from damage_reports
+    const { data: damageData, error: damageError } = await supabase
+      .from('damage_reports')
+      .select('*')
+      .limit(5)
+      .order('created_at', { ascending: false });
+    
+    if (damageError) {
+      throw damageError;
+    }
+    
+    addTestResult('Read: damage_reports', `✅ Read ${damageData.length} records`, true);
+    
+  } catch (error) {
+    addTestResult('Read Test', `❌ ${error.message}`, false);
+  }
+}
+
+// Test write operations
+async function testWrite() {
+  addTestResult('Write Test', 'Starting write operations test...', true);
+  
+  try {
+    // Test writing to pre_cleaning_logs
+    const testData = {
+      employee_name: 'Test User',
+      area: 'MACY_PRODUCTION',
+      bags_used: 5,
+      checklist: {
+        area_cleaned: true,
+        surfaces_wiped: true,
+        equipment_sanitized: true
+      },
+      submitted_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('pre_cleaning_logs')
+      .insert([testData])
+      .select();
+    
+    if (error) {
+      throw error;
+    }
+    
+    addTestResult('Write: pre_cleaning_logs', '✅ Test record created', true);
+    
+    // Store test record ID for cleanup
+    if (data && data.length > 0) {
+      window.testRecordId = data[0].id;
+    }
+    
+  } catch (error) {
+    addTestResult('Write Test', `❌ ${error.message}`, false);
+  }
+}
+
+// Test update operations
+async function testUpdate() {
+  addTestResult('Update Test', 'Starting update operations test...', true);
+  
+  try {
+    // First get a record to update
+    const { data: records, error: fetchError } = await supabase
+      .from('pre_cleaning_logs')
+      .select('*')
+      .eq('employee_name', 'Test User')
+      .limit(1);
+    
+    if (fetchError) {
+      throw fetchError;
+    }
+    
+    if (!records || records.length === 0) {
+      addTestResult('Update Test', '⚠️ No test records found to update', false);
+      return;
+    }
+    
+    // Update the record
+    const { data, error } = await supabase
+      .from('pre_cleaning_logs')
+      .update({ 
+        bags_used: 10,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', records[0].id)
+      .select();
+    
+    if (error) {
+      throw error;
+    }
+    
+    addTestResult('Update: pre_cleaning_logs', '✅ Test record updated', true);
+    
+  } catch (error) {
+    addTestResult('Update Test', `❌ ${error.message}`, false);
+  }
+}
+
+// Test delete operations
+async function testDelete() {
+  addTestResult('Delete Test', 'Starting delete operations test...', true);
+  
+  try {
+    // Get test records to delete
+    const { data: records, error: fetchError } = await supabase
+      .from('pre_cleaning_logs')
+      .select('*')
+      .eq('employee_name', 'Test User');
+    
+    if (fetchError) {
+      throw fetchError;
+    }
+    
+    if (!records || records.length === 0) {
+      addTestResult('Delete Test', '⚠️ No test records found to delete', false);
+      return;
+    }
+    
+    // Delete the records
+    const { data, error } = await supabase
+      .from('pre_cleaning_logs')
+      .delete()
+      .eq('employee_name', 'Test User')
+      .select();
+    
+    if (error) {
+      throw error;
+    }
+    
+    addTestResult('Delete: pre_cleaning_logs', `✅ Deleted ${data.length} test records`, true);
+    
+  } catch (error) {
+    addTestResult('Delete Test', `❌ ${error.message}`, false);
+  }
+}
+
+// Run all database tests
+async function runAllDatabaseTests() {
+  await testConnection();
+  await new Promise(resolve => setTimeout(resolve, 500));
+  await testTables();
+  await new Promise(resolve => setTimeout(resolve, 500));
+  await testRead();
+  await new Promise(resolve => setTimeout(resolve, 500));
+  await testWrite();
+  await new Promise(resolve => setTimeout(resolve, 500));
+  await testUpdate();
+  await new Promise(resolve => setTimeout(resolve, 500));
+  await testDelete();
+  
+  mobileNext.showToast('All database tests completed', 'success');
+}
+
+// Submit test data
+async function submitTestData() {
+  const employeeName = document.getElementById('testEmployeeName').value.trim();
+  const area = document.getElementById('testArea').value;
+  const bagsUsed = parseInt(document.getElementById('testBagsUsed').value);
+  
+  // Validation
+  if (!employeeName) {
+    mobileNext.showToast('Employee name is required', 'error');
+    return;
+  }
+  
+  if (isNaN(bagsUsed) || bagsUsed < 0) {
+    mobileNext.showToast('Valid bags used is required', 'error');
+    return;
+  }
+  
+  try {
+    mobileNext.showLoading('Submitting test data...');
+    
+    const testData = {
+      employee_name: employeeName,
+      area: area,
+      bags_used: bagsUsed,
+      checklist: {
+        area_cleaned: true,
+        surfaces_wiped: true,
+        equipment_sanitized: true
+      },
+      submitted_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabase
+      .from('pre_cleaning_logs')
+      .insert([testData])
+      .select();
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Clear form
+    document.getElementById('testEmployeeName').value = '';
+    document.getElementById('testBagsUsed').value = '';
+    
+    // Refresh data viewer
+    loadRecentData();
+    
+    mobileNext.hideLoading();
+    mobileNext.showToast('Test data submitted successfully', 'success');
+    
+    addTestResult('Test Data Submission', '✅ Data submitted successfully', true);
+    
+  } catch (error) {
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to submit test data', 'error');
+    addTestResult('Test Data Submission', `❌ ${error.message}`, false);
+  }
+}
+
+// Load recent data
+async function loadRecentData() {
+  try {
+    const { data, error } = await supabase
+      .from('pre_cleaning_logs')
+      .select('*')
+      .limit(10)
+      .order('submitted_at', { ascending: false });
+    
+    if (error) {
+      throw error;
+    }
+    
+    const dataViewer = document.getElementById('dataViewer');
+    dataViewer.innerHTML = '';
+    
+    if (!data || data.length === 0) {
+      dataViewer.innerHTML = '<p class="text-body text-center">No data found</p>';
+      return;
+    }
+    
+    data.forEach(record => {
+      const recordElement = document.createElement('div');
+      recordElement.className = 'card mb-2';
+      
+      recordElement.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+          <div>
+            <div class="text-body" style="font-weight: 600;">${record.employee_name}</div>
+            <div class="text-small" style="color: #94a3b8;">${record.area}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="text-body">${record.bags_used} bags</div>
+            <div class="text-small" style="color: #64748b;">${new Date(record.submitted_at).toLocaleDateString()}</div>
+          </div>
+        </div>
+      `;
+      
+      dataViewer.appendChild(recordElement);
+    });
+    
+  } catch (error) {
+    console.error('Error loading recent data:', error);
+    document.getElementById('dataViewer').innerHTML = '<p class="text-body text-center">Error loading data</p>';
+  }
+}
+
+// Add test result
+function addTestResult(testName, result, passed) {
+  const resultsContainer = document.getElementById('testResults');
+  const resultElement = document.createElement('div');
+  resultElement.className = 'mb-2';
+  
+  const statusColor = passed ? '#22c55e' : '#ef4444';
+  
+  resultElement.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span class="text-body" style="font-weight: 500;">${testName}</span>
+      <span class="text-small" style="color: ${statusColor};">${result}</span>
+    </div>
+  `;
+  
+  resultsContainer.appendChild(resultElement);
+  
+  testResults.push({ testName, result, passed, timestamp: Date.now() });
+}
+
+// Export test data
+function exportTestData() {
+  const report = {
+    timestamp: new Date().toISOString(),
+    testResults: testResults,
+    databaseInfo: {
+      url: 'https://vfpaiatebgcecfyruvvd.supabase.co',
+      tables: ['pre_cleaning_logs', 'post_cleaning_logs', 'damage_reports', 'handover_tasks']
+    }
+  };
+  
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `database-test-report-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  mobileNext.showToast('Test data exported', 'success');
+}
+
+// Clear test data
+async function clearTestData() {
+  mobileNext.confirm(
+    'Clear Test Data',
+    'Are you sure you want to clear all test data? This will delete records with employee name "Test User".',
+    async () => {
+      try {
+        mobileNext.showLoading('Clearing test data...');
+        
+        const { data, error } = await supabase
+          .from('pre_cleaning_logs')
+          .delete()
+          .eq('employee_name', 'Test User')
+          .select();
+        
+        if (error) {
+          throw error;
+        }
+        
+        mobileNext.hideLoading();
+        mobileNext.showToast(`Cleared ${data.length} test records`, 'success');
+        
+        // Refresh data viewer
+        loadRecentData();
+        
+      } catch (error) {
+        mobileNext.hideLoading();
+        mobileNext.showToast('Failed to clear test data', 'error');
+      }
+    }
+  );
+}
+</script>
+
+</body>
+</html>

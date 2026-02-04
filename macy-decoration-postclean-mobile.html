@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY – Decoration Post Cleaning</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<!-- Mobile-first CSS -->
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/mobile.css">
+
+<!-- Load scripts asynchronously for better performance -->
+<script>
+function loadScript(src, async = true) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = async;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+// Initialize app when DOM is ready
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+    // Load critical scripts first
+    await Promise.all([
+      loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'),
+      loadScript('https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js'),
+      loadScript('js/supabaseClient.js'),
+      loadScript('js/constants.js'),
+      loadScript('js/errorHandler.js'),
+      loadScript('js/successHandler.js'),
+      loadScript('js/photoUtils.js'),
+      loadScript('js/faceUtils.js'),
+      loadScript('js/lockUtils.js'),
+      loadScript('js/unlockUtils.js'),
+      loadScript('js/validationUtils.js'),
+      loadScript('js/performanceOptimizer.js'),
+      loadScript('js/photoStorage.js'),
+      loadScript('js/dateUtils.js')
+    ]);
+    
+    // Initialize the app
+    await initializeMobilePostClean();
+  } catch (error) {
+    console.error('Failed to load app:', error);
+    showMobileError('Failed to load application. Please refresh.');
+  }
+});
+</script>
+
+<style>
+/* Mobile-specific optimizations for post-clean */
+.mobile-post-clean {
+  padding: 12px 16px 100px; /* Extra bottom padding for sticky button */
+  min-height: 100vh;
+}
+
+.mobile-header {
+  background: linear-gradient(135deg, #1e3a8a, #1e40af);
+  padding: 20px 16px 24px;
+  margin: -16px -16px 20px;
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  text-align: center;
+}
+
+.mobile-section {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.mobile-question {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.mobile-question-text {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  line-height: 1.4;
+  color: rgba(255,255,255,0.95);
+}
+
+.mobile-select, mobile-textarea, mobile-input {
+  width: 100%;
+  padding: 14px 16px;
+  margin: 8px 0;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: white;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.mobile-select:focus, .mobile-textarea:focus, .mobile-input:focus {
+  outline: none;
+  border-color: #00aaff;
+  background: rgba(255,255,255,0.08);
+  box-shadow: 0 0 0 3px rgba(0,170,255,0.1);
+}
+
+.mobile-file-input {
+  padding: 12px 0;
+  background: transparent;
+  border: 2px dashed rgba(255,255,255,0.2);
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.mobile-file-input:focus {
+  border-color: #00aaff;
+  background: rgba(0,170,255,0.05);
+}
+
+.mobile-submit-btn {
+  width: 100%;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 56px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mobile-submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(0,198,255,0.3);
+}
+
+.mobile-submit-btn:active {
+  transform: translateY(0);
+}
+
+.mobile-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.mobile-warning {
+  background: rgba(250,204,21,0.1);
+  border-left: 4px solid #facc15;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.mobile-loading {
+  display: none;
+  text-align: center;
+  padding: 20px;
+}
+
+.mobile-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-radius: 50%;
+  border-top-color: #00aaff;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.mobile-sticky-submit {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  background: linear-gradient(to top, rgba(15,23,42,0.95), rgba(15,23,42,0.8));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin: 0 -16px -100px; /* Align with container padding */
+}
+
+/* Touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  .mobile-submit-btn:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .mobile-submit-btn:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+  .mobile-post-clean {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+  }
+  
+  .mobile-sticky-submit {
+    position: relative;
+    margin: 20px 0;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+  }
+}
+
+/* Safe area support */
+.mobile-header {
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+}
+
+.mobile-sticky-submit {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+</style>
+</head>
+
+<body>
+
+<div class="mobile-post-clean">
+
+<!-- Mobile header -->
+<div class="mobile-header">
+  <h1 style="margin: 0; color: #8fd3ff; font-size: 24px; font-weight: 700;">MACY – Decoration Post Clean</h1>
+  <p style="margin: 8px 0 0; opacity: 0.8; font-size: 14px;">Post-Cleaning Verification</p>
+</div>
+
+<!-- Loading state -->
+<div id="loadingState" class="mobile-loading">
+  <div class="mobile-spinner"></div>
+  <p>Loading post-clean data...</p>
+</div>
+
+<!-- Error state (hidden by default) -->
+<div id="errorState" class="mobile-warning" style="display: none;">
+  <h3 style="margin: 0 0 8px 0; color: #facc15;">⚠️ Error</h3>
+  <p id="errorMessage" style="margin: 0;">Failed to load data. Please refresh.</p>
+</div>
+
+<!-- Main content (hidden by default) -->
+<div id="mainContent" style="display: none;">
+
+  <!-- Employee Information -->
+  <div class="mobile-section">
+    <h3 style="margin: 0 0 16px 0; color: #8fd3ff;">👤 Employee Information</h3>
+    <div style="display: grid; gap: 16px;">
+      <div>
+        <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500;">Employee Name</label>
+        <input type="text" id="empName" class="mobile-input" placeholder="Employee name" readonly>
+      </div>
+      <div>
+        <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500;">Date & Time</label>
+        <input type="text" id="dateTime" class="mobile-input" readonly>
+      </div>
+    </div>
+  </div>
+
+  <!-- Equipment Reconciliation -->
+  <div class="mobile-section">
+    <h3 style="margin: 0 0 16px 0; color: #8fd3ff;">🔧 Equipment Reconciliation</h3>
+    <div style="display: grid; gap: 16px;">
+      <div>
+        <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500;">Equipment Covered (Pre-Clean)</label>
+        <input type="number" id="equipmentCovered" class="mobile-input" placeholder="Equipment count" readonly>
+      </div>
+      <div>
+        <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500;">Equipment Retrieved</label>
+        <input type="number" id="postEquipment" class="mobile-input" placeholder="Equipment retrieved" oninput="validateEquipment()">
+      </div>
+    </div>
+    <div id="equipmentValidation" style="margin-top: 12px;"></div>
+  </div>
+
+  <!-- Cleaning Verification -->
+  <div class="mobile-section">
+    <h3 style="margin: 0 0 16px 0; color: #8fd3ff;">✅ Cleaning Verification</h3>
+    <div id="checklistContainer">
+      <!-- Questions will be populated here -->
+    </div>
+  </div>
+
+  <!-- Handover Check -->
+  <div class="mobile-section">
+    <h3 style="margin: 0 0 16px 0; color: #8fd3ff;">🤝 Handover Check</h3>
+    <div style="display: grid; gap: 16px;">
+      <div>
+        <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500;">Handover Required?</label>
+        <select id="handover" class="mobile-select" onchange="toggleHandover()">
+          <option value="">Select</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
+      </div>
+      <div id="handoverTasks" style="display: none;">
+        <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500;">Handover Tasks</label>
+        <textarea id="handoverTaskList" class="mobile-textarea" placeholder="List handover tasks..." rows="3"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Damage Warning -->
+  <div id="damageWarning" class="mobile-warning" style="display: none;">
+    <h3 style="margin: 0 0 8px 0; color: #facc15;">⚠️ Open Damages</h3>
+    <p style="margin: 0;">There are open damage reports. Please review before submitting.</p>
+    <button class="mobile-submit-btn" style="margin-top: 12px; background: linear-gradient(135deg, #f59e0b, #d97706);" onclick="window.location.href='macy-decoration-damage.html'">
+      Review Damage
+    </button>
+  </div>
+
+</div>
+
+<!-- Sticky submit button -->
+<div class="mobile-sticky-submit">
+  <button id="submitBtn" class="mobile-submit-btn" onclick="submitPostClean()" disabled>
+    Submit Post-Clean
+  </button>
+</div>
+
+</div>
+
+<script>
+// Mobile-optimized JavaScript
+const supabase = window.supabaseClient;
+const APP_CONSTANTS = window.APP_CONSTANTS || {};
+const ErrorHandler = window.ErrorHandler || { showError: (msg) => alert(msg) };
+const SuccessHandler = window.SuccessHandler || { showSuccess: (msg) => alert(msg) };
+const ValidationUtils = window.ValidationUtils || { cleanup: () => {} };
+const DateUtils = window.DateUtils || { getCurrentTimestamp: () => new Date().toISOString() };
+
+// Mobile state management
+const MobileState = {
+  currentPreclean: null,
+  openDamages: [],
+  isSubmitting: false
+};
+
+// Mobile UI helpers
+function showMobileLoading() {
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('errorState').style.display = 'none';
+}
+
+function showMobileError(message) {
+  document.getElementById('errorMessage').textContent = message;
+  document.getElementById('errorState').style.display = 'block';
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'none';
+}
+
+function showMainContent() {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('errorState').style.display = 'none';
+}
+
+// Update date/time display
+function updateDateTime() {
+  const dateTimeElement = document.getElementById("dateTime");
+  if (dateTimeElement) {
+    dateTimeElement.value = new Date().toLocaleString();
+  }
+}
+
+// Validate equipment reconciliation
+function validateEquipment() {
+  const covered = parseInt(document.getElementById("equipmentCovered").value) || 0;
+  const retrieved = parseInt(document.getElementById("postEquipment").value) || 0;
+  const validationDiv = document.getElementById("equipmentValidation");
+  
+  if (retrieved < covered) {
+    validationDiv.innerHTML = `
+      <div class="mobile-warning" style="margin-top: 12px;">
+        <strong>⚠️ Equipment Mismatch</strong><br>
+        Covered: ${covered} | Retrieved: ${retrieved}<br>
+        Please ensure all equipment is retrieved.
+      </div>
+    `;
+  } else {
+    validationDiv.innerHTML = '';
+  }
+  
+  updateSubmitButton();
+}
+
+// Toggle handover tasks
+function toggleHandover() {
+  const handoverValue = document.getElementById("handover").value;
+  const handoverTasks = document.getElementById("handoverTasks");
+  
+  if (handoverValue === "Yes") {
+    handoverTasks.style.display = "block";
+  } else {
+    handoverTasks.style.display = "none";
+  }
+  
+  updateSubmitButton();
+}
+
+// Update submit button state
+function updateSubmitButton() {
+  const btn = document.getElementById("submitBtn");
+  const empName = document.getElementById("empName").value.trim();
+  const postEquipment = document.getElementById("postEquipment").value.trim();
+  const handover = document.getElementById("handover").value;
+  const handoverTasks = document.getElementById("handoverTaskList").value.trim();
+  
+  // Check if all questions are answered
+  const questions = document.querySelectorAll(".mobile-question");
+  let allQuestionsAnswered = true;
+  
+  questions.forEach(q => {
+    const select = q.querySelector("select");
+    const file = q.querySelector("input[type=file]");
+    
+    if (!select || !select.value || !file || !file.files || !file.files.length) {
+      allQuestionsAnswered = false;
+    }
+  });
+  
+  const isValid = empName && postEquipment && 
+                 (handover === "No" || (handover === "Yes" && handoverTasks)) &&
+                 allQuestionsAnswered;
+  
+  btn.disabled = !isValid || MobileState.isSubmitting;
+}
+
+// Create checklist questions
+function createChecklist() {
+  const container = document.getElementById("checklistContainer");
+  const questions = [
+    "All equipment dismantled and cleaned properly",
+    "Conveyor belts and rollers cleaned and sanitized",
+    "Sensors and electrical components checked",
+    "Frame and structure free from residue",
+    "Safety guards and emergency stops functional",
+    "Work area clean and organized"
+  ];
+  
+  container.innerHTML = questions.map((q, index) => `
+    <div class="mobile-question">
+      <div class="mobile-question-text">${index + 1}. ${q}</div>
+      <select class="mobile-select" onchange="updateSubmitButton()">
+        <option value="">Select</option>
+        <option value="Acceptable">Acceptable</option>
+        <option value="Not Acceptable">Not Acceptable</option>
+        <option value="NA">NA</option>
+      </select>
+      <input type="file" class="mobile-file-input" accept="image/*" capture="environment" onchange="updateSubmitButton()">
+      <textarea class="mobile-textarea" placeholder="Add comments if needed..." rows="2"></textarea>
+    </div>
+  `).join('');
+}
+
+// Fetch latest preclean data
+async function fetchLatestPreclean(area) {
+  if (!supabase) return null;
+  
+  try {
+    const { data, error } = await supabase
+      .from("pre_cleaning_logs")
+      .select("*")
+      .eq("area", area)
+      .order("submitted_at", { ascending: false })
+      .limit(1);
+    
+    if (error) throw error;
+    return data && data.length ? data[0] : null;
+  } catch (error) {
+    console.error("Failed to fetch preclean:", error);
+    return null;
+  }
+}
+
+// Fetch open damages
+async function fetchOpenDamages(area) {
+  if (!supabase) return [];
+  
+  try {
+    const { data, error } = await supabase
+      .from("damage_reports")
+      .select("*")
+      .eq("area", area)
+      .eq("status", "Open")
+      .order("created_at", { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Failed to fetch damages:", error);
+    return [];
+  }
+}
+
+// Read file as base64
+async function readFileBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Submit post-clean data
+async function submitPostClean() {
+  if (MobileState.isSubmitting) return;
+  
+  const btn = document.getElementById("submitBtn");
+  MobileState.isSubmitting = true;
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+  
+  try {
+    if (!supabase) {
+      throw new Error("Database connection not available");
+    }
+    
+    const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
+    const empName = document.getElementById("empName").value.trim();
+    const postEquipment = parseInt(document.getElementById("postEquipment").value) || 0;
+    const handover = document.getElementById("handover").value;
+    
+    // Collect checklist data
+    const checklist = [];
+    const questions = document.querySelectorAll(".mobile-question");
+    
+    for (const q of questions) {
+      const sel = q.querySelector("select");
+      const txt = q.querySelector("textarea");
+      const file = q.querySelector("input[type=file]");
+      
+      if (!sel || !sel.value) continue;
+      
+      let photo = null;
+      if (file && file.files && file.files.length > 0) {
+        photo = await readFileBase64(file.files[0]);
+      }
+      
+      checklist.push({
+        question: q.querySelector(".mobile-question-text").textContent.trim(),
+        value: sel.value,
+        comment: txt ? txt.value || "" : "",
+        photo: photo
+      });
+    }
+    
+    // Prepare post-clean data with proper timestamp
+    const postData = {
+      preclean_id: MobileState.currentPreclean?.id || null,
+      employee_name: empName,
+      bags_returned: postEquipment,
+      checklist: checklist,
+      handover_required: handover === "Yes",
+      submitted_at: DateUtils.getCurrentTimestamp()
+    };
+    
+    // Save to database
+    const { error } = await supabase
+      .from("post_cleaning_logs")
+      .insert(postData);
+    
+    if (error) throw error;
+    
+    // Show success and redirect
+    SuccessHandler.showSuccess("Post-clean submitted successfully!");
+    setTimeout(() => {
+      window.location.href = "macy-decoration-control.html";
+    }, 1500);
+    
+  } catch (error) {
+    console.error("Submit failed:", error);
+    ErrorHandler.showError("Failed to submit post-clean: " + error.message);
+  } finally {
+    MobileState.isSubmitting = false;
+    btn.disabled = false;
+    btn.textContent = 'Submit Post-Clean';
+  }
+}
+
+// Initialize mobile post-clean
+async function initializeMobilePostClean() {
+  const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
+  localStorage.setItem("selectedLine", area);
+  
+  try {
+    showMobileLoading();
+    
+    // Fetch data in parallel
+    const [preclean, openDamages] = await Promise.all([
+      fetchLatestPreclean(area),
+      fetchOpenDamages(area)
+    ]);
+    
+    MobileState.currentPreclean = preclean;
+    MobileState.openDamages = openDamages;
+    
+    // Populate form
+    if (preclean) {
+      document.getElementById("empName").value = preclean.employee_name || "";
+      document.getElementById("equipmentCovered").value = preclean.equipment_covered || "";
+    }
+    
+    // Create checklist
+    createChecklist();
+    
+    // Show damage warning if needed
+    if (openDamages.length > 0) {
+      document.getElementById("damageWarning").style.display = "block";
+    }
+    
+    // Start date/time updates
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    
+    // Setup validation
+    ValidationUtils.setupEquipmentValidation();
+    
+    showMainContent();
+    
+  } catch (error) {
+    console.error("Initialization failed:", error);
+    showMobileError("Failed to initialize post-clean form. Please refresh.");
+  }
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  ValidationUtils.cleanup();
+});
+
+// Handle mobile-specific optimizations
+if (window.MobileUtils) {
+  MobileUtils.initialize();
+}
+</script>
+
+</body>
+</html>

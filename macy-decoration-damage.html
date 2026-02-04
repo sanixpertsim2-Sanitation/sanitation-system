@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <title>MACY Decoration – Damage Report</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/mobile.css">
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
@@ -104,6 +105,8 @@ textarea, input, select{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
 <script src="js/photoUtils.js"></script>
+<script src="js/dateUtils.js"></script>
+<script src="js/mobileUtils.js"></script>
 <script>
 const supabase = window.supabaseClient;
 let damagePhotoBase64 = "";
@@ -170,7 +173,7 @@ async function submitDamage(){
     text: desc,
     component: component,
     reporter: reporter,
-    reported_at: new Date().toISOString(),
+    reported_at: DateUtils.getCurrentTimestamp(),
     photo: damagePhotoBase64,
     photos: damagePhotos
   };
@@ -184,7 +187,7 @@ async function submitDamage(){
         description: JSON.stringify(payload),
         severity: severity,
         status: "Open",
-        created_at: new Date().toISOString()
+        created_at: DateUtils.getCurrentTimestamp()
       });
 
     if (error) {
@@ -304,7 +307,7 @@ async function markCompleted(id){
         status:"Closed",
         completed_by:who,
         completed_photo:photo,
-        completed_at:new Date().toISOString()
+        completed_at:DateUtils.getCurrentTimestamp()
       })
       .eq("id",id);
     if (error) {

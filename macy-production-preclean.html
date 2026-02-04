@@ -292,6 +292,7 @@ textarea {
 <script src="js/photoUtils.js"></script>
 <script src="js/faceUtils.js"></script>
 <script src="js/lockUtils.js"></script>
+<script src="js/dateUtils.js"></script>
 <script src="js/unlockUtils.js"></script>
 <script>
 const supabase = window.supabaseClient;
@@ -529,7 +530,7 @@ async function submitPreCleaning() {
         bags_used: parseInt(bags, 10) || 0,
         checklist: checklist,
         status: "Under Wash",
-        submitted_at: new Date().toISOString()
+        submitted_at: DateUtils.getCurrentTimestamp()
       });
 
     if (error) {

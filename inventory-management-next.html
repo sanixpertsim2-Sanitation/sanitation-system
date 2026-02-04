@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Inventory Management - Sanixpert</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+  
+  <!-- Essential scripts only -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">Inventory Management</div>
+    <div class="text-subtitle">Track Supplies & Equipment</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- Quick Stats -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Inventory Overview</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="totalItems">0</div>
+          <div class="text-small">Total Items</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="lowStock">0</div>
+          <div class="text-small">Low Stock</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(251, 191, 36, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #fbbf24;" id="outOfStock">0</div>
+          <div class="text-small">Out of Stock</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #ef4444;" id="expiring">0</div>
+          <div class="text-small">Expiring Soon</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add New Item -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Add New Item</div>
+      
+      <div class="form-group">
+        <label class="text-label">Item Name *</label>
+        <input type="text" class="input-enhanced" id="itemName" placeholder="Enter item name">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Category *</label>
+        <select class="select-enhanced" id="category">
+          <option value="">Select category</option>
+          <option value="cleaning">Cleaning Supplies</option>
+          <option value="ppe">Personal Protective Equipment</option>
+          <option value="equipment">Equipment</option>
+          <option value="chemicals">Chemicals</option>
+          <option value="tools">Tools</option>
+          <option value="materials">Materials</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Quantity *</label>
+        <input type="number" class="input-enhanced" id="quantity" placeholder="Enter quantity" min="0">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Minimum Stock Level</label>
+        <input type="number" class="input-enhanced" id="minStock" placeholder="Minimum stock level" min="0">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Unit</label>
+        <select class="select-enhanced" id="unit">
+          <option value="pieces">Pieces</option>
+          <option value="boxes">Boxes</option>
+          <option value="liters">Liters</option>
+          <option value="kg">Kilograms</option>
+          <option value="bottles">Bottles</option>
+          <option value="pairs">Pairs</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Location</label>
+        <input type="text" class="input-enhanced" id="location" placeholder="Storage location">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Notes</label>
+        <textarea class="textarea-enhanced" id="notes" placeholder="Additional notes..." rows="3"></textarea>
+      </div>
+      
+      <button class="btn-enhanced btn-primary-enhanced btn-block" onclick="addItem()">
+        <span>➕ Add Item</span>
+      </button>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Search & Filter</div>
+      
+      <div class="form-group">
+        <input type="text" class="input-enhanced" id="searchItems" placeholder="Search items..." oninput="searchItems()">
+      </div>
+      
+      <div class="form-group">
+        <select class="select-enhanced" id="filterCategory" onchange="filterItems()">
+          <option value="">All Categories</option>
+          <option value="cleaning">Cleaning Supplies</option>
+          <option value="ppe">Personal Protective Equipment</option>
+          <option value="equipment">Equipment</option>
+          <option value="chemicals">Chemicals</option>
+          <option value="tools">Tools</option>
+          <option value="materials">Materials</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <select class="select-enhanced" id="filterStatus" onchange="filterItems()">
+          <option value="">All Status</option>
+          <option value="in-stock">In Stock</option>
+          <option value="low-stock">Low Stock</option>
+          <option value="out-of-stock">Out of Stock</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Inventory List -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Current Inventory</div>
+      <div id="inventoryList"></div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Quick Actions</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn btn-secondary" onclick="scanBarcode()">
+          <span>📷 Scan Barcode</span>
+        </button>
+        <button class="btn btn-secondary" onclick="generateReport()">
+          <span>📊 Generate Report</span>
+        </button>
+        <button class="btn btn-secondary" onclick="exportInventory()">
+          <span>💾 Export Data</span>
+        </button>
+        <button class="btn btn-secondary" onclick="importInventory()">
+          <span>📥 Import Data</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" onclick="refreshInventory()">
+      <span>🔄 Refresh</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="showInventorySettings()">
+      <span>⚙️ Settings</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext Enhanced
+const mobileNext = window.MobileNext;
+const mobileNextEnhanced = window.MobileNextEnhanced;
+const mobileAnalytics = window.MobileAnalytics;
+const supabase = window.supabaseClient;
+
+// Page data
+let inventory = [];
+let filteredInventory = [];
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+  loadInventory();
+  updateStats();
+  
+  // Auto-refresh every 30 seconds
+  setInterval(() => {
+    loadInventory();
+    updateStats();
+  }, 30000);
+  
+  console.log('📦 Inventory Management page loaded');
+});
+
+// Load inventory from database
+async function loadInventory() {
+  try {
+    mobileNext.showLoading('Loading inventory...');
+    
+    // Simulate API call - replace with actual Supabase query
+    const { data, error } = await supabase
+      .from('inventory')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    inventory = data || [];
+    filteredInventory = [...inventory];
+    
+    renderInventoryList();
+    mobileNext.hideLoading();
+    
+  } catch (error) {
+    console.error('Error loading inventory:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to load inventory', 'error');
+    
+    // Fallback to mock data
+    inventory = getMockInventory();
+    filteredInventory = [...inventory];
+    renderInventoryList();
+  }
+}
+
+// Get mock inventory for demo
+function getMockInventory() {
+  return [
+    {
+      id: 1,
+      name: 'Disposable Gloves',
+      category: 'ppe',
+      quantity: 150,
+      min_stock: 50,
+      unit: 'pairs',
+      location: 'Storage Room A',
+      notes: 'Nitrile gloves, medium size',
+      created_at: '2024-01-15T10:30:00Z',
+      last_updated: '2024-02-04T14:20:00Z'
+    },
+    {
+      id: 2,
+      name: 'Bleach Solution',
+      category: 'cleaning',
+      quantity: 25,
+      min_stock: 10,
+      unit: 'liters',
+      location: 'Chemical Storage',
+      notes: '5% concentration',
+      created_at: '2024-01-20T09:15:00Z',
+      last_updated: '2024-02-03T16:45:00Z'
+    },
+    {
+      id: 3,
+      name: 'Safety Goggles',
+      category: 'ppe',
+      quantity: 8,
+      min_stock: 15,
+      unit: 'pieces',
+      location: 'Storage Room B',
+      notes: 'Anti-fog coating',
+      created_at: '2024-01-10T13:45:00Z',
+      last_updated: '2024-02-04T08:30:00Z'
+    },
+    {
+      id: 4,
+      name: 'Microfiber Cloths',
+      category: 'cleaning',
+      quantity: 200,
+      min_stock: 100,
+      unit: 'pieces',
+      location: 'Storage Room A',
+      notes: 'Assorted colors',
+      created_at: '2024-02-01T11:00:00Z',
+      last_updated: '2024-02-04T12:15:00Z'
+    },
+    {
+      id: 5,
+      name: 'Hand Sanitizer',
+      category: 'cleaning',
+      quantity: 5,
+      min_stock: 20,
+      unit: 'bottles',
+      location: 'Entrance Station',
+      notes: '70% alcohol',
+      created_at: '2024-02-03T15:30:00Z',
+      last_updated: '2024-02-04T09:45:00Z'
+    },
+    {
+      id: 6,
+      name: 'Respirator Masks',
+      category: 'ppe',
+      quantity: 0,
+      min_stock: 10,
+      unit: 'pieces',
+      location: 'Storage Room B',
+      notes: 'N95 type',
+      created_at: '2024-01-25T14:20:00Z',
+      last_updated: '2024-02-01T17:30:00Z'
+    }
+  ];
+}
+
+// Render inventory list
+function renderInventoryList() {
+  const inventoryList = document.getElementById('inventoryList');
+  inventoryList.innerHTML = '';
+  
+  if (filteredInventory.length === 0) {
+    inventoryList.innerHTML = '<p class="text-body text-center">No items found</p>';
+    return;
+  }
+  
+  filteredInventory.forEach(item => {
+    const stockStatus = getStockStatus(item);
+    const statusColor = getStatusColor(stockStatus);
+    
+    const itemCard = document.createElement('div');
+    itemCard.className = 'card mb-2';
+    
+    itemCard.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 600;">${item.name}</div>
+          <div class="text-small" style="color: #94a3b8;">${item.category.charAt(0).toUpperCase() + item.category.slice(1)} • ${item.location}</div>
+          <div class="text-small" style="color: #64748b;">Min: ${item.min_stock} ${item.unit}</div>
+        </div>
+        <div style="text-align: right;">
+          <div class="text-body" style="font-size: 20px; font-weight: 700; color: ${statusColor};">
+            ${item.quantity} ${item.unit}
+          </div>
+          <span class="status-enhanced" style="background: ${statusColor}20; color: ${statusColor}; border-color: ${statusColor}40;">
+            ${stockStatus}
+          </span>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" style="flex: 1; font-size: 14px; padding: 8px 12px;" onclick="updateStock(${item.id})">
+          Update Stock
+        </button>
+        <button class="btn btn-primary" style="flex: 1; font-size: 14px; padding: 8px 12px;" onclick="viewItemDetails(${item.id})">
+          Details
+        </button>
+      </div>
+    `;
+    
+    inventoryList.appendChild(itemCard);
+  });
+}
+
+// Get stock status
+function getStockStatus(item) {
+  if (item.quantity === 0) return 'out-of-stock';
+  if (item.quantity <= item.min_stock) return 'low-stock';
+  return 'in-stock';
+}
+
+// Get status color
+function getStatusColor(status) {
+  const colors = {
+    'in-stock': '#22c55e',
+    'low-stock': '#fbbf24',
+    'out-of-stock': '#ef4444'
+  };
+  return colors[status] || '#64748b';
+}
+
+// Add new item
+async function addItem() {
+  const name = document.getElementById('itemName').value.trim();
+  const category = document.getElementById('category').value;
+  const quantity = parseInt(document.getElementById('quantity').value);
+  const minStock = parseInt(document.getElementById('minStock').value) || 10;
+  const unit = document.getElementById('unit').value;
+  const location = document.getElementById('location').value.trim();
+  const notes = document.getElementById('notes').value.trim();
+  
+  // Validation
+  if (!name) {
+    mobileNext.showToast('Item name is required', 'error');
+    return;
+  }
+  
+  if (!category) {
+    mobileNext.showToast('Category is required', 'error');
+    return;
+  }
+  
+  if (isNaN(quantity) || quantity < 0) {
+    mobileNext.showToast('Valid quantity is required', 'error');
+    return;
+  }
+  
+  try {
+    mobileNext.showLoading('Adding item...');
+    
+    // Simulate API call - replace with actual Supabase insert
+    const newItem = {
+      name: name,
+      category: category,
+      quantity: quantity,
+      min_stock: minStock,
+      unit: unit,
+      location: location || 'Not specified',
+      notes: notes,
+      created_at: new Date().toISOString(),
+      last_updated: new Date().toISOString()
+    };
+    
+    // Add to local array for demo
+    newItem.id = inventory.length + 1;
+    inventory.unshift(newItem);
+    filteredInventory = [...inventory];
+    
+    // Clear form
+    clearForm();
+    
+    renderInventoryList();
+    updateStats();
+    
+    mobileNext.hideLoading();
+    mobileNext.showToast('Item added successfully', 'success');
+    
+    // Track analytics
+    if (mobileAnalytics) {
+      mobileAnalytics.trackEvent('inventory_item_added', {
+        category: category,
+        quantity: quantity
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error adding item:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to add item', 'error');
+  }
+}
+
+// Clear form
+function clearForm() {
+  document.getElementById('itemName').value = '';
+  document.getElementById('category').value = '';
+  document.getElementById('quantity').value = '';
+  document.getElementById('minStock').value = '';
+  document.getElementById('unit').value = 'pieces';
+  document.getElementById('location').value = '';
+  document.getElementById('notes').value = '';
+}
+
+// Search items
+function searchItems() {
+  const searchTerm = document.getElementById('searchItems').value.toLowerCase();
+  
+  if (!searchTerm) {
+    filteredInventory = [...inventory];
+  } else {
+    filteredInventory = inventory.filter(item => 
+      item.name.toLowerCase().includes(searchTerm) ||
+      item.category.toLowerCase().includes(searchTerm) ||
+      item.location.toLowerCase().includes(searchTerm) ||
+      item.notes.toLowerCase().includes(searchTerm)
+    );
+  }
+  
+  renderInventoryList();
+}
+
+// Filter items
+function filterItems() {
+  const categoryFilter = document.getElementById('filterCategory').value;
+  const statusFilter = document.getElementById('filterStatus').value;
+  
+  filteredInventory = inventory.filter(item => {
+    const categoryMatch = !categoryFilter || item.category === categoryFilter;
+    const statusMatch = !statusFilter || getStockStatus(item) === statusFilter;
+    return categoryMatch && statusMatch;
+  });
+  
+  renderInventoryList();
+}
+
+// Update stock
+function updateStock(itemId) {
+  const item = inventory.find(i => i.id === itemId);
+  if (!item) return;
+  
+  const newQuantity = prompt(`Update stock for ${item.name}\n\nCurrent: ${item.quantity} ${item.unit}\n\nEnter new quantity:`, item.quantity);
+  
+  if (newQuantity === null) return;
+  
+  const quantity = parseInt(newQuantity);
+  
+  if (isNaN(quantity) || quantity < 0) {
+    mobileNext.showToast('Invalid quantity', 'error');
+    return;
+  }
+  
+  try {
+    mobileNext.showLoading('Updating stock...');
+    
+    // Update item
+    const itemIndex = inventory.findIndex(i => i.id === itemId);
+    if (itemIndex !== -1) {
+      inventory[itemIndex].quantity = quantity;
+      inventory[itemIndex].last_updated = new Date().toISOString();
+      
+      filteredInventory = [...inventory];
+      renderInventoryList();
+      updateStats();
+    }
+    
+    mobileNext.hideLoading();
+    mobileNext.showToast('Stock updated successfully', 'success');
+    
+    // Check if reorder needed
+    if (quantity <= item.min_stock) {
+      setTimeout(() => {
+        mobileNext.showToast('⚠️ Stock level is low, consider reordering', 'warning');
+      }, 1000);
+    }
+    
+    // Track analytics
+    if (mobileAnalytics) {
+      mobileAnalytics.trackEvent('stock_updated', {
+        item_id: itemId,
+        new_quantity: quantity,
+        previous_quantity: item.quantity
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error updating stock:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to update stock', 'error');
+  }
+}
+
+// View item details
+function viewItemDetails(itemId) {
+  const item = inventory.find(i => i.id === itemId);
+  if (!item) return;
+  
+  const stockStatus = getStockStatus(item);
+  const statusColor = getStatusColor(stockStatus);
+  
+  mobileNext.confirm(
+    item.name,
+    `Category: ${item.category}\nQuantity: ${item.quantity} ${item.unit}\nMin Stock: ${item.min_stock} ${item.unit}\nLocation: ${item.location}\nStatus: ${stockStatus}\n\nNotes: ${item.notes || 'No notes'}\n\nCreated: ${new Date(item.created_at).toLocaleDateString()}\nLast Updated: ${new Date(item.last_updated).toLocaleDateString()}`,
+    () => {
+      // Action when confirmed
+      updateStock(itemId);
+    },
+    null
+  );
+}
+
+// Update stats
+function updateStats() {
+  const totalItems = inventory.length;
+  const lowStock = inventory.filter(item => item.quantity <= item.min_stock && item.quantity > 0).length;
+  const outOfStock = inventory.filter(item => item.quantity === 0).length;
+  const expiring = inventory.filter(item => {
+    // Simulate expiring items check
+    return item.category === 'chemicals' && item.quantity < item.min_stock;
+  }).length;
+  
+  document.getElementById('totalItems').textContent = totalItems;
+  document.getElementById('lowStock').textContent = lowStock;
+  document.getElementById('outOfStock').textContent = outOfStock;
+  document.getElementById('expiring').textContent = expiring;
+}
+
+// Scan barcode
+function scanBarcode() {
+  mobileNext.showToast('Barcode scanning feature coming soon', 'info');
+}
+
+// Generate report
+function generateReport() {
+  mobileNext.showToast('Report generation feature coming soon', 'info');
+}
+
+// Export inventory
+function exportInventory() {
+  mobileNext.showToast('Export feature coming soon', 'info');
+}
+
+// Import inventory
+function importInventory() {
+  mobileNext.showToast('Import feature coming soon', 'info');
+}
+
+// Refresh inventory
+function refreshInventory() {
+  loadInventory();
+  updateStats();
+  mobileNext.showToast('Inventory refreshed', 'success');
+}
+
+// Show inventory settings
+function showInventorySettings() {
+  mobileNext.showToast('Settings feature coming soon', 'info');
+}
+</script>
+
+</body>
+</html>

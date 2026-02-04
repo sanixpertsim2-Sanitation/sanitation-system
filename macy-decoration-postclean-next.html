@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MACY Decoration - Post-Cleaning</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  
+  <!-- Essential scripts only -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/dateUtils.js"></script>
+  <script src="js/mobile-next.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">MACY Decoration</div>
+    <div class="text-subtitle">Post-Cleaning Verification</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- Employee Information -->
+    <div class="card fade-in">
+      <div class="text-section">Employee Information</div>
+      
+      <div class="form-group">
+        <label class="text-label">Employee Name *</label>
+        <input type="text" class="input" id="employeeName" placeholder="Enter your name" name="employeeName">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Date & Time</label>
+        <input type="text" class="input" id="dateTime" readonly>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Number of bags returned *</label>
+        <input type="number" class="input" id="bagsReturned" placeholder="0" name="bagsReturned">
+      </div>
+    </div>
+
+    <!-- Post-Cleaning Verification -->
+    <div class="card fade-in">
+      <div class="text-section">Post-Cleaning Verification</div>
+      
+      <div class="question">
+        <div class="question-text">All equipment properly cleaned and sanitized.</div>
+        <select class="select" id="post1" name="post1">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="post1-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="post1-comment"></textarea>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-text">Floor and walls are clean and dry.</div>
+        <select class="select" id="post2" name="post2">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="post2-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="post2-comment"></textarea>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-text">Chemicals properly stored and labeled.</div>
+        <select class="select" id="post3" name="post3">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="post3-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="post3-comment"></textarea>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-text">Safety equipment in good condition.</div>
+        <select class="select" id="post4" name="post4">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="post4-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="post4-comment"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Damage Acknowledgment -->
+    <div class="card fade-in">
+      <div class="text-section">Damage Acknowledgment</div>
+      
+      <div id="damageList"></div>
+      
+      <div class="form-group">
+        <label class="text-label">Additional damage comments</label>
+        <textarea class="textarea" id="damageComments" placeholder="Any new damage found during post-cleaning..." name="damageComments"></textarea>
+      </div>
+    </div>
+
+    <!-- Handover Tasks -->
+    <div class="card fade-in">
+      <div class="text-section">Handover Tasks</div>
+      
+      <div id="handoverTasks"></div>
+      
+      <div class="form-group">
+        <label class="text-label">New handover tasks</label>
+        <textarea class="textarea" id="newHandoverTasks" placeholder="Additional tasks requiring handover..." name="newHandoverTasks"></textarea>
+      </div>
+    </div>
+
+    <!-- Final Verification -->
+    <div class="card fade-in">
+      <div class="text-section">Final Verification</div>
+      
+      <div class="question">
+        <div class="question-text">Area ready for production.</div>
+        <select class="select" id="ready1" name="ready1">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="ready1-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="ready1-comment"></textarea>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-text">All documentation completed.</div>
+        <select class="select" id="ready2" name="ready2">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="ready2-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="ready2-comment"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Notes -->
+    <div class="card fade-in">
+      <div class="text-section">Additional Notes</div>
+      
+      <div class="form-group">
+        <label class="text-label">Comments or observations</label>
+        <textarea class="textarea" id="additionalNotes" placeholder="Enter any additional notes..." name="additionalNotes"></textarea>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" id="submitBtn" onclick="submitPostCleaning()">
+      <span>Submit Post-Cleaning</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="saveDraft()">
+      <span>Save Draft</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext framework
+const mobileNext = window.MobileNext;
+const supabase = window.supabaseClient;
+
+// Page data
+let currentPreclean = null;
+let openDamages = [];
+let handoverTasks = [];
+
+// Update date/time
+function updateDateTime() {
+  const dateTimeEl = document.getElementById('dateTime');
+  if (dateTimeEl) {
+    dateTimeEl.value = new Date().toLocaleString();
+  }
+}
+
+// Handle conditional questions
+function setupConditionalQuestions() {
+  const selects = document.querySelectorAll('.select');
+  selects.forEach(select => {
+    select.addEventListener('change', function() {
+      const questionId = this.id;
+      const extraDiv = document.getElementById(questionId + '-extra');
+      
+      if (extraDiv) {
+        if (this.value === 'Not Acceptable' || this.value === 'NA') {
+          extraDiv.classList.remove('hidden');
+          extraDiv.classList.add('slide-up');
+        } else {
+          extraDiv.classList.add('hidden');
+        }
+      }
+    });
+  });
+}
+
+// Load current pre-clean data
+async function loadCurrentPreclean() {
+  try {
+    const { data, error } = await supabase
+      .from('pre_cleaning_logs')
+      .select('*')
+      .eq('area', 'MACY_DECORATION')
+      .eq('status', 'submitted')
+      .order('submitted_at', { ascending: false })
+      .limit(1);
+    
+    if (error) throw error;
+    
+    currentPreclean = data[0];
+    if (currentPreclean) {
+      document.getElementById('employeeName').value = currentPreclean.employee_name || '';
+    }
+    
+  } catch (error) {
+    console.error('Error loading pre-clean data:', error);
+  }
+}
+
+// Load open damages
+async function loadOpenDamages() {
+  try {
+    const { data, error } = await supabase
+      .from('damage_reports')
+      .select('*')
+      .eq('area', 'MACY_DECORATION')
+      .eq('status', 'Open')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    openDamages = data || [];
+    renderDamageList();
+    
+  } catch (error) {
+    console.error('Error loading damages:', error);
+  }
+}
+
+// Render damage list
+function renderDamageList() {
+  const damageList = document.getElementById('damageList');
+  damageList.innerHTML = '';
+  
+  if (openDamages.length === 0) {
+    damageList.innerHTML = '<p class="text-body text-center">No open damages</p>';
+    return;
+  }
+  
+  openDamages.forEach(damage => {
+    const damageCard = document.createElement('div');
+    damageCard.className = 'card mb-2';
+    
+    damageCard.innerHTML = `
+      <div style="display: flex; align-items: start; gap: 12px;">
+        <input type="checkbox" id="damage-${damage.id}" style="margin-top: 4px;" onchange="updateDamageAck('${damage.id}')">
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 600;">${damage.component}</div>
+          <div class="text-small" style="color: #94a3b8;">${damage.description}</div>
+          <div class="text-small" style="color: #64748b;">Severity: ${damage.severity}</div>
+        </div>
+      </div>
+    `;
+    
+    damageList.appendChild(damageCard);
+  });
+}
+
+// Load handover tasks
+async function loadHandoverTasks() {
+  try {
+    const { data, error } = await supabase
+      .from('handover_tasks')
+      .select('*')
+      .eq('area', 'MACY_DECORATION')
+      .eq('status', 'Pending')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    handoverTasks = data || [];
+    renderHandoverTasks();
+    
+  } catch (error) {
+    console.error('Error loading handover tasks:', error);
+  }
+}
+
+// Render handover tasks
+function renderHandoverTasks() {
+  const handoverTasksEl = document.getElementById('handoverTasks');
+  handoverTasksEl.innerHTML = '';
+  
+  if (handoverTasks.length === 0) {
+    handoverTasksEl.innerHTML = '<p class="text-body text-center">No pending handover tasks</p>';
+    return;
+  }
+  
+  handoverTasks.forEach(task => {
+    const taskCard = document.createElement('div');
+    taskCard.className = 'card mb-2';
+    
+    taskCard.innerHTML = `
+      <div style="display: flex; align-items: start; gap: 12px;">
+        <input type="checkbox" id="task-${task.id}" style="margin-top: 4px;" onchange="updateTaskComplete('${task.id}')">
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 600;">${task.task_description}</div>
+          <div class="text-small" style="color: #94a3b8;">Source: ${task.source}</div>
+          <div class="text-small" style="color: #64748b;">${new Date(task.created_at).toLocaleDateString()}</div>
+        </div>
+      </div>
+    `;
+    
+    handoverTasksEl.appendChild(taskCard);
+  });
+}
+
+// Form validation
+function validateForm() {
+  const employeeName = document.getElementById('employeeName').value.trim();
+  const bagsReturned = document.getElementById('bagsReturned').value.trim();
+  
+  if (!employeeName) {
+    mobileNext.showToast('Employee name is required', 'error');
+    return false;
+  }
+  
+  if (!bagsReturned || bagsReturned < 0) {
+    mobileNext.showToast('Valid number of bags returned is required', 'error');
+    return false;
+  }
+  
+  // Check all required questions
+  const selects = document.querySelectorAll('.select');
+  for (let select of selects) {
+    if (!select.value) {
+      mobileNext.showToast('Please answer all questions', 'error');
+      select.focus();
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+// Submit post-cleaning
+async function submitPostCleaning() {
+  if (!validateForm()) return;
+  
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.classList.add('loading');
+  
+  mobileNext.showLoading('Submitting post-cleaning...');
+  
+  try {
+    const employeeName = document.getElementById('employeeName').value.trim();
+    const bagsReturned = parseInt(document.getElementById('bagsReturned').value) || 0;
+    const additionalNotes = document.getElementById('additionalNotes').value.trim();
+    const damageComments = document.getElementById('damageComments').value.trim();
+    const newHandoverTasks = document.getElementById('newHandoverTasks').value.trim();
+    
+    // Collect checklist data
+    const checklist = [];
+    const questions = document.querySelectorAll('.question');
+    
+    questions.forEach((question, index) => {
+      const select = question.querySelector('.select');
+      const textarea = question.querySelector('.textarea');
+      const fileInput = question.querySelector('input[type="file"]');
+      
+      if (select && select.value) {
+        const item = {
+          id: select.id,
+          question: question.querySelector('.question-text').textContent,
+          answer: select.value,
+          comment: textarea ? textarea.value.trim() : '',
+          photoRequired: select.value === 'Not Acceptable' || select.value === 'NA',
+          photo: null // TODO: Handle photo upload
+        };
+        checklist.push(item);
+      }
+    });
+    
+    // Check if handover is required
+    const handoverRequired = checklist.some(item => item.answer === 'Not Acceptable' || item.answer === 'NA') ||
+                           openDamages.length > 0 ||
+                           handoverTasks.length > 0 ||
+                           newHandoverTasks.trim().length > 0;
+    
+    // Save to Supabase
+    const { data, error } = await supabase
+      .from('post_cleaning_logs')
+      .insert({
+        preclean_id: currentPreclean?.id || null,
+        area: 'MACY_DECORATION',
+        employee_name: employeeName,
+        bags_returned: bagsReturned,
+        checklist: checklist,
+        handover_required: handoverRequired,
+        damage_comments: damageComments,
+        status: 'submitted',
+        submitted_at: DateUtils.getCurrentTimestamp()
+      });
+    
+    if (error) throw error;
+    
+    // Create new handover tasks if needed
+    if (newHandoverTasks.trim()) {
+      const taskLines = newHandoverTasks.split('\n').filter(line => line.trim());
+      
+      for (const taskDesc of taskLines) {
+        await supabase
+          .from('handover_tasks')
+          .insert({
+            area: 'MACY_DECORATION',
+            source: 'post-clean',
+            reference_id: data[0]?.id,
+            task_description: taskDesc.trim(),
+            status: 'Pending',
+            created_at: DateUtils.getCurrentTimestamp()
+          });
+      }
+    }
+    
+    mobileNext.hideLoading();
+    mobileNext.showToast('Post-cleaning submitted successfully!', 'success');
+    
+    // Clear form
+    setTimeout(() => {
+      if (confirm('Form submitted successfully! Clear the form?')) {
+        document.querySelector('form')?.reset();
+        localStorage.removeItem('draft_macy-decoration-postclean');
+      }
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Error submitting post-cleaning:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to submit: ' + error.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('loading');
+  }
+}
+
+// Save draft
+function saveDraft() {
+  const formData = {
+    employeeName: document.getElementById('employeeName').value,
+    bagsReturned: document.getElementById('bagsReturned').value,
+    additionalNotes: document.getElementById('additionalNotes').value,
+    damageComments: document.getElementById('damageComments').value,
+    newHandoverTasks: document.getElementById('newHandoverTasks').value,
+    checklist: []
+  };
+  
+  // Collect checklist data
+  const selects = document.querySelectorAll('.select');
+  selects.forEach(select => {
+    const textarea = document.getElementById(select.id + '-extra')?.querySelector('.textarea');
+    formData.checklist.push({
+      id: select.id,
+      value: select.value,
+      comment: textarea ? textarea.value : ''
+    });
+  });
+  
+  localStorage.setItem('draft_macy-decoration-postclean', JSON.stringify(formData));
+  mobileNext.showToast('Draft saved', 'success');
+}
+
+// Load draft
+function loadDraft() {
+  const draft = localStorage.getItem('draft_macy-decoration-postclean');
+  if (draft) {
+    try {
+      const formData = JSON.parse(draft);
+      
+      document.getElementById('employeeName').value = formData.employeeName || '';
+      document.getElementById('bagsReturned').value = formData.bagsReturned || '';
+      document.getElementById('additionalNotes').value = formData.additionalNotes || '';
+      document.getElementById('damageComments').value = formData.damageComments || '';
+      document.getElementById('newHandoverTasks').value = formData.newHandoverTasks || '';
+      
+      // Restore checklist
+      formData.checklist.forEach(item => {
+        const select = document.getElementById(item.id);
+        if (select) {
+          select.value = item.value;
+          select.dispatchEvent(new Event('change'));
+          
+          const textarea = document.getElementById(item.id + '-extra')?.querySelector('.textarea');
+          if (textarea) {
+            textarea.value = item.comment || '';
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.warn('Failed to load draft:', error);
+    }
+  }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  
+  setupConditionalQuestions();
+  loadDraft();
+  
+  // Load data
+  loadCurrentPreclean();
+  loadOpenDamages();
+  loadHandoverTasks();
+  
+  // Auto-save draft every 30 seconds
+  setInterval(saveDraft, 30000);
+  
+  console.log('🚀 MACY Decoration Post-Cleaning page loaded');
+});
+</script>
+
+</body>
+</html>

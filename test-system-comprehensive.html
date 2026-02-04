@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>System Testing - Sanixpert</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+  
+  <!-- Essential scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+  <script src="js/pwa-registration.js"></script>
+  <script src="js/ai-recommendations.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">🧪 System Testing</div>
+    <div class="text-subtitle">Comprehensive Testing Suite</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- Test Status -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Test Status</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="passedTests">0</div>
+          <div class="text-small">Passed</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #ef4444;" id="failedTests">0</div>
+          <div class="text-small">Failed</div>
+        </div>
+      </div>
+      
+      <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+        <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="totalTests">0</div>
+        <div class="text-small">Total Tests</div>
+      </div>
+    </div>
+
+    <!-- Test Controls -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Test Controls</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <button class="btn-enhanced btn-primary-enhanced" onclick="runAllTests()">
+          <span>🚀 Run All Tests</span>
+        </button>
+        <button class="btn-enhanced btn-secondary-enhanced" onclick="clearResults()">
+          <span>🗑️ Clear Results</span>
+        </button>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn btn-secondary" onclick="testUIUX()">
+          <span>🎨 Test UI/UX</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testDatabase()">
+          <span>🗄️ Test Database</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testSubmissions()">
+          <span>📝 Test Submissions</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testAnalytics()">
+          <span>📊 Test Analytics</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testPWA()">
+          <span>🔧 Test PWA</span>
+        </button>
+        <button class="btn btn-secondary" onclick="testAI()">
+          <span>🤖 Test AI</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Test Results -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Test Results</div>
+      <div id="testResults"></div>
+    </div>
+
+    <!-- System Information -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">System Information</div>
+      <div id="systemInfo"></div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" onclick="exportTestResults()">
+      <span>📊 Export Results</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="generateReport()">
+      <span>📄 Generate Report</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext Enhanced
+const mobileNext = window.MobileNext;
+const mobileNextEnhanced = window.MobileNextEnhanced;
+const mobileAnalytics = window.MobileAnalytics;
+const aiRecommendations = window.AIRecommendations;
+const supabase = window.supabaseClient;
+
+// Test results
+let testResults = [];
+let testStats = { passed: 0, failed: 0, total: 0 };
+
+// Initialize testing
+document.addEventListener('DOMContentLoaded', function() {
+  loadSystemInfo();
+  console.log('🧪 System Testing Suite loaded');
+});
+
+// Load system information
+function loadSystemInfo() {
+  const systemInfo = document.getElementById('systemInfo');
+  
+  const info = {
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    language: navigator.language,
+    cookieEnabled: navigator.cookieEnabled,
+    onLine: navigator.onLine,
+    screenResolution: `${screen.width}x${screen.height}`,
+    viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+    touchSupport: 'ontouchstart' in window,
+    serviceWorker: 'serviceWorker' in navigator,
+    notifications: 'Notification' in window,
+    geolocation: 'geolocation' in navigator,
+    camera: 'mediaDevices' in navigator,
+    localStorage: typeof(Storage) !== "undefined",
+    sessionStorage: typeof(sessionStorage) !== "undefined"
+  };
+  
+  let html = '';
+  for (const [key, value] of Object.entries(info)) {
+    html += `
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <span class="text-small">${key.replace(/([A-Z])/g, ' $1').trim()}</span>
+        <span class="text-small" style="color: #94a3b8;">${value}</span>
+      </div>
+    `;
+  }
+  
+  systemInfo.innerHTML = html;
+}
+
+// Run all tests
+async function runAllTests() {
+  clearResults();
+  
+  const tests = [
+    testUIUX,
+    testDatabase,
+    testSubmissions,
+    testAnalytics,
+    testPWA,
+    testAI
+  ];
+  
+  for (const test of tests) {
+    await test();
+    await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between tests
+  }
+  
+  updateTestStats();
+  mobileNext.showToast('All tests completed', 'success');
+}
+
+// Test UI/UX
+async function testUIUX() {
+  addTestResult('🎨 UI/UX Testing', 'Starting UI/UX tests...');
+  
+  try {
+    // Test CSS loading
+    const cssTests = [
+      { name: 'Mobile-Next CSS', test: () => document.querySelector('link[href*="mobile-next.css"]') },
+      { name: 'Enhanced CSS', test: () => document.querySelector('link[href*="mobile-next-enhanced.css"]') }
+    ];
+    
+    for (const cssTest of cssTests) {
+      const result = cssTest.test();
+      addTestResult(`CSS: ${cssTest.name}`, result ? '✅ Loaded' : '❌ Not found', result);
+    }
+    
+    // Test JavaScript loading
+    const jsTests = [
+      { name: 'Mobile-Next JS', test: () => window.MobileNext },
+      { name: 'Enhanced JS', test: () => window.MobileNextEnhanced },
+      { name: 'Analytics JS', test: () => window.MobileAnalytics },
+      { name: 'PWA JS', test: () => window.PWARegistration },
+      { name: 'AI JS', test: () => window.AIRecommendations }
+    ];
+    
+    for (const jsTest of jsTests) {
+      const result = jsTest.test();
+      addTestResult(`JS: ${jsTest.name}`, result ? '✅ Loaded' : '❌ Not found', result);
+    }
+    
+    // Test responsive design
+    const viewportTest = window.innerWidth <= 768;
+    addTestResult('Responsive Design', viewportTest ? '✅ Mobile viewport' : '⚠️ Desktop viewport', viewportTest);
+    
+    // Test touch support
+    const touchTest = 'ontouchstart' in window;
+    addTestResult('Touch Support', touchTest ? '✅ Touch enabled' : '⚠️ No touch support', touchTest);
+    
+    // Test animations
+    const animationTest = CSS.supports('animation', 'fadeIn 0.3s ease');
+    addTestResult('CSS Animations', animationTest ? '✅ Supported' : '❌ Not supported', animationTest);
+    
+    addTestResult('🎨 UI/UX Testing', '✅ Completed', true);
+    
+  } catch (error) {
+    addTestResult('🎨 UI/UX Testing', `❌ Error: ${error.message}`, false);
+  }
+}
+
+// Test Database connectivity
+async function testDatabase() {
+  addTestResult('🗄️ Database Testing', 'Starting database tests...');
+  
+  try {
+    // Test Supabase client
+    const supabaseTest = window.supabaseClient;
+    addTestResult('Supabase Client', supabaseTest ? '✅ Connected' : '❌ Not connected', !!supabaseTest);
+    
+    if (supabaseTest) {
+      // Test connection
+      try {
+        const { data, error } = await supabase.from('pre_cleaning_logs').select('count').limit(1);
+        addTestResult('Database Connection', error ? '❌ Connection failed' : '✅ Connected', !error);
+      } catch (connError) {
+        addTestResult('Database Connection', `❌ ${connError.message}`, false);
+      }
+      
+      // Test table access
+      const tables = ['pre_cleaning_logs', 'post_cleaning_logs', 'damage_reports', 'handover_tasks'];
+      for (const table of tables) {
+        try {
+          const { data, error } = await supabase.from(table).select('count').limit(1);
+          addTestResult(`Table: ${table}`, error ? '❌ Access denied' : '✅ Accessible', !error);
+        } catch (tableError) {
+          addTestResult(`Table: ${table}`, `❌ ${tableError.message}`, false);
+        }
+      }
+    }
+    
+    addTestResult('🗄️ Database Testing', '✅ Completed', true);
+    
+  } catch (error) {
+    addTestResult('🗄️ Database Testing', `❌ Error: ${error.message}`, false);
+  }
+}
+
+// Test form submissions
+async function testSubmissions() {
+  addTestResult('📝 Submission Testing', 'Starting submission tests...');
+  
+  try {
+    // Test form validation
+    const formValidationTest = () => {
+      const forms = document.querySelectorAll('form');
+      return forms.length > 0;
+    };
+    addTestResult('Form Elements', formValidationTest() ? '✅ Forms found' : '⚠️ No forms found', formValidationTest());
+    
+    // Test date utilities
+    const dateUtilsTest = window.DateUtils;
+    addTestResult('Date Utils', dateUtilsTest ? '✅ Available' : '❌ Not available', !!dateUtilsTest);
+    
+    if (dateUtilsTest) {
+      try {
+        const timestamp = dateUtilsTest.getCurrentTimestamp();
+        const isValidTimestamp = timestamp && typeof timestamp === 'string';
+        addTestResult('Timestamp Generation', isValidTimestamp ? '✅ Working' : '❌ Failed', isValidTimestamp);
+      } catch (dateError) {
+        addTestResult('Timestamp Generation', `❌ ${dateError.message}`, false);
+      }
+    }
+    
+    // Test photo utilities
+    const photoUtilsTest = window.MobilePhotoUtils;
+    addTestResult('Photo Utils', photoUtilsTest ? '✅ Available' : '❌ Not available', !!photoUtilsTest);
+    
+    // Test offline support
+    const offlineTest = window.MobileOffline;
+    addTestResult('Offline Utils', offlineTest ? '✅ Available' : '❌ Not available', !!offlineTest);
+    
+    // Test IndexedDB
+    const indexedDBTest = 'indexedDB' in window;
+    addTestResult('IndexedDB', indexedDBTest ? '✅ Supported' : '❌ Not supported', indexedDBTest);
+    
+    addTestResult('📝 Submission Testing', '✅ Completed', true);
+    
+  } catch (error) {
+    addTestResult('📝 Submission Testing', `❌ Error: ${error.message}`, false);
+  }
+}
+
+// Test Analytics
+async function testAnalytics() {
+  addTestResult('📊 Analytics Testing', 'Starting analytics tests...');
+  
+  try {
+    // Test analytics engine
+    const analyticsTest = window.MobileAnalytics;
+    addTestResult('Analytics Engine', analyticsTest ? '✅ Available' : '❌ Not available', !!analyticsTest);
+    
+    if (analyticsTest) {
+      // Test event tracking
+      try {
+        analyticsTest.trackEvent('test_event', { test: true });
+        addTestResult('Event Tracking', '✅ Working', true);
+      } catch (trackError) {
+        addTestResult('Event Tracking', `❌ ${trackError.message}`, false);
+      }
+      
+      // Test session management
+      const sessionTest = analyticsTest.getSessionId && typeof analyticsTest.getSessionId === 'function';
+      addTestResult('Session Management', sessionTest ? '✅ Working' : '❌ Not working', sessionTest);
+      
+      // Test performance tracking
+      const performanceTest = analyticsTest.trackPerformance && typeof analyticsTest.trackPerformance === 'function';
+      addTestResult('Performance Tracking', performanceTest ? '✅ Working' : '❌ Not working', performanceTest);
+    }
+    
+    // Test Chart.js
+    const chartTest = window.Chart;
+    addTestResult('Chart.js Library', chartTest ? '✅ Available' : '❌ Not available', !!chartTest);
+    
+    addTestResult('📊 Analytics Testing', '✅ Completed', true);
+    
+  } catch (error) {
+    addTestResult('📊 Analytics Testing', `❌ Error: ${error.message}`, false);
+  }
+}
+
+// Test PWA features
+async function testPWA() {
+  addTestResult('🔧 PWA Testing', 'Starting PWA tests...');
+  
+  try {
+    // Test service worker
+    const swTest = 'serviceWorker' in navigator;
+    addTestResult('Service Worker Support', swTest ? '✅ Supported' : '❌ Not supported', swTest);
+    
+    // Test PWA registration
+    const pwaTest = window.PWARegistration;
+    addTestResult('PWA Registration', pwaTest ? '✅ Available' : '❌ Not available', !!pwaTest);
+    
+    // Test notifications
+    const notificationTest = 'Notification' in window;
+    addTestResult('Push Notifications', notificationTest ? '✅ Supported' : '❌ Not supported', notificationTest);
+    
+    // Test offline capabilities
+    const offlineTest = window.MobileOffline;
+    addTestResult('Offline Support', offlineTest ? '✅ Available' : '❌ Not available', !!offlineTest);
+    
+    // Test manifest
+    const manifestTest = document.querySelector('link[rel="manifest"]');
+    addTestResult('PWA Manifest', manifestTest ? '✅ Found' : '⚠️ Not found', !!manifestTest);
+    
+    // Test install prompt
+    const installTest = 'beforeinstallprompt' in window;
+    addTestResult('Install Prompt', installTest ? '✅ Supported' : '❌ Not supported', installTest);
+    
+    addTestResult('🔧 PWA Testing', '✅ Completed', true);
+    
+  } catch (error) {
+    addTestResult('🔧 PWA Testing', `❌ Error: ${error.message}`, false);
+  }
+}
+
+// Test AI features
+async function testAI() {
+  addTestResult('🤖 AI Testing', 'Starting AI tests...');
+  
+  try {
+    // Test AI recommendations
+    const aiTest = window.AIRecommendations;
+    addTestResult('AI Engine', aiTest ? '✅ Available' : '❌ Not available', !!aiTest);
+    
+    if (aiTest) {
+      // Test AI status
+      try {
+        const status = aiTest.getAIStatus();
+        const statusTest = status && typeof status === 'object';
+        addTestResult('AI Status', statusTest ? '✅ Working' : '❌ Not working', statusTest);
+      } catch (statusError) {
+        addTestResult('AI Status', `❌ ${statusError.message}`, false);
+      }
+      
+      // Test recommendations
+      try {
+        const recommendations = aiTest.getRecommendations();
+        const recTest = Array.isArray(recommendations);
+        addTestResult('Recommendations', recTest ? '✅ Working' : '❌ Not working', recTest);
+      } catch (recError) {
+        addTestResult('Recommendations', `❌ ${recError.message}`, false);
+      }
+      
+      // Test predictions
+      try {
+        const predictions = aiTest.getPredictions();
+        const predTest = Array.isArray(predictions);
+        addTestResult('Predictions', predTest ? '✅ Working' : '❌ Not working', predTest);
+      } catch (predError) {
+        addTestResult('Predictions', `❌ ${predError.message}`, false);
+      }
+      
+      // Test insights
+      try {
+        const insights = aiTest.getInsights();
+        const insightTest = Array.isArray(insights);
+        addTestResult('AI Insights', insightTest ? '✅ Working' : '❌ Not working', insightTest);
+      } catch (insightError) {
+        addTestResult('AI Insights', `❌ ${insightError.message}`, false);
+      }
+    }
+    
+    addTestResult('🤖 AI Testing', '✅ Completed', true);
+    
+  } catch (error) {
+    addTestResult('🤖 AI Testing', `❌ Error: ${error.message}`, false);
+  }
+}
+
+// Add test result
+function addTestResult(testName, result, passed) {
+  const resultsContainer = document.getElementById('testResults');
+  const resultElement = document.createElement('div');
+  resultElement.className = 'mb-2';
+  
+  const statusColor = passed ? '#22c55e' : '#ef4444';
+  const statusIcon = passed ? '✅' : '❌';
+  
+  resultElement.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span class="text-body" style="font-weight: 500;">${testName}</span>
+      <span class="text-small" style="color: ${statusColor};">${result}</span>
+    </div>
+  `;
+  
+  resultsContainer.appendChild(resultElement);
+  
+  // Update stats
+  testResults.push({ testName, result, passed, timestamp: Date.now() });
+  testStats.total++;
+  if (passed) {
+    testStats.passed++;
+  } else {
+    testStats.failed++;
+  }
+  
+  updateTestStats();
+}
+
+// Update test statistics
+function updateTestStats() {
+  document.getElementById('passedTests').textContent = testStats.passed;
+  document.getElementById('failedTests').textContent = testStats.failed;
+  document.getElementById('totalTests').textContent = testStats.total;
+}
+
+// Clear results
+function clearResults() {
+  document.getElementById('testResults').innerHTML = '';
+  testResults = [];
+  testStats = { passed: 0, failed: 0, total: 0 };
+  updateTestStats();
+}
+
+// Export test results
+function exportTestResults() {
+  const report = {
+    timestamp: new Date().toISOString(),
+    systemInfo: {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      viewport: `${window.innerWidth}x${window.innerHeight}`
+    },
+    testStats: testStats,
+    testResults: testResults
+  };
+  
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sanixpert-test-report-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  mobileNext.showToast('Test results exported', 'success');
+}
+
+// Generate report
+function generateReport() {
+  const passedPercentage = testStats.total > 0 ? Math.round((testStats.passed / testStats.total) * 100) : 0;
+  
+  let report = `# Sanixpert System Test Report\n\n`;
+  report += `**Generated:** ${new Date().toLocaleString()}\n`;
+  report += `**Total Tests:** ${testStats.total}\n`;
+  report += `**Passed:** ${testStats.passed}\n`;
+  report += `**Failed:** ${testStats.failed}\n`;
+  report += `**Success Rate:** ${passedPercentage}%\n\n`;
+  
+  report += `## Test Results\n\n`;
+  
+  testResults.forEach(result => {
+    const status = result.passed ? '✅' : '❌';
+    report += `${status} **${result.testName}** - ${result.result}\n`;
+  });
+  
+  const blob = new Blob([report], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sanixpert-test-report-${Date.now()}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  mobileNext.showToast('Test report generated', 'success');
+}
+</script>
+
+</body>
+</html>

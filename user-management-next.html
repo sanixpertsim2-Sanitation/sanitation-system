@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>User Management - Sanixpert</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+  
+  <!-- Essential scripts only -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">User Management</div>
+    <div class="text-subtitle">Manage Team Members</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- Quick Stats -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Team Overview</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="totalUsers">0</div>
+          <div class="text-small">Total Users</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="activeUsers">0</div>
+          <div class="text-small">Active Today</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(251, 191, 36, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #fbbf24;" id="newUsers">0</div>
+          <div class="text-small">New This Week</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #ef4444;" id="inactiveUsers">0</div>
+          <div class="text-small">Inactive</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add New User -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Add New User</div>
+      
+      <div class="form-group">
+        <label class="text-label">Full Name *</label>
+        <input type="text" class="input-enhanced" id="fullName" placeholder="Enter full name">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Email Address *</label>
+        <input type="email" class="input-enhanced" id="email" placeholder="Enter email address">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Role *</label>
+        <select class="select-enhanced" id="role">
+          <option value="">Select role</option>
+          <option value="admin">Administrator</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="operator">Operator</option>
+          <option value="inspector">Inspector</option>
+          <option value="viewer">Viewer</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Department</label>
+        <select class="select-enhanced" id="department">
+          <option value="">Select department</option>
+          <option value="production">Production</option>
+          <option value="quality">Quality Control</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="sanitation">Sanitation</option>
+          <option value="management">Management</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Phone Number</label>
+        <input type="tel" class="input-enhanced" id="phone" placeholder="Enter phone number">
+      </div>
+      
+      <button class="btn-enhanced btn-primary-enhanced btn-block" onclick="addUser()">
+        <span>➕ Add User</span>
+      </button>
+    </div>
+
+    <!-- User Search & Filter -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Search Users</div>
+      
+      <div class="form-group">
+        <input type="text" class="input-enhanced" id="searchUsers" placeholder="Search by name, email, or role..." oninput="searchUsers()">
+      </div>
+      
+      <div class="form-group">
+        <select class="select-enhanced" id="filterRole" onchange="filterUsers()">
+          <option value="">All Roles</option>
+          <option value="admin">Administrator</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="operator">Operator</option>
+          <option value="inspector">Inspector</option>
+          <option value="viewer">Viewer</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <select class="select-enhanced" id="filterStatus" onchange="filterUsers()">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Users List -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Team Members</div>
+      <div id="usersList"></div>
+    </div>
+
+    <!-- User Details Modal -->
+    <div id="userDetailsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;">
+      <div style="background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 32px; max-width: 500px; width: 100%; backdrop-filter: blur(20px);">
+        <h3 style="margin: 0 0 24px 0; color: #fca5a5; font-size: 20px;">User Details</h3>
+        <div id="userDetailsContent"></div>
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button class="btn-enhanced btn-secondary" style="flex: 1;" onclick="closeUserDetails()">Close</button>
+          <button class="btn-enhanced btn-primary-enhanced" style="flex: 1;" id="editUserBtn" onclick="editUser()">Edit</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" onclick="exportUsers()">
+      <span>📊 Export Users</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="refreshUsers()">
+      <span>🔄 Refresh</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext Enhanced
+const mobileNext = window.MobileNext;
+const mobileNextEnhanced = window.MobileNextEnhanced;
+const mobileAnalytics = window.MobileAnalytics;
+const supabase = window.supabaseClient;
+
+// Page data
+let users = [];
+let filteredUsers = [];
+let selectedUser = null;
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+  loadUsers();
+  updateStats();
+  
+  // Auto-refresh every 30 seconds
+  setInterval(() => {
+    loadUsers();
+    updateStats();
+  }, 30000);
+  
+  console.log('👥 User Management page loaded');
+});
+
+// Load users from database
+async function loadUsers() {
+  try {
+    mobileNext.showLoading('Loading users...');
+    
+    // Simulate API call - replace with actual Supabase query
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    users = data || [];
+    filteredUsers = [...users];
+    
+    renderUsersList();
+    mobileNext.hideLoading();
+    
+  } catch (error) {
+    console.error('Error loading users:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to load users', 'error');
+    
+    // Fallback to mock data
+    users = getMockUsers();
+    filteredUsers = [...users];
+    renderUsersList();
+  }
+}
+
+// Get mock users for demo
+function getMockUsers() {
+  return [
+    {
+      id: 1,
+      full_name: 'John Doe',
+      email: 'john.doe@company.com',
+      role: 'admin',
+      department: 'management',
+      phone: '+1234567890',
+      status: 'active',
+      created_at: '2024-01-15T10:30:00Z',
+      last_login: '2024-02-04T14:20:00Z',
+      tasks_completed: 45
+    },
+    {
+      id: 2,
+      full_name: 'Jane Smith',
+      email: 'jane.smith@company.com',
+      role: 'supervisor',
+      department: 'production',
+      phone: '+1234567891',
+      status: 'active',
+      created_at: '2024-01-20T09:15:00Z',
+      last_login: '2024-02-04T16:45:00Z',
+      tasks_completed: 38
+    },
+    {
+      id: 3,
+      full_name: 'Bob Johnson',
+      email: 'bob.johnson@company.com',
+      role: 'operator',
+      department: 'sanitation',
+      phone: '+1234567892',
+      status: 'active',
+      created_at: '2024-02-01T11:00:00Z',
+      last_login: '2024-02-04T08:30:00Z',
+      tasks_completed: 22
+    },
+    {
+      id: 4,
+      full_name: 'Alice Brown',
+      email: 'alice.brown@company.com',
+      role: 'inspector',
+      department: 'quality',
+      phone: '+1234567893',
+      status: 'inactive',
+      created_at: '2024-01-10T13:45:00Z',
+      last_login: '2024-01-28T17:20:00Z',
+      tasks_completed: 31
+    },
+    {
+      id: 5,
+      full_name: 'Charlie Wilson',
+      email: 'charlie.wilson@company.com',
+      role: 'operator',
+      department: 'maintenance',
+      phone: '+1234567894',
+      status: 'pending',
+      created_at: '2024-02-03T15:30:00Z',
+      last_login: null,
+      tasks_completed: 0
+    }
+  ];
+}
+
+// Render users list
+function renderUsersList() {
+  const usersList = document.getElementById('usersList');
+  usersList.innerHTML = '';
+  
+  if (filteredUsers.length === 0) {
+    usersList.innerHTML = '<p class="text-body text-center">No users found</p>';
+    return;
+  }
+  
+  filteredUsers.forEach(user => {
+    const userCard = document.createElement('div');
+    userCard.className = 'card mb-2';
+    
+    const roleColors = {
+      admin: '#ef4444',
+      supervisor: '#f59e0b',
+      operator: '#3b82f6',
+      inspector: '#8b5cf6',
+      viewer: '#64748b'
+    };
+    
+    const statusIcons = {
+      active: '✅',
+      inactive: '❌',
+      pending: '⏳'
+    };
+    
+    userCard.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 600;">${user.full_name}</div>
+          <div class="text-small" style="color: #94a3b8;">${user.email}</div>
+          <div class="text-small" style="color: #64748b;">${user.department}</div>
+        </div>
+        <div style="text-align: right;">
+          <span class="status-enhanced" style="background: ${roleColors[user.role]}20; color: ${roleColors[user.role]}; border-color: ${roleColors[user.role]}40;">
+            ${user.role.toUpperCase()}
+          </span>
+          <div class="text-small" style="margin-top: 4px;">
+            ${statusIcons[user.status]} ${user.status}
+          </div>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" style="flex: 1; font-size: 14px; padding: 8px 12px;" onclick="viewUserDetails(${user.id})">
+          View
+        </button>
+        <button class="btn btn-primary" style="flex: 1; font-size: 14px; padding: 8px 12px;" onclick="editUser(${user.id})">
+          Edit
+        </button>
+      </div>
+    `;
+    
+    usersList.appendChild(userCard);
+  });
+}
+
+// Add new user
+async function addUser() {
+  const fullName = document.getElementById('fullName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const role = document.getElementById('role').value;
+  const department = document.getElementById('department').value;
+  const phone = document.getElementById('phone').value.trim();
+  
+  // Validation
+  if (!fullName) {
+    mobileNext.showToast('Full name is required', 'error');
+    return;
+  }
+  
+  if (!email) {
+    mobileNext.showToast('Email is required', 'error');
+    return;
+  }
+  
+  if (!role) {
+    mobileNext.showToast('Role is required', 'error');
+    return;
+  }
+  
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    mobileNext.showToast('Please enter a valid email', 'error');
+    return;
+  }
+  
+  try {
+    mobileNext.showLoading('Adding user...');
+    
+    // Simulate API call - replace with actual Supabase insert
+    const newUser = {
+      full_name: fullName,
+      email: email,
+      role: role,
+      department: department || 'general',
+      phone: phone,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      last_login: null,
+      tasks_completed: 0
+    };
+    
+    // Add to local array for demo
+    newUser.id = users.length + 1;
+    users.unshift(newUser);
+    filteredUsers = [...users];
+    
+    // Clear form
+    document.getElementById('fullName').value = '';
+    document.getElementById('email').value = '';
+    document.getElementById('role').value = '';
+    document.getElementById('department').value = '';
+    document.getElementById('phone').value = '';
+    
+    renderUsersList();
+    updateStats();
+    
+    mobileNext.hideLoading();
+    mobileNext.showToast('User added successfully', 'success');
+    
+    // Track analytics
+    if (mobileAnalytics) {
+      mobileAnalytics.trackEvent('user_added', {
+        role: role,
+        department: department
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error adding user:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to add user', 'error');
+  }
+}
+
+// Search users
+function searchUsers() {
+  const searchTerm = document.getElementById('searchUsers').value.toLowerCase();
+  
+  if (!searchTerm) {
+    filteredUsers = [...users];
+  } else {
+    filteredUsers = users.filter(user => 
+      user.full_name.toLowerCase().includes(searchTerm) ||
+      user.email.toLowerCase().includes(searchTerm) ||
+      user.role.toLowerCase().includes(searchTerm) ||
+      user.department.toLowerCase().includes(searchTerm)
+    );
+  }
+  
+  renderUsersList();
+}
+
+// Filter users
+function filterUsers() {
+  const roleFilter = document.getElementById('filterRole').value;
+  const statusFilter = document.getElementById('filterStatus').value;
+  
+  filteredUsers = users.filter(user => {
+    const roleMatch = !roleFilter || user.role === roleFilter;
+    const statusMatch = !statusFilter || user.status === statusFilter;
+    return roleMatch && statusMatch;
+  });
+  
+  renderUsersList();
+}
+
+// View user details
+function viewUserDetails(userId) {
+  selectedUser = users.find(user => user.id === userId);
+  
+  if (!selectedUser) return;
+  
+  const modal = document.getElementById('userDetailsModal');
+  const content = document.getElementById('userDetailsContent');
+  
+  content.innerHTML = `
+    <div style="margin-bottom: 16px;">
+      <div class="text-body" style="font-weight: 600; margin-bottom: 8px;">${selectedUser.full_name}</div>
+      <div class="text-small" style="color: #94a3b8;">${selectedUser.email}</div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+      <div>
+        <div class="text-small" style="color: #64748b; margin-bottom: 4px;">Role</div>
+        <div class="text-body">${selectedUser.role.charAt(0).toUpperCase() + selectedUser.role.slice(1)}</div>
+      </div>
+      <div>
+        <div class="text-small" style="color: #64748b; margin-bottom: 4px;">Department</div>
+        <div class="text-body">${selectedUser.department || 'Not assigned'}</div>
+      </div>
+      <div>
+        <div class="text-small" style="color: #64748b; margin-bottom: 4px;">Status</div>
+        <div class="text-body">${selectedUser.status.charAt(0).toUpperCase() + selectedUser.status.slice(1)}</div>
+      </div>
+      <div>
+        <div class="text-small" style="color: #64748b; margin-bottom: 4px;">Phone</div>
+        <div class="text-body">${selectedUser.phone || 'Not provided'}</div>
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 16px;">
+      <div class="text-small" style="color: #64748b; margin-bottom: 4px;">Tasks Completed</div>
+      <div class="text-body">${selectedUser.tasks_completed || 0}</div>
+    </div>
+    
+    <div style="margin-bottom: 16px;">
+      <div class="text-small" style="color: #64748b; margin-bottom: 4px;">Created</div>
+      <div class="text-body">${new Date(selectedUser.created_at).toLocaleDateString()}</div>
+    </div>
+    
+    <div>
+      <div class="text-small" style="color: #64748b; margin-bottom: 4px;">Last Login</div>
+      <div class="text-body">${selectedUser.last_login ? new Date(selectedUser.last_login).toLocaleString() : 'Never'}</div>
+    </div>
+  `;
+  
+  modal.style.display = 'flex';
+}
+
+// Close user details
+function closeUserDetails() {
+  document.getElementById('userDetailsModal').style.display = 'none';
+  selectedUser = null;
+}
+
+// Edit user
+function editUser(userId) {
+  if (userId) {
+    selectedUser = users.find(user => user.id === userId);
+  }
+  
+  if (!selectedUser) {
+    mobileNext.showToast('User not found', 'error');
+    return;
+  }
+  
+  // Close modal if open
+  closeUserDetails();
+  
+  // Populate form with user data
+  document.getElementById('fullName').value = selectedUser.full_name;
+  document.getElementById('email').value = selectedUser.email;
+  document.getElementById('role').value = selectedUser.role;
+  document.getElementById('department').value = selectedUser.department || '';
+  document.getElementById('phone').value = selectedUser.phone || '';
+  
+  // Change button text
+  const addBtn = document.querySelector('button[onclick="addUser()"]');
+  addBtn.textContent = 'Update User';
+  addBtn.setAttribute('onclick', 'updateUser()');
+  
+  // Scroll to form
+  document.querySelector('.app-content').scrollTop = 0;
+  
+  mobileNext.showToast('Edit mode activated', 'info');
+}
+
+// Update user
+async function updateUser() {
+  if (!selectedUser) return;
+  
+  const fullName = document.getElementById('fullName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const role = document.getElementById('role').value;
+  const department = document.getElementById('department').value;
+  const phone = document.getElementById('phone').value.trim();
+  
+  // Validation
+  if (!fullName || !email || !role) {
+    mobileNext.showToast('Please fill in all required fields', 'error');
+    return;
+  }
+  
+  try {
+    mobileNext.showLoading('Updating user...');
+    
+    // Update user data
+    const userIndex = users.findIndex(user => user.id === selectedUser.id);
+    if (userIndex !== -1) {
+      users[userIndex] = {
+        ...users[userIndex],
+        full_name: fullName,
+        email: email,
+        role: role,
+        department: department || 'general',
+        phone: phone
+      };
+      
+      filteredUsers = [...users];
+      renderUsersList();
+      updateStats();
+    }
+    
+    // Reset form
+    resetForm();
+    
+    mobileNext.hideLoading();
+    mobileNext.showToast('User updated successfully', 'success');
+    
+  } catch (error) {
+    console.error('Error updating user:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to update user', 'error');
+  }
+}
+
+// Reset form
+function resetForm() {
+  document.getElementById('fullName').value = '';
+  document.getElementById('email').value = '';
+  document.getElementById('role').value = '';
+  document.getElementById('department').value = '';
+  document.getElementById('phone').value = '';
+  
+  // Reset button
+  const addBtn = document.querySelector('button[onclick="updateUser()"]');
+  if (addBtn) {
+    addBtn.textContent = '➕ Add User';
+    addBtn.setAttribute('onclick', 'addUser()');
+  }
+  
+  selectedUser = null;
+}
+
+// Update stats
+function updateStats() {
+  const totalUsers = users.length;
+  const activeUsers = users.filter(user => user.status === 'active').length;
+  const newUsers = users.filter(user => {
+    const createdDate = new Date(user.created_at);
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    return createdDate > oneWeekAgo;
+  }).length;
+  const inactiveUsers = users.filter(user => user.status === 'inactive').length;
+  
+  document.getElementById('totalUsers').textContent = totalUsers;
+  document.getElementById('activeUsers').textContent = activeUsers;
+  document.getElementById('newUsers').textContent = newUsers;
+  document.getElementById('inactiveUsers').textContent = inactiveUsers;
+}
+
+// Export users
+function exportUsers() {
+  mobileNext.showToast('Export feature coming soon', 'info');
+}
+
+// Refresh users
+function refreshUsers() {
+  loadUsers();
+  updateStats();
+  mobileNext.showToast('Users refreshed', 'success');
+}
+</script>
+
+</body>
+</html>

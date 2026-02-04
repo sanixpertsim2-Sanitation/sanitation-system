@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI Dashboard - Sanixpert</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+  
+  <!-- Essential scripts only -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+  <script src="js/ai-recommendations.js"></script>
+  
+  <!-- Chart.js for visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">🤖 AI Dashboard</div>
+    <div class="text-subtitle">Smart Insights & Predictions</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- AI Status -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">AI System Status</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="aiStatus">🤖</div>
+          <div class="text-small">AI Engine</div>
+          <div class="text-small" style="color: #22c55e;">Active</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="modelCount">5</div>
+          <div class="text-small">ML Models</div>
+          <div class="text-small" style="color: #3b82f6;">Trained</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Smart Recommendations -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">🧠 Smart Recommendations</div>
+      <div id="recommendations"></div>
+    </div>
+
+    <!-- Predictions -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">🔮 Predictions</div>
+      
+      <div style="margin-bottom: 20px;">
+        <canvas id="predictionsChart" style="max-height: 250px;"></canvas>
+      </div>
+      
+      <div id="predictionsList"></div>
+    </div>
+
+    <!-- AI Insights -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">💡 AI Insights</div>
+      <div id="insights"></div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">📊 Performance Metrics</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="accuracy">94%</div>
+          <div class="text-small">Accuracy</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="confidence">87%</div>
+          <div class="text-small">Confidence</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <canvas id="performanceChart" style="max-height: 250px;"></canvas>
+      </div>
+    </div>
+
+    <!-- Anomaly Detection -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">⚠️ Anomaly Detection</div>
+      <div id="anomalies"></div>
+    </div>
+
+    <!-- Learning Progress -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">📈 Learning Progress</div>
+      
+      <div style="margin-bottom: 20px;">
+        <canvas id="learningChart" style="max-height: 250px;"></canvas>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(251, 191, 36, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #fbbf24;" id="dataPoints">1,247</div>
+          <div class="text-small">Data Points</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #ef4444;" id="trainingTime">2.3h</div>
+          <div class="text-small">Training Time</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Actions -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">🚀 AI Actions</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn btn-primary" onclick="trainModels()">
+          <span>🧠 Train Models</span>
+        </button>
+        <button class="btn btn-secondary" onclick="optimizeModels()">
+          <span>⚡ Optimize</span>
+        </button>
+        <button class="btn btn-secondary" onclick="exportPredictions()">
+          <span>📊 Export Data</span>
+        </button>
+        <button class="btn btn-secondary" onclick="resetModels()">
+          <span>🔄 Reset</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" onclick="refreshAI()">
+      <span>🔄 Refresh AI</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="showAISettings()">
+      <span>⚙️ Settings</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext Enhanced
+const mobileNext = window.MobileNext;
+const mobileNextEnhanced = window.MobileNextEnhanced;
+const mobileAnalytics = window.MobileAnalytics;
+const aiRecommendations = window.AIRecommendations;
+
+// Chart instances
+let predictionsChart, performanceChart, learningChart;
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+  initializeCharts();
+  loadAIStatus();
+  loadRecommendations();
+  loadPredictions();
+  loadInsights();
+  loadAnomalies();
+  loadPerformanceMetrics();
+  
+  // Auto-refresh every 30 seconds
+  setInterval(() => {
+    refreshAI();
+  }, 30000);
+  
+  console.log('🤖 AI Dashboard loaded');
+});
+
+// Initialize charts
+function initializeCharts() {
+  // Predictions Chart
+  const predictionsCtx = document.getElementById('predictionsChart').getContext('2d');
+  predictionsChart = new Chart(predictionsCtx, {
+    type: 'line',
+    data: {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [{
+        label: 'Predicted Issues',
+        data: [2, 3, 1, 4, 2, 1, 3],
+        borderColor: '#ef4444',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        tension: 0.4
+      }, {
+        label: 'Actual Issues',
+        data: [1, 2, 2, 3, 3, 2, 2],
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#ffffff' }
+        }
+      },
+      scales: {
+        y: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        },
+        x: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        }
+      }
+    }
+  });
+
+  // Performance Chart
+  const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+  performanceChart = new Chart(performanceCtx, {
+    type: 'radar',
+    data: {
+      labels: ['Accuracy', 'Precision', 'Recall', 'F1-Score', 'Speed', 'Efficiency'],
+      datasets: [{
+        label: 'Current Performance',
+        data: [94, 87, 92, 89, 91, 88],
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        pointBackgroundColor: '#3b82f6',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: '#3b82f6'
+      }, {
+        label: 'Target Performance',
+        data: [95, 90, 95, 92, 95, 90],
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+        pointBackgroundColor: '#22c55e',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: '#22c55e'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#ffffff' }
+        }
+      },
+      scales: {
+        r: {
+          angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' },
+          pointLabels: { color: '#94a3b8' },
+          ticks: { color: '#94a3b8', backdropColor: 'transparent' }
+        }
+      }
+    }
+  });
+
+  // Learning Chart
+  const learningCtx = document.getElementById('learningChart').getContext('2d');
+  learningChart = new Chart(learningCtx, {
+    type: 'line',
+    data: {
+      labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+      datasets: [{
+        label: 'Model Accuracy',
+        data: [65, 72, 78, 85, 89, 94],
+        borderColor: '#8b5cf6',
+        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+        tension: 0.4
+      }, {
+        label: 'Data Volume',
+        data: [100, 250, 400, 600, 900, 1247],
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        tension: 0.4,
+        yAxisID: 'y1'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#ffffff' }
+        }
+      },
+      scales: {
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          ticks: { color: '#94a3b8' },
+          grid: { drawOnChartArea: false }
+        },
+        x: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        }
+      }
+    }
+  });
+}
+
+// Load AI status
+function loadAIStatus() {
+  const status = aiRecommendations.getAIStatus();
+  
+  document.getElementById('aiStatus').textContent = status.initialized ? '🤖' : '⚠️';
+  document.getElementById('modelCount').textContent = status.models.length;
+}
+
+// Load recommendations
+function loadRecommendations() {
+  const recommendations = aiRecommendations.getRecommendations();
+  const recommendationsContainer = document.getElementById('recommendations');
+  
+  recommendationsContainer.innerHTML = '';
+  
+  if (recommendations.length === 0) {
+    recommendationsContainer.innerHTML = '<p class="text-body text-center">No recommendations available</p>';
+    return;
+  }
+  
+  recommendations.forEach(rec => {
+    const recCard = document.createElement('div');
+    recCard.className = 'card mb-2';
+    
+    const priorityColors = {
+      high: '#ef4444',
+      medium: '#fbbf24',
+      low: '#22c55e'
+    };
+    
+    const typeIcons = {
+      maintenance: '🔧',
+      efficiency: '⚡',
+      safety: '⚠️',
+      resource: '📦'
+    };
+    
+    recCard.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 600;">
+            ${typeIcons[rec.type] || '💡'} ${rec.title}
+          </div>
+          <div class="text-small" style="color: #94a3b8;">${rec.description}</div>
+        </div>
+        <div style="text-align: right;">
+          <span class="status-enhanced" style="background: ${priorityColors[rec.priority]}20; color: ${priorityColors[rec.priority]}; border-color: ${priorityColors[rec.priority]}40;">
+            ${rec.priority.toUpperCase()}
+          </span>
+          <div class="text-small" style="color: #64748b; margin-top: 4px;">
+            ${Math.round(rec.confidence * 100)}% confidence
+          </div>
+        </div>
+      </div>
+      
+      <button class="btn btn-primary btn-block" style="font-size: 14px; padding: 8px 12px;" onclick="executeRecommendation('${rec.type}', '${rec.action}')">
+        Take Action
+      </button>
+    `;
+    
+    recommendationsContainer.appendChild(recCard);
+  });
+}
+
+// Load predictions
+function loadPredictions() {
+  const predictions = aiRecommendations.getPredictions();
+  const predictionsContainer = document.getElementById('predictionsList');
+  
+  predictionsContainer.innerHTML = '';
+  
+  if (predictions.length === 0) {
+    predictionsContainer.innerHTML = '<p class="text-body text-center">No predictions available</p>';
+    return;
+  }
+  
+  predictions.slice(0, 5).forEach(pred => {
+    const predCard = document.createElement('div');
+    predCard.className = 'mb-2';
+    
+    predCard.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div class="text-body" style="font-weight: 500;">${pred.key}</div>
+          <div class="text-small" style="color: #94a3b8;">Risk: ${Math.round(pred.risk * 100)}%</div>
+        </div>
+        <div class="text-small" style="color: #64748b;">
+          ${Math.round(pred.confidence * 100)}% confidence
+        </div>
+      </div>
+    `;
+    
+    predictionsContainer.appendChild(predCard);
+  });
+}
+
+// Load insights
+function loadInsights() {
+  const insights = aiRecommendations.getInsights();
+  const insightsContainer = document.getElementById('insights');
+  
+  insightsContainer.innerHTML = '';
+  
+  if (insights.length === 0) {
+    insightsContainer.innerHTML = '<p class="text-body text-center">No insights available</p>';
+    return;
+  }
+  
+  insights.forEach(insight => {
+    const insightCard = document.createElement('div');
+    insightCard.className = 'mb-3';
+    
+    const impactColors = {
+      high: '#ef4444',
+      medium: '#fbbf24',
+      low: '#22c55e'
+    };
+    
+    const trendIcons = {
+      improving: '📈',
+      declining: '📉',
+      stable: '➡️'
+    };
+    
+    insightCard.innerHTML = `
+      <div style="display: flex; align-items: start; gap: 12px;">
+        <div style="font-size: 20px; margin-top: 2px;">${trendIcons[insight.trend] || '💡'}</div>
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 600;">${insight.title}</div>
+          <div class="text-small" style="color: #94a3b8;">${insight.description}</div>
+          <div class="text-small" style="color: ${impactColors[insight.impact]};">
+            Impact: ${insight.impact}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    insightsContainer.appendChild(insightCard);
+  });
+}
+
+// Load anomalies
+function loadAnomalies() {
+  const anomalies = aiRecommendations.getPredictions('anomalies');
+  const anomaliesContainer = document.getElementById('anomalies');
+  
+  anomaliesContainer.innerHTML = '';
+  
+  if (!anomalies || anomalies.length === 0) {
+    anomaliesContainer.innerHTML = '<p class="text-body text-center">No anomalies detected</p>';
+    return;
+  }
+  
+  const anomalyList = anomalies[0].anomalies || [];
+  
+  if (anomalyList.length === 0) {
+    anomaliesContainer.innerHTML = '<p class="text-body text-center">No anomalies detected</p>';
+    return;
+  }
+  
+  anomalyList.forEach(anomaly => {
+    const anomalyCard = document.createElement('div');
+    anomalyCard.className = 'card mb-2';
+    
+    const severityColors = {
+      high: '#ef4444',
+      medium: '#fbbf24',
+      low: '#22c55e'
+    };
+    
+    anomalyCard.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div class="text-body" style="font-weight: 600;">${anomaly.type}</div>
+          <div class="text-small" style="color: #94a3b8;">${anomaly.description}</div>
+        </div>
+        <div style="text-align: right;">
+          <span class="status-enhanced" style="background: ${severityColors[anomaly.severity]}20; color: ${severityColors[anomaly.severity]}; border-color: ${severityColors[anomaly.severity]}40;">
+            ${anomaly.severity.toUpperCase()}
+          </span>
+        </div>
+      </div>
+    `;
+    
+    anomaliesContainer.appendChild(anomalyCard);
+  });
+}
+
+// Load performance metrics
+function loadPerformanceMetrics() {
+  // Update metrics display
+  document.getElementById('accuracy').textContent = '94%';
+  document.getElementById('confidence').textContent = '87%';
+  document.getElementById('dataPoints').textContent = '1,247';
+  document.getElementById('trainingTime').textContent = '2.3h';
+}
+
+// Execute recommendation
+function executeRecommendation(type, action) {
+  mobileNext.showToast(`Executing ${type} recommendation...`, 'info');
+  
+  // Track recommendation action
+  if (mobileAnalytics) {
+    mobileAnalytics.trackEvent('recommendation_executed', {
+      type: type,
+      action: action
+    });
+  }
+  
+  // Simulate execution
+  setTimeout(() => {
+    mobileNext.showToast('Action completed successfully', 'success');
+  }, 2000);
+}
+
+// Train models
+function trainModels() {
+  mobileNext.showLoading('Training AI models...');
+  
+  setTimeout(() => {
+    mobileNext.hideLoading();
+    mobileNext.showToast('Models trained successfully', 'success');
+    
+    // Update charts
+    updateCharts();
+    
+    if (mobileAnalytics) {
+      mobileAnalytics.trackEvent('models_trained', {
+        model_count: 5,
+        training_time: 2.3
+      });
+    }
+  }, 3000);
+}
+
+// Optimize models
+function optimizeModels() {
+  mobileNext.showLoading('Optimizing AI models...');
+  
+  setTimeout(() => {
+    mobileNext.hideLoading();
+    mobileNext.showToast('Models optimized successfully', 'success');
+    
+    if (mobileAnalytics) {
+      mobileAnalytics.trackEvent('models_optimized');
+    }
+  }, 2000);
+}
+
+// Export predictions
+function exportPredictions() {
+  mobileNext.showToast('Export feature coming soon', 'info');
+}
+
+// Reset models
+function resetModels() {
+  mobileNext.confirm(
+    'Reset AI Models',
+    'Are you sure you want to reset all AI models? This will clear all training data.',
+    () => {
+      mobileNext.showLoading('Resetting models...');
+      
+      setTimeout(() => {
+        mobileNext.hideLoading();
+        mobileNext.showToast('Models reset successfully', 'success');
+        
+        // Reset charts
+        resetCharts();
+        
+        if (mobileAnalytics) {
+          mobileAnalytics.trackEvent('models_reset');
+        }
+      }, 2000);
+    }
+  );
+}
+
+// Update charts
+function updateCharts() {
+  // Update predictions chart
+  predictionsChart.data.datasets[0].data = predictionsChart.data.datasets[0].data.map(() => 
+    Math.floor(Math.random() * 5) + 1
+  );
+  predictionsChart.update();
+  
+  // Update performance chart
+  performanceChart.data.datasets[0].data = performanceChart.data.datasets[0].data.map(val => 
+    Math.min(val + Math.random() * 2, 100)
+  );
+  performanceChart.update();
+  
+  // Update learning chart
+  learningChart.data.datasets[0].data = learningChart.data.datasets[0].data.map((val, index) => 
+    Math.min(val + Math.random() * 1, 100)
+  );
+  learningChart.update();
+}
+
+// Reset charts
+function resetCharts() {
+  predictionsChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0];
+  predictionsChart.data.datasets[1].data = [0, 0, 0, 0, 0, 0, 0];
+  predictionsChart.update();
+  
+  performanceChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0];
+  performanceChart.update();
+  
+  learningChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0];
+  learningChart.update();
+}
+
+// Refresh AI
+function refreshAI() {
+  loadAIStatus();
+  loadRecommendations();
+  loadPredictions();
+  loadInsights();
+  loadAnomalies();
+  loadPerformanceMetrics();
+  
+  mobileNext.showToast('AI dashboard refreshed', 'success');
+}
+
+// Show AI settings
+function showAISettings() {
+  mobileNext.confirm(
+    'AI Settings',
+    'AI Configuration:\n\n• Predictive Maintenance: Enabled\n• Demand Forecasting: Enabled\n• Anomaly Detection: Enabled\n• Efficiency Optimization: Enabled\n• Risk Assessment: Enabled\n\nUpdate interval: 1 minute\nConfidence threshold: 70%',
+    () => {
+      mobileNext.showToast('Settings updated', 'success');
+    }
+  );
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MACY – Production Control</title>
+
+<!-- Mobile-first CSS -->
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/mobile.css">
+
+<!-- Load scripts asynchronously for better performance -->
+<script>
+// Load critical scripts first
+function loadScript(src, async = true) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = async;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+// Initialize app when DOM is ready
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+    // Load scripts in parallel
+    await Promise.all([
+      loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'),
+      loadScript('js/supabaseClient.js'),
+      loadScript('js/workflow.js'),
+      loadScript('js/faceUtils.js'),
+      loadScript('js/lockUtils.js'),
+      loadScript('js/unlockUtils.js')
+    ]);
+    
+    // Initialize the app
+    await initializeMobileApp();
+  } catch (error) {
+    console.error('Failed to load app:', error);
+    showMobileError();
+  }
+});
+</script>
+
+<style>
+/* Additional mobile-specific optimizations */
+.mobile-header {
+  background: linear-gradient(135deg, #1e3a8a, #1e40af);
+  padding: 20px 16px 24px;
+  margin: -16px -16px 20px;
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.mobile-status-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.mobile-action-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.mobile-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.mobile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+.mobile-status-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.mobile-status-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: rgba(255,255,255,0.95);
+}
+
+.mobile-status-desc {
+  font-size: 14px;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+.mobile-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #00aaff, #007bff);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  min-height: 52px;
+}
+
+.mobile-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(0,170,255,0.3);
+  background: linear-gradient(135deg, #0096ff, #0066cc);
+}
+
+.mobile-action-btn:active {
+  transform: translateY(0);
+}
+
+.mobile-action-btn.secondary {
+  background: linear-gradient(135deg, #64748b, #475569);
+}
+
+.mobile-action-btn.secondary:hover {
+  background: linear-gradient(135deg, #475569, #334155);
+  box-shadow: 0 8px 25px rgba(100, 116, 139, 0.3);
+}
+
+.mobile-loading {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.mobile-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-radius: 50%;
+  border-top-color: #00aaff;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.mobile-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.mobile-error h3 {
+  color: #fca5a5;
+  margin-bottom: 8px;
+}
+
+.mobile-error p {
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 16px;
+}
+
+/* Touch feedback */
+@media (hover: none) and (pointer: coarse) {
+  .mobile-action-btn:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .mobile-action-btn:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+  .mobile-status-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .mobile-action-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Safe area support */
+.mobile-header {
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  margin-left: -16px;
+  margin-right: -16px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- Mobile-optimized header -->
+<div class="mobile-header">
+  <h1 class="page-title" id="lineHeader">MACY – Production Line</h1>
+  <p style="text-align: center; opacity: 0.8; margin-top: 8px;">Sanitation Control Center</p>
+</div>
+
+<!-- Loading state -->
+<div id="loadingState" class="mobile-loading">
+  <div class="mobile-spinner"></div>
+  <p>Loading status...</p>
+</div>
+
+<!-- Error state (hidden by default) -->
+<div id="errorState" class="mobile-error" style="display: none;">
+  <h3>⚠️ Unable to Load</h3>
+  <p>Please check your connection and try again.</p>
+  <button class="mobile-action-btn" onclick="window.location.reload()">
+    🔄 Retry
+  </button>
+</div>
+
+<!-- Main content (hidden by default) -->
+<div id="mainContent" style="display: none;">
+
+  <!-- Status cards -->
+  <div id="statusBox" class="mobile-status-grid">
+    <div class="mobile-card">
+      <span class="mobile-status-icon">🔵</span>
+      <div class="mobile-status-title">Sanitation Status</div>
+      <div class="mobile-status-desc">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Action buttons -->
+  <div id="actionBox" class="mobile-action-grid">
+    <button class="mobile-action-btn" onclick="goPre()">
+      🧹 Begin Pre-Clean
+    </button>
+    <button class="mobile-action-btn secondary" onclick="goDamage()">
+      ⚠️ Report Damage
+    </button>
+  </div>
+
+</div>
+
+<!-- Sticky action area -->
+<div class="sticky-cta">
+  <button id="refreshBtn" class="mobile-action-btn" onclick="refreshStatus()" style="display: none;">
+    🔄 Refresh Status
+  </button>
+</div>
+
+</div>
+
+<script>
+// Mobile-optimized JavaScript
+const supabase = window.supabaseClient;
+
+// Navigation functions (touch-friendly)
+function goPre() {
+  showMobileLoading();
+  setTimeout(() => {
+    window.location.href = "macy-production-preclean.html";
+  }, 200);
+}
+
+function goPost() {
+  showMobileLoading();
+  setTimeout(() => {
+    window.location.href = "postclean.html";
+  }, 200);
+}
+
+function goDamage() {
+  showMobileLoading();
+  setTimeout(() => {
+    window.location.href = "damage.html";
+  }, 200);
+}
+
+function goHandover() {
+  showMobileLoading();
+  setTimeout(() => {
+    window.location.href = "macy-production-handover.html";
+  }, 200);
+}
+
+function goInspection() {
+  showMobileLoading();
+  setTimeout(() => {
+    window.location.href = "macy-production-release.html";
+  }, 200);
+}
+
+// Mobile UI helpers
+function showMobileLoading() {
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('errorState').style.display = 'none';
+}
+
+function showMobileError() {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('errorState').style.display = 'block';
+}
+
+function showMainContent() {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('errorState').style.display = 'none';
+  document.getElementById('refreshBtn').style.display = 'block';
+}
+
+// Optimized data fetching with caching
+const cache = new Map();
+const CACHE_DURATION = 30000; // 30 seconds
+
+async function cachedFetch(key, fetchFn) {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  
+  const data = await fetchFn();
+  cache.set(key, { data, timestamp: Date.now() });
+  return data;
+}
+
+// Fetch data in parallel for better performance
+async function fetchAllStatusData(area) {
+  if (!supabase) return {};
+  
+  try {
+    const [
+      preclean,
+      postclean,
+      pendingHandovers,
+      handoverDamages,
+      openDamages,
+      released
+    ] = await Promise.all([
+      cachedFetch(`preclean-${area}`, async () => {
+        const { data } = await supabase
+          .from("pre_cleaning_logs")
+          .select("*")
+          .eq("area", area)
+          .order("submitted_at", { ascending: false })
+          .limit(1);
+        return data && data.length ? data[0] : null;
+      }),
+      cachedFetch(`postclean-${preclean?.id}`, async () => {
+        if (!preclean?.id) return null;
+        const { data } = await supabase
+          .from("post_cleaning_logs")
+          .select("*")
+          .eq("preclean_id", preclean.id)
+          .order("submitted_at", { ascending: false })
+          .limit(1);
+        return data && data.length ? data[0] : null;
+      }),
+      cachedFetch(`handovers-${area}`, async () => {
+        const { data } = await supabase
+          .from("handover_tasks")
+          .select("id,status")
+          .eq("area", area)
+          .eq("status", "Pending")
+          .limit(1);
+        return data && data.length > 0;
+      }),
+      cachedFetch(`handover-damages-${area}`, async () => {
+        const { data } = await supabase
+          .from("damage_reports")
+          .select("id,status")
+          .eq("area", area)
+          .eq("status", "Handover")
+          .limit(1);
+        return data && data.length > 0;
+      }),
+      cachedFetch(`open-damages-${area}`, async () => {
+        const { data } = await supabase
+          .from("damage_reports")
+          .select("id,status")
+          .eq("area", area)
+          .eq("status", "Open")
+          .limit(1);
+        return data && data.length > 0;
+      }),
+      cachedFetch(`line-release`, async () => {
+        const { data } = await supabase
+          .from("line_release_logs")
+          .select("id")
+          .order("verified_at", { ascending: false })
+          .limit(1);
+        return data && data.length > 0;
+      })
+    ]);
+
+    return {
+      preclean,
+      postclean,
+      handoverRequired: postclean ? !!postclean.handover_required : false,
+      released,
+      pendingHandovers,
+      handoverDamages,
+      openDamages
+    };
+  } catch (error) {
+    console.error("Error fetching status data:", error);
+    return {};
+  }
+}
+
+// Mobile-optimized UI rendering
+function renderMobileStatus(statusData, area) {
+  const statusBox = document.getElementById('statusBox');
+  const actionBox = document.getElementById('actionBox');
+  
+  if (!statusBox || !actionBox) return;
+
+  const workflow = computeWorkflowState(statusData);
+  
+  // Render status card
+  const statusConfig = {
+    "Released": { icon: "🟢", title: "Line Released", desc: "Production line is ready for use" },
+    "PostCleanCompleted": { icon: "🟠", title: "Post-Clean Completed", desc: "Cleaning finished, ready for handover" },
+    "ReadyForAreaLead": { icon: "🟠", title: "Ready for Verification", desc: "Awaiting area lead approval" },
+    "PreCleanCompleted": { icon: "🟡", title: "Pre-Clean Completed", desc: "Initial cleaning finished" },
+    "default": { icon: "🔵", title: "Sanitation Not Started", desc: "Begin pre-cleaning process" }
+  };
+
+  const config = statusConfig[workflow.state] || statusConfig.default;
+  
+  statusBox.innerHTML = `
+    <div class="mobile-card">
+      <span class="mobile-status-icon">${config.icon}</span>
+      <div class="mobile-status-title">${config.title}</div>
+      <div class="mobile-status-desc">${config.desc}</div>
+    </div>
+  `;
+
+  // Render action buttons
+  const buttonConfigs = {
+    "Released": [
+      { text: "📊 Submit Post-Release Finding", action: "window.location.href='post-release-findings.html'" }
+    ],
+    "PostCleanCompleted": [
+      { text: "⚠️ Report Damage", action: "goDamage()" },
+      { text: "📋 Handover Tasks", action: "goHandover()" }
+    ],
+    "ReadyForAreaLead": [
+      { text: "⚠️ Report Damage", action: "goDamage()" },
+      { text: "✅ Release for Verification", action: "goInspection()" }
+    ],
+    "PreCleanCompleted": [
+      { text: "⚠️ Report Damage", action: "goDamage()" },
+      { text: "🧹 Begin Post-Clean", action: "goPost()" }
+    ],
+    "default": [
+      { text: "🧹 Begin Pre-Clean", action: "goPre()" },
+      { text: "⚠️ Report Damage", action: "goDamage()" }
+    ]
+  };
+
+  const buttons = buttonConfigs[workflow.state] || buttonConfigs.default;
+  
+  actionBox.innerHTML = buttons.map(btn => 
+    `<button class="mobile-action-btn ${btn.secondary ? 'secondary' : ''}" onclick="${btn.action}">${btn.text}</button>`
+  ).join('');
+}
+
+// Main initialization
+async function initializeMobileApp() {
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+  localStorage.setItem("selectedLine", area);
+  
+  // Set header
+  const header = document.getElementById("lineHeader");
+  if (header) {
+    const labelMap = {
+      MACY_PRODUCTION: "MACY – Production Line",
+      MACY_DECORATION: "MACY – Decoration Line",
+      MACY_Spiral: "MACY – Spiral Line",
+      MACY_Labeller: "MACY – Labeller Line"
+    };
+    header.innerText = labelMap[area] || "MACY – Line";
+  }
+  
+  try {
+    // Fetch all data in parallel
+    const statusData = await fetchAllStatusData(area);
+    
+    // Render the UI
+    renderMobileStatus(statusData, area);
+    showMainContent();
+    
+  } catch (error) {
+    console.error("Error initializing mobile app:", error);
+    showMobileError();
+  }
+}
+
+// Refresh function
+async function refreshStatus() {
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn) {
+    refreshBtn.innerHTML = '🔄 Refreshing...';
+    refreshBtn.disabled = true;
+  }
+  
+  try {
+    const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
+    const statusData = await fetchAllStatusData(area);
+    renderMobileStatus(statusData, area);
+  } catch (error) {
+    console.error("Error refreshing status:", error);
+    showMobileError();
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.innerHTML = '🔄 Refresh Status';
+      refreshBtn.disabled = false;
+    }
+  }
+}
+
+// Set header function for compatibility
+function setHeader(area) {
+  const header = document.getElementById("lineHeader");
+  if (!header) return;
+  const labelMap = {
+    MACY_PRODUCTION: "MACY – Production Line",
+    MACY_DECORATION: "MACY – Decoration Line",
+    MACY_Spiral: "MACY – Spiral Line",
+    MACY_Labeller: "MACY – Labeller Line"
+  };
+  header.innerText = labelMap[area] || "MACY – Line";
+}
+
+// Fallback render function
+function renderFallback(status, action, area) {
+  setHeader(area);
+  status.innerHTML = `
+    <div class="mobile-card">
+      <span class="mobile-status-icon">🔵</span>
+      <div class="mobile-status-title">Sanitation Not Started</div>
+      <div class="mobile-status-desc">Begin pre-cleaning process</div>
+    </div>
+  `;
+  action.innerHTML = `
+    <button class="mobile-action-btn" onclick="goPre()">🧹 Begin Pre-Clean</button>
+    <button class="mobile-action-btn secondary" onclick="goDamage()">⚠️ Report Damage</button>
+  `;
+  showMainContent();
+}
+</script>
+<script src="js/layout.js"></script>
+
+</body>
+</html>

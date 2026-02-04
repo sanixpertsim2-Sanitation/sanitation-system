@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sanixpert Analytics Dashboard</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+  
+  <!-- Essential scripts only -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+  
+  <!-- Chart.js for analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">Analytics Dashboard</div>
+    <div class="text-subtitle">Real-time Insights & Reports</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- Date Range Selector -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Time Period</div>
+      
+      <div class="form-group">
+        <select class="select-enhanced" id="dateRange" onchange="updateDashboard()">
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="week">Last 7 Days</option>
+          <option value="month">Last 30 Days</option>
+          <option value="quarter">Last 3 Months</option>
+          <option value="year">Last Year</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Key Performance Metrics</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="totalUsers">0</div>
+          <div class="text-small">Total Users</div>
+          <div class="text-small" style="color: #22c55e;" id="usersChange">+0%</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="pageViews">0</div>
+          <div class="text-small">Page Views</div>
+          <div class="text-small" style="color: #3b82f6;" id="pageViewsChange">+0%</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(251, 191, 36, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #fbbf24;" id="avgSessionTime">0m</div>
+          <div class="text-small">Avg Session</div>
+          <div class="text-small" style="color: #fbbf24;" id="sessionTimeChange">+0%</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #ef4444;" id="bounceRate">0%</div>
+          <div class="text-small">Bounce Rate</div>
+          <div class="text-small" style="color: #ef4444;" id="bounceRateChange">-0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usage Charts -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Usage Trends</div>
+      
+      <div style="margin-bottom: 20px;">
+        <canvas id="usageChart" style="max-height: 300px;"></canvas>
+      </div>
+    </div>
+
+    <!-- Device Analytics -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Device Analytics</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+          <canvas id="deviceChart" style="max-height: 200px;"></canvas>
+        </div>
+        <div>
+          <canvas id="browserChart" style="max-height: 200px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Performance Metrics</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="loadTime">0s</div>
+          <div class="text-small">Avg Load Time</div>
+          <div class="text-small" style="color: #22c55e;">Good</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="errorRate">0%</div>
+          <div class="text-small">Error Rate</div>
+          <div class="text-small" style="color: #3b82f6;">Low</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <canvas id="performanceChart" style="max-height: 300px;"></canvas>
+      </div>
+    </div>
+
+    <!-- Feature Usage -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Feature Usage</div>
+      
+      <div style="margin-bottom: 20px;">
+        <canvas id="featureChart" style="max-height: 300px;"></canvas>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Recent Activity</div>
+      <div id="recentActivity"></div>
+    </div>
+
+    <!-- Top Pages -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Top Pages</div>
+      <div id="topPages"></div>
+    </div>
+
+    <!-- User Segments -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">User Segments</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="newUsers">0</div>
+          <div class="text-small">New Users</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="returningUsers">0</div>
+          <div class="text-small">Returning Users</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conversion Funnel -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Conversion Funnel</div>
+      
+      <div style="margin-bottom: 20px;">
+        <canvas id="funnelChart" style="max-height: 300px;"></canvas>
+      </div>
+    </div>
+
+    <!-- Real-time Stats -->
+    <div class="card-enhanced fade-in">
+      <div class="text-section">Real-time Stats</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="onlineUsers">0</div>
+          <div class="text-small">Online Now</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="activeForms">0</div>
+          <div class="text-small">Active Forms</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" onclick="exportReport()">
+      <span>📊 Export Report</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="refreshDashboard()">
+      <span>🔄 Refresh</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext Enhanced
+const mobileNext = window.MobileNext;
+const mobileNextEnhanced = window.MobileNextEnhanced;
+const mobileAnalytics = window.MobileAnalytics;
+
+// Chart instances
+let usageChart, deviceChart, browserChart, performanceChart, featureChart, funnelChart;
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+  initializeCharts();
+  loadDashboardData();
+  
+  // Auto-refresh every 30 seconds
+  setInterval(() => {
+    loadDashboardData();
+  }, 30000);
+  
+  console.log('📊 Analytics Dashboard loaded');
+});
+
+// Initialize all charts
+function initializeCharts() {
+  // Usage Trends Chart
+  const usageCtx = document.getElementById('usageChart').getContext('2d');
+  usageChart = new Chart(usageCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Page Views',
+        data: [],
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.4
+      }, {
+        label: 'Users',
+        data: [],
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#ffffff' }
+        }
+      },
+      scales: {
+        y: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        },
+        x: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        }
+      }
+    }
+  });
+
+  // Device Chart
+  const deviceCtx = document.getElementById('deviceChart').getContext('2d');
+  deviceChart = new Chart(deviceCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Mobile', 'Tablet', 'Desktop'],
+      datasets: [{
+        data: [0, 0, 0],
+        backgroundColor: ['#22c55e', '#3b82f6', '#fbbf24']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#ffffff' }
+        }
+      }
+    }
+  });
+
+  // Browser Chart
+  const browserCtx = document.getElementById('browserChart').getContext('2d');
+  browserChart = new Chart(browserCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Chrome', 'Safari', 'Firefox', 'Other'],
+      datasets: [{
+        data: [0, 0, 0, 0],
+        backgroundColor: ['#ef4444', '#f59e0b', '#8b5cf6', '#64748b']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#ffffff' }
+        }
+      }
+    }
+  });
+
+  // Performance Chart
+  const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+  performanceChart = new Chart(performanceCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Load Time', 'TTI', 'LCP', 'FID', 'CLS'],
+      datasets: [{
+        label: 'Current',
+        data: [0, 0, 0, 0, 0],
+        backgroundColor: '#3b82f6'
+      }, {
+        label: 'Target',
+        data: [1, 3.8, 2.5, 100, 0.1],
+        backgroundColor: '#22c55e'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#ffffff' }
+        }
+      },
+      scales: {
+        y: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        },
+        x: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        }
+      }
+    }
+  });
+
+  // Feature Usage Chart
+  const featureCtx = document.getElementById('featureChart').getContext('2d');
+  featureChart = new Chart(featureCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Photo Capture', 'Forms', 'Dashboard', 'Reports', 'Search'],
+      datasets: [{
+        label: 'Usage Count',
+        data: [0, 0, 0, 0, 0],
+        backgroundColor: '#8b5cf6'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#ffffff' }
+        }
+      },
+      scales: {
+        y: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        },
+        x: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        }
+      }
+    }
+  });
+
+  // Conversion Funnel Chart
+  const funnelCtx = document.getElementById('funnelChart').getContext('2d');
+  funnelChart = new Chart(funnelCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Visit', 'Form Start', 'Form Submit', 'Complete'],
+      datasets: [{
+        label: 'Users',
+        data: [100, 75, 50, 25],
+        backgroundColor: ['#22c55e', '#3b82f6', '#fbbf24', '#ef4444']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: {
+          labels: { color: '#ffffff' }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        },
+        y: {
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+        }
+      }
+    }
+  });
+}
+
+// Load dashboard data
+async function loadDashboardData() {
+  try {
+    mobileNext.showLoading('Loading analytics data...');
+    
+    // Simulate API call - replace with actual data fetching
+    const analyticsData = await fetchAnalyticsData();
+    
+    // Update metrics
+    updateKeyMetrics(analyticsData);
+    
+    // Update charts
+    updateCharts(analyticsData);
+    
+    // Update activity feed
+    updateRecentActivity(analyticsData);
+    
+    // Update top pages
+    updateTopPages(analyticsData);
+    
+    mobileNext.hideLoading();
+    
+  } catch (error) {
+    console.error('Error loading analytics data:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to load analytics data', 'error');
+  }
+}
+
+// Simulate fetching analytics data
+async function fetchAnalyticsData() {
+  // This would be replaced with actual API calls to your analytics backend
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        totalUsers: 1247,
+        pageViews: 5432,
+        avgSessionTime: 4.5,
+        bounceRate: 32,
+        loadTime: 0.8,
+        errorRate: 1.2,
+        deviceBreakdown: { mobile: 68, tablet: 12, desktop: 20 },
+        browserBreakdown: { chrome: 45, safari: 30, firefox: 15, other: 10 },
+        featureUsage: { photo: 234, forms: 567, dashboard: 892, reports: 123, search: 456 },
+        recentActivity: [
+          { user: 'John Doe', action: 'Completed pre-cleaning', time: '2 mins ago' },
+          { user: 'Jane Smith', action: 'Submitted damage report', time: '5 mins ago' },
+          { user: 'Bob Johnson', action: 'Viewed dashboard', time: '8 mins ago' }
+        ],
+        topPages: [
+          { page: 'Dashboard', views: 1234 },
+          { page: 'Pre-Cleaning', views: 876 },
+          { page: 'Post-Cleaning', views: 654 },
+          { page: 'Damage Report', views: 432 }
+        ],
+        onlineUsers: 23,
+        activeForms: 8,
+        newUsers: 45,
+        returningUsers: 234
+      });
+    }, 1000);
+  });
+}
+
+// Update key metrics
+function updateKeyMetrics(data) {
+  document.getElementById('totalUsers').textContent = data.totalUsers.toLocaleString();
+  document.getElementById('pageViews').textContent = data.pageViews.toLocaleString();
+  document.getElementById('avgSessionTime').textContent = data.avgSessionTime + 'm';
+  document.getElementById('bounceRate').textContent = data.bounceRate + '%';
+  document.getElementById('loadTime').textContent = data.loadTime + 's';
+  document.getElementById('errorRate').textContent = data.errorRate + '%';
+  document.getElementById('onlineUsers').textContent = data.onlineUsers;
+  document.getElementById('activeForms').textContent = data.activeForms;
+  document.getElementById('newUsers').textContent = data.newUsers;
+  document.getElementById('returningUsers').textContent = data.returningUsers;
+  
+  // Update change indicators
+  document.getElementById('usersChange').textContent = '+12%';
+  document.getElementById('pageViewsChange').textContent = '+8%';
+  document.getElementById('sessionTimeChange').textContent = '+15%';
+  document.getElementById('bounceRateChange').textContent = '-5%';
+}
+
+// Update charts
+function updateCharts(data) {
+  // Update usage chart
+  usageChart.data.labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  usageChart.data.datasets[0].data = [450, 520, 480, 590, 620, 380, 290];
+  usageChart.data.datasets[1].data = [120, 150, 140, 180, 190, 110, 85];
+  usageChart.update();
+
+  // Update device chart
+  deviceChart.data.datasets[0].data = [
+    data.deviceBreakdown.mobile,
+    data.deviceBreakdown.tablet,
+    data.deviceBreakdown.desktop
+  ];
+  deviceChart.update();
+
+  // Update browser chart
+  browserChart.data.datasets[0].data = [
+    data.browserBreakdown.chrome,
+    data.browserBreakdown.safari,
+    data.browserBreakdown.firefox,
+    data.browserBreakdown.other
+  ];
+  browserChart.update();
+
+  // Update performance chart
+  performanceChart.data.datasets[0].data = [
+    data.loadTime * 1000,
+    2500,
+    1800,
+    45,
+    0.08
+  ];
+  performanceChart.update();
+
+  // Update feature usage chart
+  featureChart.data.datasets[0].data = [
+    data.featureUsage.photo,
+    data.featureUsage.forms,
+    data.featureUsage.dashboard,
+    data.featureUsage.reports,
+    data.featureUsage.search
+  ];
+  featureChart.update();
+}
+
+// Update recent activity
+function updateRecentActivity(data) {
+  const activityContainer = document.getElementById('recentActivity');
+  activityContainer.innerHTML = '';
+  
+  data.recentActivity.forEach(activity => {
+    const activityItem = document.createElement('div');
+    activityItem.className = 'mb-3';
+    activityItem.innerHTML = `
+      <div style="display: flex; align-items: start; gap: 12px;">
+        <div style="font-size: 20px;">👤</div>
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 500;">${activity.user}</div>
+          <div class="text-small" style="color: #94a3b8;">${activity.action}</div>
+          <div class="text-small" style="color: #64748b;">${activity.time}</div>
+        </div>
+      </div>
+    `;
+    activityContainer.appendChild(activityItem);
+  });
+}
+
+// Update top pages
+function updateTopPages(data) {
+  const topPagesContainer = document.getElementById('topPages');
+  topPagesContainer.innerHTML = '';
+  
+  data.topPages.forEach((page, index) => {
+    const pageItem = document.createElement('div');
+    pageItem.className = 'mb-2';
+    pageItem.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div class="text-body" style="font-weight: 600;">${index + 1}. ${page.page}</div>
+        </div>
+        <div class="text-small" style="color: #94a3b8;">${page.views.toLocaleString()} views</div>
+      </div>
+    `;
+    topPagesContainer.appendChild(pageItem);
+  });
+}
+
+// Update dashboard
+function updateDashboard() {
+  loadDashboardData();
+  mobileNext.showToast('Dashboard updated', 'success');
+}
+
+// Export report
+function exportReport() {
+  mobileNext.showToast('Export feature coming soon', 'info');
+}
+
+// Refresh dashboard
+function refreshDashboard() {
+  loadDashboardData();
+  mobileNext.showToast('Dashboard refreshed', 'success');
+}
+</script>
+
+</body>
+</html>

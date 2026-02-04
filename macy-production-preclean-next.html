@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MACY Production - Pre-Cleaning</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+  
+  <!-- Essential scripts only - no heavy libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/dateUtils.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+  <script src="js/pwa-registration.js"></script>
+  <script src="js/ai-recommendations.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">MACY Production</div>
+    <div class="text-subtitle">Pre-Cleaning Verification</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- Employee Information -->
+    <div class="card fade-in">
+      <div class="text-section">Employee Information</div>
+      
+      <div class="form-group">
+        <label class="text-label">Employee Name *</label>
+        <input type="text" class="input" id="employeeName" placeholder="Enter your name" name="employeeName">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Date & Time</label>
+        <input type="text" class="input" id="dateTime" readonly>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Number of bags used *</label>
+        <input type="number" class="input" id="bagsUsed" placeholder="0" name="bagsUsed">
+      </div>
+    </div>
+
+    <!-- Equipment Checklist -->
+    <div class="card fade-in">
+      <div class="text-section">Equipment & Safety Checklist</div>
+      
+      <div class="question">
+        <div class="question-text">Verify the equipment for any inadequate condition and safety issues.</div>
+        <select class="select" id="equipment1" name="equipment1">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="equipment1-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="equipment1-comment"></textarea>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-text">Check sensors and motor.</div>
+        <select class="select" id="equipment2" name="equipment2">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="equipment2-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="equipment2-comment"></textarea>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-text">Inspect conveyor belts and rollers.</div>
+        <select class="select" id="equipment3" name="equipment3">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="equipment3-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="equipment3-comment"></textarea>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-text">Check safety guards and emergency stops.</div>
+        <select class="select" id="equipment4" name="equipment4">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="equipment4-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="equipment4-comment"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cleaning Area Checklist -->
+    <div class="card fade-in">
+      <div class="text-section">Cleaning Area Verification</div>
+      
+      <div class="question">
+        <div class="question-text">Floor cleanliness and drainage.</div>
+        <select class="select" id="area1" name="area1">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="area1-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="area1-comment"></textarea>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-text">Wall and ceiling condition.</div>
+        <select class="select" id="area2" name="area2">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="area2-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="area2-comment"></textarea>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-text">Lighting and ventilation.</div>
+        <select class="select" id="area3" name="area3">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="area3-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="area3-comment"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Safety Compliance -->
+    <div class="card fade-in">
+      <div class="text-section">Safety Compliance</div>
+      
+      <div class="question">
+        <div class="question-text">Personal protective equipment (PPE) availability.</div>
+        <select class="select" id="safety1" name="safety1">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="safety1-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="safety1-comment"></textarea>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-text">Chemical storage and labeling.</div>
+        <select class="select" id="safety2" name="safety2">
+          <option value="">Select</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Not Acceptable">Not Acceptable</option>
+          <option value="NA">NA</option>
+        </select>
+        <div class="question-extra hidden" id="safety2-extra">
+          <input type="file" class="input" accept="image/*" capture="environment">
+          <textarea class="textarea" placeholder="Comment required..." name="safety2-comment"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Notes -->
+    <div class="card fade-in">
+      <div class="text-section">Additional Notes</div>
+      
+      <div class="form-group">
+        <label class="text-label">Comments or observations</label>
+        <textarea class="textarea" id="additionalNotes" placeholder="Enter any additional notes..." name="additionalNotes"></textarea>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" id="submitBtn" onclick="submitPreCleaning()">
+      <span>Submit Pre-Cleaning</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="saveDraft()">
+      <span>Save Draft</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext framework
+const mobileNext = window.MobileNext;
+
+// Page-specific logic
+const supabase = window.supabaseClient;
+
+// Update date/time
+function updateDateTime() {
+  const dateTimeEl = document.getElementById('dateTime');
+  if (dateTimeEl) {
+    dateTimeEl.value = new Date().toLocaleString();
+  }
+}
+
+// Handle conditional questions
+function setupConditionalQuestions() {
+  const selects = document.querySelectorAll('.select');
+  selects.forEach(select => {
+    select.addEventListener('change', function() {
+      const questionId = this.id;
+      const extraDiv = document.getElementById(questionId + '-extra');
+      
+      if (extraDiv) {
+        if (this.value === 'Not Acceptable' || this.value === 'NA') {
+          extraDiv.classList.remove('hidden');
+          extraDiv.classList.add('slide-up');
+        } else {
+          extraDiv.classList.add('hidden');
+        }
+      }
+    });
+  });
+}
+
+// Form validation
+function validateForm() {
+  const employeeName = document.getElementById('employeeName').value.trim();
+  const bagsUsed = document.getElementById('bagsUsed').value.trim();
+  
+  if (!employeeName) {
+    mobileNext.showToast('Employee name is required', 'error');
+    return false;
+  }
+  
+  if (!bagsUsed || bagsUsed < 0) {
+    mobileNext.showToast('Valid number of bags is required', 'error');
+    return false;
+  }
+  
+  // Check all required questions
+  const selects = document.querySelectorAll('.select');
+  for (let select of selects) {
+    if (!select.value) {
+      mobileNext.showToast('Please answer all questions', 'error');
+      select.focus();
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+// Submit pre-cleaning
+async function submitPreCleaning() {
+  if (!validateForm()) return;
+  
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.classList.add('loading');
+  
+  mobileNext.showLoading('Submitting pre-cleaning...');
+  
+  try {
+    const employeeName = document.getElementById('employeeName').value.trim();
+    const bagsUsed = parseInt(document.getElementById('bagsUsed').value) || 0;
+    const additionalNotes = document.getElementById('additionalNotes').value.trim();
+    
+    // Collect checklist data
+    const checklist = [];
+    const questions = document.querySelectorAll('.question');
+    
+    questions.forEach((question, index) => {
+      const select = question.querySelector('.select');
+      const textarea = question.querySelector('.textarea');
+      const fileInput = question.querySelector('input[type="file"]');
+      
+      if (select && select.value) {
+        const item = {
+          id: select.id,
+          question: question.querySelector('.question-text').textContent,
+          answer: select.value,
+          comment: textarea ? textarea.value.trim() : '',
+          photoRequired: select.value === 'Not Acceptable' || select.value === 'NA',
+          photo: null // TODO: Handle photo upload
+        };
+        checklist.push(item);
+      }
+    });
+    
+    // Save to Supabase
+    const { data, error } = await supabase
+      .from('pre_cleaning_logs')
+      .insert({
+        area: 'MACY_PRODUCTION',
+        employee_name: employeeName,
+        bags_used: bagsUsed,
+        checklist: checklist,
+        status: 'submitted',
+        submitted_at: DateUtils.getCurrentTimestamp()
+      });
+    
+    if (error) throw error;
+    
+    mobileNext.hideLoading();
+    mobileNext.showToast('Pre-cleaning submitted successfully!', 'success');
+    
+    // Clear form
+    setTimeout(() => {
+      if (confirm('Form submitted successfully! Clear the form?')) {
+        document.querySelector('form').reset();
+        localStorage.removeItem('draft_macy-production-preclean');
+      }
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Error submitting pre-cleaning:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to submit: ' + error.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('loading');
+  }
+}
+
+// Save draft
+function saveDraft() {
+  const formData = {
+    employeeName: document.getElementById('employeeName').value,
+    bagsUsed: document.getElementById('bagsUsed').value,
+    additionalNotes: document.getElementById('additionalNotes').value,
+    checklist: []
+  };
+  
+  // Collect checklist data
+  const selects = document.querySelectorAll('.select');
+  selects.forEach(select => {
+    const textarea = document.getElementById(select.id + '-extra')?.querySelector('.textarea');
+    formData.checklist.push({
+      id: select.id,
+      value: select.value,
+      comment: textarea ? textarea.value : ''
+    });
+  });
+  
+  localStorage.setItem('draft_macy-production-preclean', JSON.stringify(formData));
+  mobileNext.showToast('Draft saved', 'success');
+}
+
+// Load draft
+function loadDraft() {
+  const draft = localStorage.getItem('draft_macy-production-preclean');
+  if (draft) {
+    try {
+      const formData = JSON.parse(draft);
+      
+      document.getElementById('employeeName').value = formData.employeeName || '';
+      document.getElementById('bagsUsed').value = formData.bagsUsed || '';
+      document.getElementById('additionalNotes').value = formData.additionalNotes || '';
+      
+      // Restore checklist
+      formData.checklist.forEach(item => {
+        const select = document.getElementById(item.id);
+        if (select) {
+          select.value = item.value;
+          select.dispatchEvent(new Event('change'));
+          
+          const textarea = document.getElementById(item.id + '-extra')?.querySelector('.textarea');
+          if (textarea) {
+            textarea.value = item.comment || '';
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.warn('Failed to load draft:', error);
+    }
+  }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  
+  setupConditionalQuestions();
+  loadDraft();
+  
+  // Auto-save draft every 30 seconds
+  setInterval(saveDraft, 30000);
+  
+  console.log('🚀 MACY Production Pre-Cleaning page loaded');
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,77 @@
+-- Standard PostgreSQL Security Definer Fix
+-- This uses standard syntax without SQL SECURITY INVOKER
+
+-- Step 1: Drop all problematic views
+DROP VIEW IF EXISTS public.v_damage_kpi CASCADE;
+DROP VIEW IF EXISTS public.v_line_status CASCADE;
+DROP VIEW IF EXISTS public.v_daily_sanitation CASCADE;
+DROP VIEW IF EXISTS public.v_open_handover CASCADE;
+
+-- Step 2: Recreate views without SECURITY DEFINER (standard syntax)
+CREATE OR REPLACE VIEW public.v_damage_kpi AS
+SELECT
+  area,
+  count(*) FILTER (WHERE status='Open') AS open_count,
+  count(*) FILTER (WHERE status='Completed') AS completed_count,
+  count(*) FILTER (WHERE status='Handover') AS handover_count
+FROM damage_reports
+GROUP BY area;
+
+CREATE OR REPLACE VIEW public.v_line_status AS
+SELECT
+  area,
+  max(created_at) AS last_activity,
+  bool_and(is_released) AS released
+FROM line_release_logs
+GROUP BY area;
+
+CREATE OR REPLACE VIEW public.v_daily_sanitation AS
+SELECT
+  date(created_at) AS day,
+  count(distinct area) AS lines_touched,
+  count(*) AS actions
+FROM pre_cleaning_logs
+GROUP BY date(created_at);
+
+CREATE OR REPLACE VIEW public.v_open_handover AS
+SELECT *
+FROM handover_tasks
+WHERE status = 'Pending';
+
+-- Step 3: Set proper ownership and permissions
+ALTER VIEW public.v_damage_kpi OWNER TO authenticated;
+ALTER VIEW public.v_line_status OWNER TO authenticated;
+ALTER VIEW public.v_daily_sanitation OWNER TO authenticated;
+ALTER VIEW public.v_open_handover OWNER TO authenticated;
+
+GRANT SELECT ON public.v_damage_kpi TO authenticated, anon;
+GRANT SELECT ON public.v_line_status TO authenticated, anon;
+GRANT SELECT ON public.v_daily_sanitation TO authenticated, anon;
+GRANT SELECT ON public.v_open_handover TO authenticated, anon;
+
+-- Step 4: Verify the fix
+SELECT 
+  viewname,
+  viewowner,
+  definition,
+  CASE 
+    WHEN definition LIKE '%SECURITY DEFINER%' THEN '❌ STILL HAS SECURITY DEFINER'
+    ELSE '✅ FIXED - NO SECURITY DEFINER'
+  END as security_status
+FROM pg_views 
+WHERE viewname IN ('v_damage_kpi', 'v_line_status', 'v_daily_sanitation', 'v_open_handover')
+AND schemaname = 'public';
+
+-- Step 5: Additional verification using pg_class
+SELECT 
+  c.relname as view_name,
+  pg_get_viewdef(c.oid) as view_definition,
+  CASE 
+    WHEN pg_get_viewdef(c.oid) LIKE '%SECURITY DEFINER%' THEN '❌ STILL HAS SECURITY DEFINER'
+    ELSE '✅ FIXED - NO SECURITY DEFINER'
+  END as definer_status
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE c.relkind = 'v'
+AND n.nspname = 'public'
+AND c.relname IN ('v_damage_kpi', 'v_line_status', 'v_daily_sanitation', 'v_open_handover');

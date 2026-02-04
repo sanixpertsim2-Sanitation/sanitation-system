@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MACY Decoration - Damage Report</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  
+  <!-- Essential scripts only -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/dateUtils.js"></script>
+  <script src="js/mobile-next.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">MACY Decoration</div>
+    <div class="text-subtitle">Damage Report</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- New Damage Report -->
+    <div class="card fade-in">
+      <div class="text-section">Log New Damage</div>
+      
+      <div class="form-group">
+        <label class="text-label">Line</label>
+        <input type="text" class="input" id="lineArea" readonly value="MACY Decoration">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Reported by *</label>
+        <input type="text" class="input" id="reportedBy" placeholder="Enter your name" name="reportedBy">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Component / Location *</label>
+        <input type="text" class="input" id="component" placeholder="Conveyor / Frame / Guard" name="component">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Date & Time</label>
+        <input type="text" class="input" id="reportedAt" readonly>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Description *</label>
+        <textarea class="textarea" id="damageDesc" placeholder="Describe the damage in detail..." name="damageDesc"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Severity</label>
+        <select class="select" id="severity" name="severity">
+          <option value="">Select severity</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Capture Damage Photos *</label>
+        <input type="file" class="input" id="damagePhoto" accept="image/*" capture="environment" multiple>
+        <div id="photoPreview" class="mt-2"></div>
+      </div>
+    </div>
+
+    <!-- Existing Damage Reports -->
+    <div class="card fade-in">
+      <div class="text-section">Damage Log</div>
+      <div id="damageList"></div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-danger btn-block" id="submitDamageBtn" onclick="submitDamage()">
+      <span>Submit Damage Report</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="refreshDamageList()">
+      <span>Refresh List</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext framework
+const mobileNext = window.MobileNext;
+const supabase = window.supabaseClient;
+
+// Photo handling
+let damagePhotos = [];
+
+// Update date/time
+function updateDateTime() {
+  const dateTimeEl = document.getElementById('reportedAt');
+  if (dateTimeEl) {
+    dateTimeEl.value = new Date().toLocaleString();
+  }
+}
+
+// Photo preview
+function setupPhotoPreview() {
+  const photoInput = document.getElementById('damagePhoto');
+  const previewContainer = document.getElementById('photoPreview');
+  
+  photoInput.addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    damagePhotos = [];
+    previewContainer.innerHTML = '';
+    
+    files.forEach((file, index) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const photoData = {
+            file: file,
+            dataUrl: e.target.result,
+            name: file.name
+          };
+          damagePhotos.push(photoData);
+          
+          // Create preview
+          const preview = document.createElement('div');
+          preview.className = 'photo-preview';
+          preview.style.cssText = `
+            position: relative;
+            display: inline-block;
+            margin: 8px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          `;
+          
+          preview.innerHTML = `
+            <img src="${e.target.result}" style="width: 80px; height: 80px; object-fit: cover;">
+            <button type="button" onclick="removePhoto(${index})" style="
+              position: absolute;
+              top: 4px;
+              right: 4px;
+              background: rgba(239, 68, 68, 0.9);
+              color: white;
+              border: none;
+              border-radius: 50%;
+              width: 20px;
+              height: 20px;
+              font-size: 12px;
+              cursor: pointer;
+            ">×</button>
+          `;
+          
+          previewContainer.appendChild(preview);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  });
+}
+
+// Remove photo
+function removePhoto(index) {
+  damagePhotos.splice(index, 1);
+  
+  // Re-render previews
+  const previewContainer = document.getElementById('photoPreview');
+  previewContainer.innerHTML = '';
+  
+  damagePhotos.forEach((photo, i) => {
+    const preview = document.createElement('div');
+    preview.className = 'photo-preview';
+    preview.style.cssText = `
+      position: relative;
+      display: inline-block;
+      margin: 8px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    `;
+    
+    preview.innerHTML = `
+      <img src="${photo.dataUrl}" style="width: 80px; height: 80px; object-fit: cover;">
+      <button type="button" onclick="removePhoto(${i})" style="
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        background: rgba(239, 68, 68, 0.9);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        cursor: pointer;
+      ">×</button>
+    `;
+    
+    previewContainer.appendChild(preview);
+  });
+}
+
+// Form validation
+function validateDamageForm() {
+  const reportedBy = document.getElementById('reportedBy').value.trim();
+  const component = document.getElementById('component').value.trim();
+  const description = document.getElementById('damageDesc').value.trim();
+  const severity = document.getElementById('severity').value;
+  
+  if (!reportedBy) {
+    mobileNext.showToast('Reporter name is required', 'error');
+    return false;
+  }
+  
+  if (!component) {
+    mobileNext.showToast('Component/Location is required', 'error');
+    return false;
+  }
+  
+  if (!description) {
+    mobileNext.showToast('Description is required', 'error');
+    return false;
+  }
+  
+  if (!severity) {
+    mobileNext.showToast('Severity is required', 'error');
+    return false;
+  }
+  
+  if (damagePhotos.length === 0) {
+    mobileNext.showToast('At least one photo is required', 'error');
+    return false;
+  }
+  
+  return true;
+}
+
+// Submit damage report
+async function submitDamage() {
+  if (!validateDamageForm()) return;
+  
+  const submitBtn = document.getElementById('submitDamageBtn');
+  submitBtn.disabled = true;
+  submitBtn.classList.add('loading');
+  
+  mobileNext.showLoading('Submitting damage report...');
+  
+  try {
+    const reportedBy = document.getElementById('reportedBy').value.trim();
+    const component = document.getElementById('component').value.trim();
+    const description = document.getElementById('damageDesc').value.trim();
+    const severity = document.getElementById('severity').value;
+    
+    // Convert photos to base64
+    const photoData = await Promise.all(
+      damagePhotos.map(async (photo) => {
+        return {
+          name: photo.name,
+          data: photo.dataUrl
+        };
+      })
+    );
+    
+    // Save to Supabase
+    const { data, error } = await supabase
+      .from('damage_reports')
+      .insert({
+        area: 'MACY_DECORATION',
+        description: description,
+        severity: severity,
+        status: 'Open',
+        reporter: reportedBy,
+        component: component,
+        reported_at: DateUtils.getCurrentTimestamp(),
+        photos: photoData
+      });
+    
+    if (error) throw error;
+    
+    mobileNext.hideLoading();
+    mobileNext.showToast('Damage report submitted successfully!', 'success');
+    
+    // Clear form
+    document.getElementById('reportedBy').value = '';
+    document.getElementById('component').value = '';
+    document.getElementById('damageDesc').value = '';
+    document.getElementById('severity').value = '';
+    document.getElementById('damagePhoto').value = '';
+    document.getElementById('photoPreview').innerHTML = '';
+    damagePhotos = [];
+    
+    // Refresh damage list
+    loadDamageList();
+    
+  } catch (error) {
+    console.error('Error submitting damage:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to submit: ' + error.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('loading');
+  }
+}
+
+// Load damage list
+async function loadDamageList() {
+  try {
+    mobileNext.showLoading('Loading damage reports...');
+    
+    const { data, error } = await supabase
+      .from('damage_reports')
+      .select('*')
+      .eq('area', 'MACY_DECORATION')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    
+    if (error) throw error;
+    
+    const damageList = document.getElementById('damageList');
+    damageList.innerHTML = '';
+    
+    if (data.length === 0) {
+      damageList.innerHTML = '<p class="text-body text-center">No damage reports found</p>';
+      return;
+    }
+    
+    data.forEach(damage => {
+      const damageCard = document.createElement('div');
+      damageCard.className = 'card mb-2';
+      
+      const statusClass = damage.status === 'Open' ? 'status-open' : 
+                          damage.status === 'Completed' ? 'status-completed' : 
+                          'status-pending';
+      
+      const severityColor = damage.severity === 'High' ? '#ef4444' : 
+                           damage.severity === 'Medium' ? '#f59e0b' : 
+                           '#22c55e';
+      
+      damageCard.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+          <div>
+            <div class="text-body" style="font-weight: 600;">${damage.component}</div>
+            <div class="text-small" style="color: #94a3b8;">Reported by ${damage.reporter}</div>
+          </div>
+          <div style="text-align: right;">
+            <span class="status ${statusClass}">${damage.status}</span>
+            <div class="text-small" style="color: ${severityColor}; margin-top: 4px;">${damage.severity}</div>
+          </div>
+        </div>
+        
+        <div class="text-body" style="margin-bottom: 12px;">${damage.description}</div>
+        
+        <div class="text-small" style="color: #64748b;">
+          ${new Date(damage.created_at).toLocaleString()}
+        </div>
+        
+        ${damage.status === 'Open' ? `
+          <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <button class="btn btn-success" style="flex: 1; font-size: 14px; padding: 8px 12px;" onclick="markCompleted('${damage.id}')">
+              Mark Completed
+            </button>
+            <button class="btn btn-secondary" style="flex: 1; font-size: 14px; padding: 8px 12px;" onclick="markHandover('${damage.id}')">
+              Handover
+            </button>
+          </div>
+        ` : ''}
+      `;
+      
+      damageList.appendChild(damageCard);
+    });
+    
+  } catch (error) {
+    console.error('Error loading damage list:', error);
+    mobileNext.showToast('Failed to load damage reports', 'error');
+  } finally {
+    mobileNext.hideLoading();
+  }
+}
+
+// Mark damage as completed
+async function markCompleted(damageId) {
+  mobileNext.confirm(
+    'Mark as Completed',
+    'Are you sure this damage has been repaired?',
+    async () => {
+      try {
+        mobileNext.showLoading('Updating status...');
+        
+        const { error } = await supabase
+          .from('damage_reports')
+          .update({
+            status: 'Completed',
+            completed_at: DateUtils.getCurrentTimestamp(),
+            completed_by: 'Current User' // TODO: Get actual user
+          })
+          .eq('id', damageId);
+        
+        if (error) throw error;
+        
+        mobileNext.hideLoading();
+        mobileNext.showToast('Damage marked as completed', 'success');
+        loadDamageList();
+        
+      } catch (error) {
+        console.error('Error marking completed:', error);
+        mobileNext.hideLoading();
+        mobileNext.showToast('Failed to update status', 'error');
+      }
+    }
+  );
+}
+
+// Mark damage for handover
+async function markHandover(damageId) {
+  mobileNext.confirm(
+    'Mark for Handover',
+    'Are you sure this damage needs to be handed over?',
+    async () => {
+      try {
+        mobileNext.showLoading('Updating status...');
+        
+        const { error } = await supabase
+          .from('damage_reports')
+          .update({
+            status: 'Handover',
+            handover_at: DateUtils.getCurrentTimestamp(),
+            handover_reason: 'Requires specialized repair'
+          })
+          .eq('id', damageId);
+        
+        if (error) throw error;
+        
+        mobileNext.hideLoading();
+        mobileNext.showToast('Damage marked for handover', 'success');
+        loadDamageList();
+        
+      } catch (error) {
+        console.error('Error marking handover:', error);
+        mobileNext.hideLoading();
+        mobileNext.showToast('Failed to update status', 'error');
+      }
+    }
+  );
+}
+
+// Refresh damage list
+function refreshDamageList() {
+  loadDamageList();
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  
+  setupPhotoPreview();
+  loadDamageList();
+  
+  console.log('🚀 MACY Decoration Damage Report page loaded');
+});
+</script>
+
+</body>
+</html>

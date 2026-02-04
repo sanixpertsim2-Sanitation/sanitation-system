@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sanixpert - Sanitation Management System</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+  
+  <!-- Essential scripts only -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+  <script src="js/pwa-registration.js"></script>
+  <script src="js/ai-recommendations.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">Sanixpert</div>
+    <div class="text-subtitle">Sanitation Management System</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- Quick Stats -->
+    <div class="card fade-in">
+      <div class="text-section">Today's Overview</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #22c55e;" id="completedCount">0</div>
+          <div class="text-small">Completed</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(251, 191, 36, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #fbbf24;" id="pendingCount">0</div>
+          <div class="text-small">Pending</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #ef4444;" id="damageCount">0</div>
+          <div class="text-small">Open Damages</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-size: 24px; font-weight: 700; color: #3b82f6;" id="releasedCount">0</div>
+          <div class="text-small">Lines Released</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line Selection -->
+    <div class="card fade-in">
+      <div class="text-section">Select Line</div>
+      
+      <div class="form-group">
+        <label class="text-label">Choose Production Line</label>
+        <select class="select" id="lineSelect" onchange="updateLineSelection()">
+          <option value="">Select a line...</option>
+          <option value="MACY_PRODUCTION">MACY Production Line</option>
+          <option value="MACY_DECORATION">MACY Decoration Line</option>
+          <option value="MACY_Spiral">MACY Spiral Line</option>
+          <option value="MACY_Oven">MACY Oven Line</option>
+          <option value="MACY_Palletizer">MACY Palletizer Line</option>
+        </select>
+      </div>
+      
+      <div id="selectedLineInfo" style="display: none;">
+        <div class="text-body" style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-weight: 600;" id="selectedLineName">-</div>
+          <div class="text-small" style="color: #94a3b8;">Selected Line</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MACY Production Line -->
+    <div class="card fade-in">
+      <div class="text-section">MACY Production Line</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn btn-primary" onclick="navigateTo('macy-production-preclean-next.html')">
+          <span>🧹 Pre-Clean</span>
+        </button>
+        <button class="btn btn-primary" onclick="navigateTo('macy-production-postclean-next.html')">
+          <span>✨ Post-Clean</span>
+        </button>
+        <button class="btn btn-danger" onclick="navigateTo('macy-production-damage-next.html')">
+          <span>🔧 Damage</span>
+        </button>
+        <button class="btn btn-secondary" onclick="navigateTo('macy-production-handover-next.html')">
+          <span>🔄 Handover</span>
+        </button>
+      </div>
+      
+      <button class="btn btn-success btn-block mt-2" onclick="navigateTo('macy-production-release-next.html')">
+        <span>🚀 Release Line</span>
+      </button>
+    </div>
+
+    <!-- MACY Decoration Line -->
+    <div class="card fade-in">
+      <div class="text-section">MACY Decoration Line</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn btn-primary" onclick="navigateTo('macy-decoration-preclean-next.html')">
+          <span>🧹 Pre-Clean</span>
+        </button>
+        <button class="btn btn-primary" onclick="navigateTo('macy-decoration-postclean-next.html')">
+          <span>✨ Post-Clean</span>
+        </button>
+        <button class="btn btn-danger" onclick="navigateTo('macy-decoration-damage-next.html')">
+          <span>🔧 Damage</span>
+        </button>
+        <button class="btn btn-secondary" onclick="navigateTo('macy-decoration-handover-next.html')">
+          <span>🔄 Handover</span>
+        </button>
+      </div>
+      
+      <button class="btn btn-success btn-block mt-2" onclick="navigateTo('macy-decoration-release-next.html')">
+        <span>🚀 Release Line</span>
+      </button>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card fade-in">
+      <div class="text-section">Quick Actions</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn btn-primary" onclick="navigateTo('dashboard-next.html')">
+          <span>📊 Dashboard</span>
+        </button>
+        <button class="btn btn-secondary" onclick="navigateTo('live-dashboard-next.html')">
+          <span>📈 Live Status</span>
+        </button>
+        <button class="btn btn-secondary" onclick="navigateTo('report-next.html')">
+          <span>📋 Reports</span>
+        </button>
+        <button class="btn btn-secondary" onclick="navigateTo('inspection-next.html')">
+          <span>👁️ Inspection</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card fade-in">
+      <div class="text-section">Recent Activity</div>
+      <div id="recentActivity"></div>
+    </div>
+
+    <!-- System Status -->
+    <div class="card fade-in">
+      <div class="text-section">System Status</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="text-align: center; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+          <div style="font-size: 20px; margin-bottom: 4px;">🟢</div>
+          <div class="text-small">Database</div>
+          <div class="text-small" style="color: #22c55e;">Online</div>
+        </div>
+        <div style="text-align: center; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+          <div style="font-size: 20px; margin-bottom: 4px;">🟢</div>
+          <div class="text-small">Storage</div>
+          <div class="text-small" style="color: #22c55e;">Available</div>
+        </div>
+      </div>
+      
+      <div class="text-small text-center" style="margin-top: 12px; color: #94a3b8;">
+        Last updated: <span id="lastUpdated">Just now</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" onclick="refreshDashboard()">
+      <span>🔄 Refresh Dashboard</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="showSettings()">
+      <span>⚙️ Settings</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext framework
+const mobileNext = window.MobileNext;
+const supabase = window.supabaseClient;
+
+// Dashboard data
+let dashboardStats = {
+  completed: 0,
+  pending: 0,
+  damages: 0,
+  released: 0
+};
+
+let recentActivity = [];
+
+// Load dashboard data
+async function loadDashboardData() {
+  try {
+    // Load data in parallel
+    const [preCleanData, postCleanData, damageData, releaseData] = await Promise.all([
+      loadPreCleanStats(),
+      loadPostCleanStats(),
+      loadDamageStats(),
+      loadReleaseStats()
+    ]);
+    
+    // Update stats
+    updateDashboardStats(preCleanData, postCleanData, damageData, releaseData);
+    
+    // Update recent activity
+    updateRecentActivity(preCleanData, postCleanData, damageData);
+    
+    // Update last updated time
+    document.getElementById('lastUpdated').textContent = 'Just now';
+    
+  } catch (error) {
+    console.error('Error loading dashboard data:', error);
+    mobileNext.showToast('Failed to load dashboard', 'error');
+  }
+}
+
+// Load pre-cleaning stats
+async function loadPreCleanStats() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('pre_cleaning_logs')
+    .select('*')
+    .gte('submitted_at', today)
+    .order('submitted_at', { ascending: false })
+    .limit(10);
+  
+  return error ? [] : data || [];
+}
+
+// Load post-cleaning stats
+async function loadPostCleanStats() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('post_cleaning_logs')
+    .select('*')
+    .gte('submitted_at', today)
+    .order('submitted_at', { ascending: false })
+    .limit(10);
+  
+  return error ? [] : data || [];
+}
+
+// Load damage stats
+async function loadDamageStats() {
+  const { data, error } = await supabase
+    .from('damage_reports')
+    .select('*')
+    .in('status', ['Open', 'Handover'])
+    .order('created_at', { ascending: false })
+    .limit(10);
+  
+  return error ? [] : data || [];
+}
+
+// Load release stats
+async function loadReleaseStats() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('line_release_logs')
+    .select('*')
+    .gte('verified_at', today)
+    .order('verified_at', { ascending: false });
+  
+  return error ? [] : data || [];
+}
+
+// Update dashboard stats
+function updateDashboardStats(preCleanData, postCleanData, damageData, releaseData) {
+  dashboardStats.completed = preCleanData.length + postCleanData.length;
+  dashboardStats.pending = damageData.filter(d => d.status === 'Handover').length;
+  dashboardStats.damages = damageData.filter(d => d.status === 'Open').length;
+  dashboardStats.released = releaseData.length;
+  
+  // Update UI
+  document.getElementById('completedCount').textContent = dashboardStats.completed;
+  document.getElementById('pendingCount').textContent = dashboardStats.pending;
+  document.getElementById('damageCount').textContent = dashboardStats.damages;
+  document.getElementById('releasedCount').textContent = dashboardStats.released;
+}
+
+// Update recent activity
+function updateRecentActivity(preCleanData, postCleanData, damageData) {
+  const activityContainer = document.getElementById('recentActivity');
+  activityContainer.innerHTML = '';
+  
+  // Combine and sort activities
+  const allActivities = [
+    ...preCleanData.slice(0, 3).map(item => ({
+      type: 'pre-clean',
+      area: item.area,
+      employee: item.employee_name,
+      time: item.submitted_at,
+      description: 'Pre-cleaning completed',
+      icon: '🧹'
+    })),
+    ...postCleanData.slice(0, 3).map(item => ({
+      type: 'post-clean',
+      area: item.area,
+      employee: item.employee_name,
+      time: item.submitted_at,
+      description: 'Post-cleaning completed',
+      icon: '✨'
+    })),
+    ...damageData.slice(0, 3).map(item => ({
+      type: 'damage',
+      area: item.area,
+      employee: item.reporter,
+      time: item.created_at,
+      description: `Damage: ${item.component}`,
+      icon: '🔧'
+    }))
+  ].sort((a, b) => new Date(b.time) - new Date(a.time))
+   .slice(0, 5);
+  
+  if (allActivities.length === 0) {
+    activityContainer.innerHTML = '<p class="text-body text-center">No recent activity</p>';
+    return;
+  }
+  
+  allActivities.forEach(activity => {
+    const activityCard = document.createElement('div');
+    activityCard.className = 'mb-3';
+    
+    const timeAgo = getTimeAgo(new Date(activity.time));
+    
+    activityCard.innerHTML = `
+      <div style="display: flex; align-items: start; gap: 12px;">
+        <div style="font-size: 20px; margin-top: 2px;">${activity.icon}</div>
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 500;">${activity.description}</div>
+          <div class="text-small" style="color: #94a3b8;">
+            ${activity.area} • ${activity.employee} • ${timeAgo}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    activityContainer.appendChild(activityCard);
+  });
+}
+
+// Get time ago string
+function getTimeAgo(date) {
+  const now = new Date();
+  const diff = now - date;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return date.toLocaleDateString();
+}
+
+// Update line selection
+function updateLineSelection() {
+  const lineSelect = document.getElementById('lineSelect');
+  const selectedLineInfo = document.getElementById('selectedLineInfo');
+  const selectedLineName = document.getElementById('selectedLineName');
+  
+  if (lineSelect.value) {
+    selectedLineInfo.style.display = 'block';
+    selectedLineName.textContent = lineSelect.options[lineSelect.selectedIndex].text;
+    
+    // Save to localStorage
+    localStorage.setItem('selectedLine', lineSelect.value);
+  } else {
+    selectedLineInfo.style.display = 'none';
+    localStorage.removeItem('selectedLine');
+  }
+}
+
+// Navigate to page
+function navigateTo(page) {
+  // Check if page exists
+  const testLink = document.createElement('a');
+  testLink.href = page;
+  
+  // Add line parameter if selected
+  const selectedLine = document.getElementById('lineSelect').value;
+  if (selectedLine) {
+    page += `?line=${selectedLine}`;
+  }
+  
+  // Navigate
+  window.location.href = page;
+}
+
+// Refresh dashboard
+function refreshDashboard() {
+  loadDashboardData();
+  mobileNext.showToast('Dashboard refreshed', 'success');
+}
+
+// Show settings
+function showSettings() {
+  mobileNext.confirm(
+    'Settings',
+    'Settings panel coming soon!\n\nFeatures:\n• User preferences\n• Theme selection\n• Notification settings',
+    () => {
+      mobileNext.showToast('Settings coming soon', 'info');
+    }
+  );
+}
+
+// Check system status
+async function checkSystemStatus() {
+  try {
+    // Test database connection
+    const { data, error } = await supabase
+      .from('pre_cleaning_logs')
+      .select('count')
+      .limit(1);
+    
+    if (error) {
+      console.error('Database connection error:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('System status check failed:', error);
+    return false;
+  }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+  // Load selected line from localStorage
+  const savedLine = localStorage.getItem('selectedLine');
+  if (savedLine) {
+    const lineSelect = document.getElementById('lineSelect');
+    lineSelect.value = savedLine;
+    updateLineSelection();
+  }
+  
+  // Load dashboard data
+  loadDashboardData();
+  
+  // Check system status
+  checkSystemStatus();
+  
+  // Auto-refresh every 30 seconds
+  setInterval(() => {
+    loadDashboardData();
+  }, 30000);
+  
+  console.log('🚀 Sanixpert Dashboard loaded');
+});
+</script>
+
+</body>
+</html>

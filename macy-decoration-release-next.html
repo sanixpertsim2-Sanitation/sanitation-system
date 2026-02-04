@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MACY Decoration - Line Release</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  
+  <!-- Essential scripts only -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/dateUtils.js"></script>
+  <script src="js/mobile-next.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">MACY Decoration</div>
+    <div class="text-subtitle">Line Release Verification</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- Release Status -->
+    <div class="card fade-in">
+      <div class="text-section">Release Status</div>
+      
+      <div id="releaseStatus"></div>
+    </div>
+
+    <!-- Prerequisites Check -->
+    <div class="card fade-in">
+      <div class="text-section">Prerequisites Check</div>
+      
+      <div id="prerequisitesCheck"></div>
+    </div>
+
+    <!-- Final Verification -->
+    <div class="card fade-in" id="finalVerificationCard" style="display: none;">
+      <div class="text-section">Final Verification</div>
+      
+      <div class="form-group">
+        <label class="text-label">Released by *</label>
+        <input type="text" class="input" id="releasedBy" placeholder="Enter your name" name="releasedBy">
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Verification Notes</label>
+        <textarea class="textarea" id="verificationNotes" placeholder="Any verification notes..." name="verificationNotes"></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Digital Signature</label>
+        <canvas id="signatureCanvas" style="width: 100%; height: 150px; border: 2px dashed rgba(255,255,255,0.3); border-radius: 8px; background: rgba(255,255,255,0.05); touch-action: none;"></canvas>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button class="btn btn-secondary" style="flex: 1; font-size: 14px;" onclick="clearSignature()">Clear</button>
+          <button class="btn btn-primary" style="flex: 1; font-size: 14px;" onclick="saveSignature()">Save</button>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="text-label">Capture Verification Photo</label>
+        <input type="file" class="input" id="verificationPhoto" accept="image/*" capture="environment">
+        <div id="photoPreview" style="margin-top: 8px;"></div>
+      </div>
+    </div>
+
+    <!-- Recent Releases -->
+    <div class="card fade-in">
+      <div class="text-section">Recent Releases</div>
+      <div id="recentReleases"></div>
+    </div>
+
+    <!-- Line History -->
+    <div class="card fade-in">
+      <div class="text-section">Line History</div>
+      <div id="lineHistory"></div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-success btn-block" id="releaseBtn" onclick="releaseLine()" style="display: none;">
+      <span>Release Line</span>
+    </button>
+    <button class="btn btn-primary btn-block" onclick="refreshStatus()">
+      <span>Refresh Status</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="exportReleaseReport()">
+      <span>Export Report</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext framework
+const mobileNext = window.MobileNext;
+const supabase = window.supabaseClient;
+
+// Page data
+let releaseData = {
+  prerequisites: {
+    preCleanCompleted: false,
+    postCleanCompleted: false,
+    damagesResolved: false,
+    handoversCompleted: false,
+    areaInspected: false
+  },
+  canRelease: false,
+  recentReleases: [],
+  lineHistory: []
+};
+
+let signatureData = null;
+let verificationPhoto = null;
+
+// Load release status
+async function loadReleaseStatus() {
+  try {
+    mobileNext.showLoading('Loading release status...');
+    
+    // Load data in parallel
+    const [preCleanData, postCleanData, damageData, handoverData, inspectionData, releaseHistory] = await Promise.all([
+      loadPreCleanStatus(),
+      loadPostCleanStatus(),
+      loadDamageStatus(),
+      loadHandoverStatus(),
+      loadInspectionStatus(),
+      loadReleaseHistory()
+    ]);
+    
+    // Update prerequisites
+    releaseData.prerequisites.preCleanCompleted = preCleanData.completed;
+    releaseData.prerequisites.postCleanCompleted = postCleanData.completed;
+    releaseData.prerequisites.damagesResolved = damageData.resolved;
+    releaseData.prerequisites.handoversCompleted = handoverData.completed;
+    releaseData.prerequisites.areaInspected = inspectionData.completed;
+    
+    // Check if line can be released
+    releaseData.canRelease = Object.values(releaseData.prerequisites).every(status => status === true);
+    
+    // Update UI
+    updateReleaseStatus();
+    updatePrerequisitesCheck();
+    updateRecentReleases();
+    updateLineHistory();
+    
+    // Show/hide release button
+    const releaseBtn = document.getElementById('releaseBtn');
+    const finalVerificationCard = document.getElementById('finalVerificationCard');
+    
+    if (releaseData.canRelease) {
+      releaseBtn.style.display = 'block';
+      finalVerificationCard.style.display = 'block';
+    } else {
+      releaseBtn.style.display = 'none';
+      finalVerificationCard.style.display = 'none';
+    }
+    
+  } catch (error) {
+    console.error('Error loading release status:', error);
+    mobileNext.showToast('Failed to load release status', 'error');
+  } finally {
+    mobileNext.hideLoading();
+  }
+}
+
+// Load pre-clean status
+async function loadPreCleanStatus() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('pre_cleaning_logs')
+    .select('*')
+    .eq('area', 'MACY_DECORATION')
+    .gte('submitted_at', today)
+    .order('submitted_at', { ascending: false })
+    .limit(1);
+  
+  if (error) throw error;
+  
+  return {
+    completed: data.length > 0,
+    data: data[0] || null
+  };
+}
+
+// Load post-clean status
+async function loadPostCleanStatus() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('post_cleaning_logs')
+    .select('*')
+    .eq('area', 'MACY_DECORATION')
+    .gte('submitted_at', today)
+    .order('submitted_at', { ascending: false })
+    .limit(1);
+  
+  if (error) throw error;
+  
+  return {
+    completed: data.length > 0,
+    data: data[0] || null
+  };
+}
+
+// Load damage status
+async function loadDamageStatus() {
+  const { data, error } = await supabase
+    .from('damage_reports')
+    .select('*')
+    .eq('area', 'MACY_DECORATION')
+    .in('status', ['Open', 'Handover']);
+  
+  if (error) throw error;
+  
+  return {
+    resolved: (data || []).length === 0,
+    data: data || []
+  };
+}
+
+// Load handover status
+async function loadHandoverStatus() {
+  const { data, error } = await supabase
+    .from('handover_tasks')
+    .select('*')
+    .eq('area', 'MACY_DECORATION')
+    .eq('status', 'Pending');
+  
+  if (error) throw error;
+  
+  return {
+    completed: (data || []).length === 0,
+    data: data || []
+  };
+}
+
+// Load inspection status
+async function loadInspectionStatus() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('area_inspection_logs')
+    .select('*')
+    .gte('submitted_at', today)
+    .order('submitted_at', { ascending: false })
+    .limit(1);
+  
+  if (error) throw error;
+  
+  return {
+    completed: data.length > 0,
+    data: data[0] || null
+  };
+}
+
+// Load release history
+async function loadReleaseHistory() {
+  const { data, error } = await supabase
+    .from('line_release_logs')
+    .select('*')
+    .eq('area', 'MACY_DECORATION')
+    .order('verified_at', { ascending: false })
+    .limit(20);
+  
+  if (error) throw error;
+  
+  return data || [];
+}
+
+// Update release status
+function updateReleaseStatus() {
+  const releaseStatus = document.getElementById('releaseStatus');
+  releaseStatus.innerHTML = '';
+  
+  const statusCard = document.createElement('div');
+  statusCard.className = 'text-center';
+  
+  if (releaseData.canRelease) {
+    statusCard.innerHTML = `
+      <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+      <div class="text-body" style="font-size: 20px; font-weight: 600; color: #22c55e;">
+        Line Ready for Release
+      </div>
+      <div class="text-small" style="color: #94a3b8;">
+        All prerequisites completed
+      </div>
+    `;
+  } else {
+    const incompleteCount = Object.values(releaseData.prerequisites).filter(status => !status).length;
+    
+    statusCard.innerHTML = `
+      <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+      <div class="text-body" style="font-size: 20px; font-weight: 600; color: #fbbf24;">
+        Line Not Ready for Release
+      </div>
+      <div class="text-small" style="color: #94a3b8;">
+        ${incompleteCount} prerequisite(s) incomplete
+      </div>
+    `;
+  }
+  
+  releaseStatus.appendChild(statusCard);
+}
+
+// Update prerequisites check
+function updatePrerequisitesCheck() {
+  const prerequisitesCheck = document.getElementById('prerequisitesCheck');
+  prerequisitesCheck.innerHTML = '';
+  
+  const prerequisites = [
+    { key: 'preCleanCompleted', label: 'Pre-Cleaning Completed', icon: '🧹' },
+    { key: 'postCleanCompleted', label: 'Post-Cleaning Completed', icon: '✨' },
+    { key: 'damagesResolved', label: 'All Damages Resolved', icon: '🔧' },
+    { key: 'handoversCompleted', label: 'Handovers Completed', icon: '🔄' },
+    { key: 'areaInspected', label: 'Area Inspected', icon: '👁️' }
+  ];
+  
+  prerequisites.forEach(prereq => {
+    const status = releaseData.prerequisites[prereq.key];
+    const prereqCard = document.createElement('div');
+    prereqCard.className = 'card mb-2';
+    
+    prereqCard.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="font-size: 24px;">${status ? '✅' : '❌'}</div>
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 600;">${prereq.label}</div>
+          <div class="text-small" style="color: ${status ? '#22c55e' : '#ef4444'};">
+            ${status ? 'Completed' : 'Incomplete'}
+          </div>
+        </div>
+        <div style="font-size: 20px;">${prereq.icon}</div>
+      </div>
+    `;
+    
+    prerequisitesCheck.appendChild(prereqCard);
+  });
+}
+
+// Update recent releases
+function updateRecentReleases() {
+  const recentReleases = document.getElementById('recentReleases');
+  recentReleases.innerHTML = '';
+  
+  const today = new Date().toDateString();
+  const todayReleases = releaseData.lineHistory.filter(release => 
+    new Date(release.verified_at).toDateString() === today
+  );
+  
+  if (todayReleases.length === 0) {
+    recentReleases.innerHTML = '<p class="text-body text-center">No releases today</p>';
+    return;
+  }
+  
+  todayReleases.forEach(release => {
+    const releaseCard = document.createElement('div');
+    releaseCard.className = 'card mb-2';
+    
+    releaseCard.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div class="text-body" style="font-weight: 600;">Released by ${release.released_by}</div>
+          <div class="text-small" style="color: #94a3b8;">
+            ${new Date(release.verified_at).toLocaleString()}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <span class="status status-completed">Released</span>
+        </div>
+      </div>
+    `;
+    
+    recentReleases.appendChild(releaseCard);
+  });
+}
+
+// Update line history
+function updateLineHistory() {
+  const lineHistory = document.getElementById('lineHistory');
+  lineHistory.innerHTML = '';
+  
+  const recentHistory = releaseData.lineHistory.slice(0, 5);
+  
+  if (recentHistory.length === 0) {
+    lineHistory.innerHTML = '<p class="text-body text-center">No release history</p>';
+    return;
+  }
+  
+  recentHistory.forEach(release => {
+    const historyCard = document.createElement('div');
+    historyCard.className = 'mb-3';
+    
+    historyCard.innerHTML = `
+      <div style="display: flex; align-items: start; gap: 12px;">
+        <div style="
+          width: 8px;
+          height: 8px;
+          background: #22c55e;
+          border-radius: 50%;
+          margin-top: 6px;
+          flex-shrink: 0;
+        "></div>
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 500;">Line Released</div>
+          <div class="text-small" style="color: #94a3b8;">
+            By ${release.released_by} • ${new Date(release.verified_at).toLocaleString()}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    lineHistory.appendChild(historyCard);
+  });
+}
+
+// Setup signature canvas
+function setupSignatureCanvas() {
+  const canvas = document.getElementById('signatureCanvas');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  let isDrawing = false;
+  let lastX = 0;
+  let lastY = 0;
+  
+  // Set canvas size
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  
+  // Drawing functions
+  function startDrawing(e) {
+    isDrawing = true;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || e.touches[0].clientX) - rect.left;
+    const y = (e.clientY || e.touches[0].clientY) - rect.top;
+    lastX = x;
+    lastY = y;
+  }
+  
+  function draw(e) {
+    if (!isDrawing) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX || e.touches[0].clientX) - rect.left;
+    const y = (e.clientY || e.touches[0].clientY) - rect.top;
+    
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    
+    lastX = x;
+    lastY = y;
+  }
+  
+  function stopDrawing() {
+    isDrawing = false;
+  }
+  
+  // Mouse events
+  canvas.addEventListener('mousedown', startDrawing);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDrawing);
+  canvas.addEventListener('mouseout', stopDrawing);
+  
+  // Touch events
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    startDrawing(e);
+  });
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    draw(e);
+  });
+  canvas.addEventListener('touchend', stopDrawing);
+}
+
+// Clear signature
+function clearSignature() {
+  const canvas = document.getElementById('signatureCanvas');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  signatureData = null;
+}
+
+// Save signature
+function saveSignature() {
+  const canvas = document.getElementById('signatureCanvas');
+  if (!canvas) return;
+  
+  signatureData = canvas.toDataURL();
+  mobileNext.showToast('Signature saved', 'success');
+}
+
+// Setup photo preview
+function setupPhotoPreview() {
+  const photoInput = document.getElementById('verificationPhoto');
+  const previewContainer = document.getElementById('photoPreview');
+  
+  photoInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        verificationPhoto = e.target.result;
+        
+        const preview = document.createElement('div');
+        preview.style.cssText = `
+          position: relative;
+          display: inline-block;
+          margin: 8px 0;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        `;
+        
+        preview.innerHTML = `
+          <img src="${e.target.result}" style="width: 120px; height: 120px; object-fit: cover;">
+          <button type="button" onclick="clearPhoto()" style="
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            cursor: pointer;
+          ">×</button>
+        `;
+        
+        previewContainer.innerHTML = '';
+        previewContainer.appendChild(preview);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+// Clear photo
+function clearPhoto() {
+  document.getElementById('verificationPhoto').value = '';
+  document.getElementById('photoPreview').innerHTML = '';
+  verificationPhoto = null;
+}
+
+// Release line
+async function releaseLine() {
+  if (!releaseData.canRelease) {
+    mobileNext.showToast('Line is not ready for release', 'error');
+    return;
+  }
+  
+  const releasedBy = document.getElementById('releasedBy').value.trim();
+  const verificationNotes = document.getElementById('verificationNotes').value.trim();
+  
+  if (!releasedBy) {
+    mobileNext.showToast('Released by name is required', 'error');
+    return;
+  }
+  
+  if (!signatureData) {
+    mobileNext.showToast('Digital signature is required', 'error');
+    return;
+  }
+  
+  mobileNext.confirm(
+    'Release Line',
+    `Are you sure you want to release the MACY Decoration line?\n\nReleased by: ${releasedBy}`,
+    async () => {
+      try {
+        mobileNext.showLoading('Releasing line...');
+        
+        const { data, error } = await supabase
+          .from('line_release_logs')
+          .insert({
+            area: 'MACY_DECORATION',
+            released_by: releasedBy,
+            signature: signatureData,
+            verification_photo: verificationPhoto,
+            verification_notes: verificationNotes,
+            prerequisites: releaseData.prerequisites,
+            verified_at: DateUtils.getCurrentTimestamp()
+          });
+        
+        if (error) throw error;
+        
+        mobileNext.hideLoading();
+        mobileNext.showToast('Line released successfully!', 'success');
+        
+        // Clear form
+        document.getElementById('releasedBy').value = '';
+        document.getElementById('verificationNotes').value = '';
+        clearSignature();
+        clearPhoto();
+        
+        // Refresh status
+        loadReleaseStatus();
+        
+      } catch (error) {
+        console.error('Error releasing line:', error);
+        mobileNext.hideLoading();
+        mobileNext.showToast('Failed to release line', 'error');
+      }
+    }
+  );
+}
+
+// Refresh status
+function refreshStatus() {
+  loadReleaseStatus();
+  mobileNext.showToast('Status refreshed', 'success');
+}
+
+// Export release report
+function exportReleaseReport() {
+  mobileNext.showToast('Export feature coming soon', 'info');
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+  loadReleaseStatus();
+  setupSignatureCanvas();
+  setupPhotoPreview();
+  
+  // Auto-refresh every 30 seconds
+  setInterval(() => {
+    loadReleaseStatus();
+  }, 30000);
+  
+  console.log('🚀 MACY Decoration Line Release page loaded');
+});
+</script>
+
+</body>
+</html>

@@ -1,13 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>MACY – Decoration Post Cleaning</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>MACY – Decoration Post Cleaning</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<link rel="stylesheet" href="css/style.css">
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  
+  <!-- Essential scripts only -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/dateUtils.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-photo-utils.js"></script>
+  <script src="js/mobile-offline.js"></script>
 
 <style>
 .section{
@@ -67,29 +74,40 @@ select,textarea,input{
 
 <body>
 
-<div class="container">
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div class="text-title">MACY – <span id="areaName"></span></div>
+    <div class="text-subtitle">Post-Clean Verification</div>
+  </header>
 
-<h1 class="page-title">MACY – <span id="areaName"></span></h1>
-<h3>Post-Clean Verification</h3>
+  <!-- Scrollable Content -->
+  <main class="app-content">
 
 <!-- EMPLOYEE INFO -->
-<div class="section">
-  <h3>Employee Information</h3>
+<div class="card fade-in">
+  <div class="text-section">Employee Information</div>
 
   <div class="small" id="faceStatus">Face verification required</div>
 
-  <label>Employee Name *</label>
-  <input type="text" id="empName">
+  <div class="form-group">
+    <label class="text-label">Employee Name *</label>
+    <input type="text" class="input" id="empName">
+  </div>
 
-  <label>Date & Time</label>
-  <input type="text" id="dateTime" readonly>
+  <div class="form-group">
+    <label class="text-label">Date & Time</label>
+    <input type="text" class="input" id="dateTime" readonly>
+  </div>
 </div>
 
 <!-- EQUIPMENT -->
-<div class="section">
-  <h3>Equipment Reconciliation</h3>
-  <label>No. of Equipment Covered ____ in Pre-clean</label>
-  <input type="number" id="equipment-covered" placeholder="Equipment covered in pre-clean" readonly style="background: #374151;">
+<div class="card fade-in">
+  <div class="text-section">Equipment Reconciliation</div>
+  
+  <div class="form-group">
+    <label class="text-label">No. of Equipment Covered ____ in Pre-clean</label>
+    <input type="number" class="input" id="equipment-covered" placeholder="Equipment covered in pre-clean" readonly style="background: #374151;">
   <br><br>
   <label>No. of Equipment Retrieved ____ in Post-clean</label>
   <input type="number" id="equipment-retrieved" placeholder="Enter equipment retrieved">
@@ -168,6 +186,8 @@ style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99
 <script src="js/validationUtils.js"></script>
 <script src="js/performanceOptimizer.js"></script>
 <script src="js/photoStorage.js"></script>
+<script src="js/dateUtils.js"></script>
+<script src="js/mobileUtils.js"></script>
 <script src="js/dataCleanup.js"></script>
 <script src="js/backupManager.js"></script>
 <script src="js/systemInitializer.js"></script>
@@ -606,7 +626,7 @@ async function saveDamage(id){
         status: "Closed",
         completed_by: document.getElementById("who-"+id).value,
         completed_photo: photo,
-        completed_at: new Date().toISOString()
+        completed_at: DateUtils.getCurrentTimestamp()
       })
       .eq("id", id);
     if (error) {
@@ -630,11 +650,11 @@ async function saveDamage(id){
         handover_reason: document.getElementById("reason-"+id).value,
         // Store handover evidence in completed_photo (no dedicated column in schema).
         completed_photo: handPhoto,
-        handover_at: new Date().toISOString()
+        handover_at: DateUtils.getCurrentTimestamp()
       })
       .eq("id", id);
     if (error) {
-      alert("Failed to update damage: " + (error.message || "Unknown error"));
+      mobileNext.showToast("Failed to update damage: " + (error.message || "Unknown error"), 'error');
       return;
     }
   }
@@ -685,7 +705,7 @@ async function submitPostClean(){
           reference_id: (AppState.currentPreclean && AppState.currentPreclean.id) ? AppState.currentPreclean.id : null,
           task_description: i.value.trim(),
           status: "Pending",
-          created_at: new Date().toISOString()
+          created_at: DateUtils.getCurrentTimestamp()
         });
       }
     });
@@ -711,7 +731,7 @@ async function submitPostClean(){
         reference_id: (AppState.currentPreclean && AppState.currentPreclean.id) ? AppState.currentPreclean.id : null,
         task_description: `${questionText} — ${sel ? sel.value : ""}${hasComment ? " | " + txt.value.trim() : ""}`,
         status: "Pending",
-        created_at: new Date().toISOString()
+        created_at: DateUtils.getCurrentTimestamp()
       });
     }
   });
@@ -810,7 +830,7 @@ async function submitPostClean(){
         bags_returned: postEquipment,
         checklist: checklist,
         handover_required: handoverValue === "Yes" || autoTasksToSave.length > 0,
-        submitted_at: new Date().toISOString()
+        submitted_at: DateUtils.getCurrentTimestamp()
       });
 
     if (postCleanError) {
@@ -833,6 +853,20 @@ async function submitPostClean(){
   window.location.href="macy-decoration-control.html";
 }
 </script>
+
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" id="submitBtn" onclick="submitPostClean()">
+      <span>Submit Post-Cleaning</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="saveDraft()">
+      <span>Save Draft</span>
+    </button>
+  </div>
+</div>
+
 <script src="js/layout.js"></script>
 
 </body>
