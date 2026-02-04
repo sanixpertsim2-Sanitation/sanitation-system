@@ -1,0 +1,258 @@
+/* ======================================================
+   SANIXPERT UNIVERSAL FIXES - CSS
+   Fixes for date auto-fill, question layout, and camera/comment boxes
+   ====================================================== */
+
+/* Fix question layout issues */
+.question {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.question-text {
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #1f2937;
+  line-height: 1.4;
+  font-size: 15px;
+}
+
+.question-extra {
+  margin-top: 12px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+}
+
+.question-extra.hidden {
+  display: none !important;
+}
+
+.question-extra:not(.hidden) {
+  display: block !important;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* File input styling */
+.file-input-wrapper {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.file-input-wrapper input[type="file"] {
+  width: 100%;
+  padding: 12px;
+  border: 2px dashed #3b82f6;
+  border-radius: 8px;
+  background: #f0f9ff;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.file-input-wrapper input[type="file"]:hover {
+  border-color: #2563eb;
+  background: #e0f2fe;
+}
+
+.file-input-wrapper input[type="file"]::-webkit-file-upload-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  margin-right: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.file-input-wrapper input[type="file"]::-webkit-file-upload-button:hover {
+  background: #2563eb;
+}
+
+/* Comment styling */
+.comment-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #374151;
+  font-size: 14px;
+}
+
+.question-extra .textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* Form spacing fixes */
+.form-group {
+  margin-bottom: 20px !important;
+}
+
+.card {
+  margin-bottom: 20px !important;
+}
+
+/* Date/time input styling */
+input[type="text"][readonly] {
+  background: #f8fafc !important;
+  border-color: #e5e7eb !important;
+  color: #374151 !important;
+  font-weight: 500 !important;
+}
+
+/* Select dropdown improvements */
+.select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  font-size: 15px;
+  transition: border-color 0.3s ease;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .question {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .question-text {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  
+  .question-extra {
+    padding: 10px;
+  }
+  
+  .file-input-wrapper input[type="file"] {
+    padding: 10px;
+    font-size: 13px;
+  }
+  
+  .file-input-wrapper input[type="file"]::-webkit-file-upload-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .comment-label {
+    font-size: 13px;
+  }
+}
+
+/* Checklist specific fixes */
+.checklist-section {
+  margin-bottom: 24px;
+}
+
+.checklist-instructions {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #92400e;
+}
+
+/* Validation states */
+.question.has-error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.question.has-success {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+/* Loading states */
+.question.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.question.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid #3b82f6;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Camera capture specific styles */
+.camera-required {
+  position: relative;
+}
+
+.camera-required::before {
+  content: '📷';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  z-index: 1;
+}
+
+/* Comment required indicator */
+.comment-required::after {
+  content: ' *';
+  color: #ef4444;
+  font-weight: bold;
+}
+
+/* Success animation */
+.question.success-animation {
+  animation: successPulse 0.5s ease-out;
+}
+
+@keyframes successPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
