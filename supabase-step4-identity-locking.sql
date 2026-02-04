@@ -13,7 +13,7 @@ create table if not exists face_registry (
 
 alter table face_registry enable row level security;
 create policy "face_registry_open_insert" on face_registry
-  for insert using (true) with check (true);
+  for insert with check (true);
 create policy "face_registry_open_select" on face_registry
   for select using (true);
 create policy "face_registry_open_update" on face_registry
