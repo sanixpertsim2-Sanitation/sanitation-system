@@ -166,12 +166,12 @@ async function fetchFindings(area) {
   return data || [];
 }
 
-async function fetchLatestRelease() {
+async function fetchLatestRelease(area) {
   if (!supabase) return null;
-  // line_release_logs has no area column; this is the latest global release.
   const { data, error } = await supabase
     .from("line_release_logs")
     .select("*")
+    .eq("area", area)
     .order("verified_at", { ascending: false })
     .limit(1);
   if (error) return null;
@@ -183,7 +183,7 @@ async function loadDashboard(){
   const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
   const pre = await fetchLatestPreclean(area);
   const post = await fetchLatestPostclean(pre ? pre.id : null);
-  const released = await fetchLatestRelease();
+  const released = await fetchLatestRelease(area);
 
   const damages = await fetchDamages(area);
   const openDamages = damages.filter(d => d.status !== "Completed" && d.status !== "Closed");
@@ -217,7 +217,7 @@ async function getLineStatus(area) {
   const post = await fetchLatestPostclean(pre ? pre.id : null);
   const damages = await fetchDamages(area);
   const openDamages = damages.filter(d => d.status !== "Closed" && d.status !== "Completed");
-  const released = await fetchLatestRelease();
+  const released = await fetchLatestRelease(area);
   if (released) return "Released";
   if (post) return openDamages.length ? "Post-Clean (Issues)" : "Post-Clean Complete";
   if (pre) return "Pre-Clean Complete";
