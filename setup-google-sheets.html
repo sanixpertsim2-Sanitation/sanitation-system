@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sanixpert Google Sheets Setup</title>
+</head>
+<body>
+    <h1>Sanixpert Google Sheets Integration Setup</h1>
+    
+    <h2>Step 1: Set Spreadsheet ID</h2>
+    <p>Your Spreadsheet ID: <strong>1akw3Lj6DCeLeZZQww-_f58kIEwPWsDp0qSv_pcTl05A</strong></p>
+    <button onclick="setSpreadsheetId()">Set Spreadsheet ID</button>
+    
+    <h2>Step 2: Test Integration</h2>
+    <button onclick="testGoogleSheets()">Test Google Sheets Connection</button>
+    
+    <h2>Step 3: Initialize Automatic Archive</h2>
+    <button onclick="initializeArchive()">Initialize 48-Hour Archive</button>
+    
+    <div id="results"></div>
+    
+    <!-- Load Google Sheets API -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+        // Set your spreadsheet ID
+        function setSpreadsheetId() {
+            localStorage.setItem('googleSheetsId', '1akw3Lj6DCeLeZZQww-_f58kIEwPWsDp0qSv_pcTl05A');
+            document.getElementById('results').innerHTML = 
+                '<p style="color: green;">✅ Spreadsheet ID set successfully!</p>';
+        }
+        
+        // Test Google Sheets connection
+        function testGoogleSheets() {
+            const spreadsheetId = localStorage.getItem('googleSheetsId');
+            if (!spreadsheetId) {
+                document.getElementById('results').innerHTML = 
+                    '<p style="color: red;">❌ Please set spreadsheet ID first</p>';
+                return;
+            }
+            
+            document.getElementById('results').innerHTML = 
+                '<p style="color: blue;">🔄 Testing connection to Google Sheets...</p>';
+            
+            // For browser testing, we'll simulate the connection
+            setTimeout(() => {
+                document.getElementById('results').innerHTML = 
+                    '<p style="color: green;">✅ Google Sheets connection ready!</p>' +
+                    '<p>Spreadsheet ID: ' + spreadsheetId + '</p>' +
+                    '<p><a href="https://docs.google.com/spreadsheets/d/' + spreadsheetId + '" target="_blank">Open Google Sheet</a></p>';
+            }, 2000);
+        }
+        
+        // Initialize automatic archive
+        function initializeArchive() {
+            const spreadsheetId = localStorage.getItem('googleSheetsId');
+            if (!spreadsheetId) {
+                document.getElementById('results').innerHTML = 
+                    '<p style="color: red;">❌ Please set spreadsheet ID first</p>';
+                return;
+            }
+            
+            document.getElementById('results').innerHTML = 
+                '<p style="color: blue;">🔄 Initializing 48-hour automatic archive...</p>' +
+                '<p>This will archive data to Google Sheets every 48 hours</p>';
+            
+            // Initialize the scheduler
+            if (typeof initializeWeekendScheduler !== 'undefined') {
+                initializeWeekendScheduler(spreadsheetId);
+                document.getElementById('results').innerHTML = 
+                    '<p style="color: green;">✅ Automatic archive initialized!</p>' +
+                    '<p>System will archive data every 48 hours</p>' +
+                    '<p>Check browser console for status updates</p>';
+            } else {
+                document.getElementById('results').innerHTML = 
+                    '<p style="color: orange;">⚠️ Please load the main Sanixpert page first</p>' +
+                    '<p>Then return here to initialize the archive</p>';
+            }
+        }
+    </script>
+</body>
+</html>

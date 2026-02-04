@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MACY – Decoration Post Cleaning (Optimized)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+
+<style>
+.section{
+  background:rgba(255,255,255,.08);
+  padding:22px;
+  border-radius:18px;
+  margin-bottom:25px;
+}
+
+.question{margin-bottom:20px;}
+
+select,textarea,input{
+  width:100%;
+  padding:11px;
+  border-radius:12px;
+  border:none;
+  margin-top:8px;
+}
+
+.hidden{display:none;}
+
+.submit-btn{
+  width:100%;
+  padding:18px;
+  font-size:18px;
+  border-radius:18px;
+  border:none;
+  background:linear-gradient(135deg,#00c6ff,#0072ff);
+  color:white;
+  cursor:pointer;
+}
+
+.warning{
+  background:rgba(250,204,21,.1);
+  border-left:4px solid #facc15;
+  padding:12px;
+  border-radius:12px;
+  font-size:13px;
+}
+
+.handover-box{
+  margin-top:12px;
+  padding:12px;
+  border-radius:12px;
+  background:rgba(59,130,246,.08);
+  border-left:4px solid #60a5fa;
+}
+
+.damage-card{
+  border:1px solid rgba(255,255,255,.2);
+  padding:16px;
+  border-radius:14px;
+  margin-bottom:18px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1 class="page-title">MACY – <span id="areaName"></span></h1>
+<h3>Post-Clean Verification</h3>
+
+<!-- EMPLOYEE INFO -->
+<div class="section">
+  <h3>Employee Information</h3>
+
+  <div class="small" id="faceStatus">Face verification required</div>
+
+  <label>Employee Name *</label>
+  <input type="text" id="empName">
+
+  <label>Date & Time</label>
+  <input type="text" id="dateTime" readonly>
+</div>
+
+<!-- EQUIPMENT -->
+<div class="section">
+  <h3>Equipment Reconciliation</h3>
+  <label>No. of Equipment Covered ____ in Pre-clean</label>
+  <input type="number" id="equipment-covered" placeholder="Equipment covered in pre-clean" readonly style="background: #374151;">
+  <br><br>
+  <label>No. of Equipment Retrieved ____ in Post-clean</label>
+  <input type="number" id="equipment-retrieved" placeholder="Enter equipment retrieved">
+</div>
+
+<!-- CLEANING -->
+<div class="section">
+  <h3 id="postcleanTitle">Cleaning Verification</h3>
+  <div id="postcleanQuestions"></div>
+</div>
+
+<!-- HANDOVER -->
+<div class="section">
+  <h3>Handover Check</h3>
+
+  <select id="handoverSelect" onchange="toggleHandover(this)">
+    <option value="">Select</option>
+    <option>No</option>
+    <option>Yes</option>
+  </select>
+
+  <div id="handoverBox" class="hidden handover-box">
+    <p style="font-size:13px;opacity:.8">
+      Write one task per box (do not combine tasks).
+    </p>
+    <input placeholder="Task 1">
+    <input placeholder="Task 2">
+    <input placeholder="Task 3">
+    <input placeholder="Task 4">
+    <input placeholder="Task 5">
+  </div>
+</div>
+
+<!-- DAMAGE WARNING -->
+<div class="section" id="damageWarning" style="display:none">
+  <h3>⚠ Damage acknowledgement required</h3>
+  <div class="warning">
+    All open damages must be Completed or Handed over.
+  </div>
+</div>
+
+<button class="submit-btn" style="background:#f59e0b;margin-bottom:15px"
+onclick="openDamagePopup()">
+⚠ Review Damage
+</button>
+
+<button class="submit-btn sticky-cta" onclick="submitPostClean()">
+Submit Post-Clean
+</button>
+<button id="unlockHelp" class="small" style="opacity:0.2;margin-top:10px;background:none;border:none;color:#94a3b8;cursor:pointer;">
+  Help / Unlock
+</button>
+
+</div>
+
+<!-- DAMAGE POPUP -->
+<div id="damagePopup"
+style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;padding:20px;overflow:auto">
+
+<div style="background:#020617;border-radius:18px;padding:22px;max-width:720px;margin:auto">
+
+<h3>Damage Acknowledgement</h3>
+<div id="popupList"></div>
+
+<button class="submit-btn" onclick="closePopup()">Close</button>
+</div>
+</div>
+
+<!-- Load optimized utilities -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/photoUtils.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/faceUtils.js"></script>
+<script src="js/lockUtils.js"></script>
+<script src="js/errorHandler.js"></script>
+<script src="js/validationUtils.js"></script>
+<script src="js/photoStorage.js"></script>
+<script src="js/dataCleanup.js"></script>
+<script src="js/backupManager.js"></script>
+<script src="js/systemInitializer.js"></script>
+<script src="js/googleSheetsConfig.js"></script>
+<script src="js/googleSheetsArchive.js"></script>
+<script src="js/weekendArchiveScheduler.js"></script>
+<script src="js/weekendArchiveRunner.js"></script>
+
+<!-- Load performance optimization utilities -->
+<script src="js/performanceOptimizer.js"></script>
+<script src="js/optimizedDbUtils.js"></script>
+<script src="js/optimizedValidationUtils.js"></script>
+<script src="js/optimizedFileUtils.js"></script>
+<script src="js/performanceMonitor.js"></script>
+
+<script>
+// Optimized Post-Clean Implementation
+const supabase = window.supabaseClient;
+const AREA = "MACY_DECORATION";
+
+// Performance monitoring
+PerformanceMonitor.startMonitoring({
+  enableMemoryMonitoring: true,
+  enableNetworkMonitoring: true,
+  reportInterval: 30000
+});
+
+// DOM element cache
+const domElements = {
+  areaName: null,
+  postcleanTitle: null,
+  empName: null,
+  dateTime: null,
+  equipmentCovered: null,
+  equipmentRetrieved: null,
+  handoverSelect: null,
+  handoverBox: null,
+  damageWarning: null,
+  postcleanQuestions: null,
+  submitButton: null,
+  faceStatus: null
+};
+
+// Initialize DOM cache
+function initializeDomCache() {
+  domElements.areaName = PerformanceOptimizer.getElement('#areaName');
+  domElements.postcleanTitle = PerformanceOptimizer.getElement('#postcleanTitle');
+  domElements.empName = PerformanceOptimizer.getElement('#empName');
+  domElements.dateTime = PerformanceOptimizer.getElement('#dateTime');
+  domElements.equipmentCovered = PerformanceOptimizer.getElement('#equipment-covered');
+  domElements.equipmentRetrieved = PerformanceOptimizer.getElement('#equipment-retrieved');
+  domElements.handoverSelect = PerformanceOptimizer.getElement('#handoverSelect');
+  domElements.handoverBox = PerformanceOptimizer.getElement('#handoverBox');
+  domElements.damageWarning = PerformanceOptimizer.getElement('#damageWarning');
+  domElements.postcleanQuestions = PerformanceOptimizer.getElement('#postcleanQuestions');
+  domElements.submitButton = PerformanceOptimizer.getElement("button[onclick='submitPostClean()']");
+  domElements.faceStatus = PerformanceOptimizer.getElement('#faceStatus');
+}
+
+function setButtonBusy(btn, isBusy) {
+  if (!btn) return;
+  PerformanceOptimizer.batchDomUpdates([
+    () => {
+      btn.disabled = isBusy;
+      btn.dataset.busy = isBusy ? "1" : "0";
+      btn.style.opacity = isBusy ? "0.7" : "1";
+    }
+  ]);
+}
+
+// Optimized button update with caching
+const updatePostcleanButton = PerformanceOptimizer.debounce(() => {
+  const btn = domElements.submitButton;
+  if (!btn || btn.dataset.busy === "1") return;
+
+  const equipment = domElements.equipmentRetrieved?.value.trim() || "";
+  const handover = domElements.handoverSelect?.value || "";
+  
+  // Use cached DOM queries for questions
+  const allAnswered = Array.from(PerformanceOptimizer.getElements(".question select"))
+    .every(sel => sel.value && sel.value.length > 0);
+    
+  const requiredSatisfied = Array.from(PerformanceOptimizer.getElements(".question"))
+    .every(q => {
+      const sel = q.querySelector("select");
+      if (!sel || !sel.value) return false;
+      const requiresPhoto = q.dataset.alwaysPhoto === "1" || sel.value === "Not Acceptable" || sel.value === "N/A";
+      const requiresComment = sel.value === "Not Acceptable" || sel.value === "N/A";
+      const file = q.querySelector("input[type=file]");
+      const txt = q.querySelector("textarea");
+      if (requiresPhoto && (!file || !file.files || !file.files.length)) return false;
+      if (requiresComment && (!txt || !txt.value.trim())) return false;
+      return true;
+    });
+    
+  btn.disabled = !(equipment && handover && allAnswered && requiredSatisfied);
+}, 300, 'update-postclean-button');
+
+// Optimized file reading with performance monitoring
+async function readFileBase64(file) {
+  if (!file) return null;
+  
+  return await PerformanceMonitor.measureFunction('read-file-base64', async () => {
+    return await OptimizedFileUtils.processFile(file, readAndStampImage, {
+      cacheKey: `file-${file.name}-${file.size}`,
+      priority: 'normal'
+    });
+  });
+}
+
+// Optimized page initialization
+window.onload = async () => {
+  const startTime = performance.now();
+  
+  try {
+    await PerformanceMonitor.measureFunction('page-initialization', async () => {
+      // Initialize DOM cache
+      initializeDomCache();
+      
+      // Set area information
+      localStorage.setItem("selectedArea", AREA);
+      localStorage.setItem("selectedLine", AREA);
+      
+      PerformanceOptimizer.batchDomUpdates([
+        () => {
+          if (domElements.areaName) domElements.areaName.innerText = "MACY Decoration";
+          if (domElements.postcleanTitle) domElements.postcleanTitle.innerText = "Decoration Line Verification";
+        }
+      ]);
+
+      // Fetch data using optimized database utilities
+      const data = await OptimizedDbUtils.fetchMultipleData(AREA);
+      window.currentPreclean = data.preclean;
+      
+      // Set employee name from preclean
+      if (data.preclean?.employee_name && domElements.empName) {
+        domElements.empName.value = data.preclean.employee_name;
+      }
+      
+      // Set equipment covered value
+      if (data.preclean?.bags_used !== undefined && data.preclean.bags_used !== null && domElements.equipmentCovered) {
+        domElements.equipmentCovered.value = data.preclean.bags_used;
+      }
+
+      // Set up real-time date display
+      const updateDateTime = () => {
+        if (domElements.dateTime) {
+          domElements.dateTime.value = new Date().toLocaleString();
+        }
+      };
+      
+      updateDateTime();
+      setInterval(updateDateTime, 1000);
+
+      // Setup optimized event handling
+      if (domElements.equipmentRetrieved) {
+        domElements.equipmentRetrieved.addEventListener("input", updatePostcleanButton);
+      }
+
+      // Render questions
+      renderPostcleanQuestions();
+
+      // Initialize optimized validation
+      await OptimizedValidationUtils.setupEquipmentValidation(AREA);
+
+      // Face verification
+      const face = await ensureFaceVerified({
+        supabase,
+        role: "sanitation",
+        area: AREA
+      });
+      
+      if (!face.ok) {
+        alert(face.reason || "Face verification required.");
+        return;
+      }
+      
+      if (domElements.empName) {
+        domElements.empName.value = face.name || "";
+        domElements.empName.readOnly = true;
+      }
+      
+      if (domElements.faceStatus) {
+        domElements.faceStatus.innerText = `Face verified: ${face.name}`;
+      }
+
+      // Setup unlock functionality
+      attachUnlock({ supabase, area: AREA, task: "postclean" });
+
+      // Acquire task lock
+      const lock = await acquireTaskLock({
+        supabase,
+        area: AREA,
+        task: "postclean",
+        userName: face.name
+      });
+      
+      if (!lock.ok) {
+        alert(lock.reason || "Post-Cleaning currently in progress.");
+        return;
+      }
+
+      updatePostcleanButton();
+    });
+    
+    const loadTime = performance.now() - startTime;
+    console.log(`Page loaded in ${loadTime.toFixed(2)}ms`);
+    
+  } catch (error) {
+    console.error('Page initialization failed:', error);
+    ErrorHandler.showError('Failed to initialize page', error);
+  }
+};
+
+function toggleNA(sel){
+  const q = sel.closest(".question");
+  const t = q.querySelector("textarea");
+  const f = q.querySelector("input");
+  f.classList.remove("hidden");
+  const needsComment = sel.value === "Not Acceptable" || sel.value === "N/A";
+  if (needsComment) {
+    t.classList.remove("hidden");
+  } else {
+    t.classList.add("hidden");
+    t.value = "";
+  }
+  updatePostcleanButton();
+}
+
+function toggleHandover(sel){
+  if (domElements.handoverBox) {
+    domElements.handoverBox.classList.toggle("hidden", sel.value !== "Yes");
+  }
+  updatePostcleanButton();
+}
+
+const postcleanSets = {
+  MACY_Decoration: [
+    { text: "Covering of motors, sensors, air regulators, and electrical panels" },
+    { text: "Depositor Side A & B — CIP completed; Depositor clean; Open safety guards and inspect for icing wash leakage" },
+    { text: "Injection Unit — Frame clean" },
+    { text: "Hopper Toppers — Icing hopper topper and icing pump clean and assembled" },
+    { text: "Manifold A & B — Clean; Blue pipes attached to Depositor Side A & B" },
+    { text: "Tray Denester — Clean; Stand fixed" },
+    { text: "Sprinkle Depositor & Die — Conveyor clean and air-dried; Die inserted" },
+    { text: "Tray Puller — Extractor clean" },
+    { text: "Filling Belt — Conveyor and rollers clean; Belt air-dried" },
+    { text: "Lid Denester — Clean and air-dried; No water on platform" },
+    { text: "Tray Closer — Rollers and belts clean and air-dried" },
+    { text: "Clamshell Conveyor — Clean and air-dried" },
+    { text: "Floor — Clean and dry; No sanitation equipment left on floor" },
+    { text: "Drains — Strainers and drains clean" }
+  ]
+};
+
+function buildPostcleanQuestion(item) {
+  const div = document.createElement("div");
+  div.className = "question";
+  if (item.alwaysPhoto) div.dataset.alwaysPhoto = "1";
+  div.innerHTML = `
+    ${item.text}
+    <select onchange="toggleNA(this)">
+      <option value="">Select</option>
+      <option>Acceptable</option>
+      <option>Not Acceptable</option>
+      <option>N/A</option>
+    </select>
+    <textarea class="hidden" placeholder="Comment required"></textarea>
+    <input class="${item.alwaysPhoto ? "" : "hidden"}" type="file" accept="image/*" capture="environment">
+  `;
+  const file = div.querySelector("input[type=file]");
+  const txt = div.querySelector("textarea");
+  if (file) file.addEventListener("change", updatePostcleanButton);
+  if (txt) txt.addEventListener("input", updatePostcleanButton);
+  return div;
+}
+
+function renderPostcleanQuestions() {
+  const set = postcleanSets.MACY_Decoration;
+  const container = domElements.postcleanQuestions;
+  if (!container) return;
+  
+  PerformanceOptimizer.batchDomUpdates([
+    () => {
+      container.innerHTML = "";
+      set.forEach(item => container.appendChild(buildPostcleanQuestion(item)));
+    }
+  ]);
+}
+
+/* ================= DAMAGE ================= */
+async function openDamagePopup(){
+  const list = PerformanceOptimizer.getElement('#popupList');
+  if (!list) return;
+  
+  list.innerHTML = "";
+
+  try {
+    const damages = await OptimizedDbUtils.fetchOpenDamages(AREA);
+    
+    if (!damages.length) {
+      list.innerHTML = "<p>No open damages.</p>";
+      document.getElementById("damagePopup").style.display = "block";
+      return;
+    }
+
+    // Batch render damage cards
+    const fragment = document.createDocumentFragment();
+    
+    damages.forEach(d => {
+      const damageCard = createDamageCard(d);
+      fragment.appendChild(damageCard);
+    });
+    
+    list.appendChild(fragment);
+    document.getElementById("damagePopup").style.display = "block";
+    
+  } catch (error) {
+    console.error('Failed to load damages:', error);
+    ErrorHandler.showError('Failed to load damages', error);
+  }
+}
+
+function createDamageCard(damage) {
+  const damageCard = document.createElement('div');
+  damageCard.className = 'damage-card';
+  
+  // Create elements safely
+  const areaElement = document.createElement('b');
+  areaElement.textContent = damage.area;
+  damageCard.appendChild(areaElement);
+  
+  damageCard.appendChild(document.createElement('br'));
+  
+  const descriptionElement = document.createElement('span');
+  descriptionElement.textContent = fromStoredDescription(damage.description);
+  damageCard.appendChild(descriptionElement);
+  
+  damageCard.appendChild(document.createElement('br'));
+  
+  const statusElement = document.createElement('span');
+  statusElement.className = 'status-badge status-warning';
+  statusElement.textContent = damage.severity || "Open";
+  damageCard.appendChild(statusElement);
+  
+  damageCard.appendChild(document.createElement('br'));
+  damageCard.appendChild(document.createElement('br'));
+  
+  // Action select
+  const actionSelect = document.createElement('select');
+  actionSelect.onchange = function(){toggleDamage(damage.id, this.value)};
+  actionSelect.innerHTML = `
+    <option value="">Select</option>
+    <option value="Completed">Completed</option>
+    <option value="Handover">Handover</option>
+  `;
+  damageCard.appendChild(actionSelect);
+  
+  // Add completion and handover sections
+  damageCard.appendChild(createCompletionSection(damage.id));
+  damageCard.appendChild(createHandoverSection(damage.id));
+  
+  // Save button
+  const saveButton = document.createElement('button');
+  saveButton.className = "submit-btn";
+  saveButton.style.marginTop = "12px";
+  saveButton.onclick = function(){saveDamage(damage.id)};
+  saveButton.textContent = "Save";
+  damageCard.appendChild(saveButton);
+  
+  return damageCard;
+}
+
+function createCompletionSection(id) {
+  const compDiv = document.createElement('div');
+  compDiv.id = "comp-" + id;
+  compDiv.className = "hidden";
+  compDiv.innerHTML = `
+    <label>Completed by *</label>
+    <select id="who-${id}">
+      <option value="">Select</option>
+      <option>Maintenance</option>
+      <option>Sanitation</option>
+      <option>Production</option>
+      <option>Contractor</option>
+    </select>
+    <label>Completion photo *</label>
+    <input type="file" accept="image/*" capture="environment" id="photo-${id}">
+  `;
+  return compDiv;
+}
+
+function createHandoverSection(id) {
+  const handDiv = document.createElement('div');
+  handDiv.id = "hand-" + id;
+  handDiv.className = "hidden";
+  handDiv.innerHTML = `
+    <label>Handover reason *</label>
+    <select id="reason-${id}">
+      <option value="">Select</option>
+      <option>Parts required</option>
+      <option>Partially fixed</option>
+      <option>Maintenance next shift</option>
+    </select>
+    <label>Handover photo *</label>
+    <input type="file" accept="image/*" capture="environment" id="hand-photo-${id}">
+  `;
+  return handDiv;
+}
+
+function toggleDamage(id, val) {
+  const compElement = document.getElementById("comp-" + id);
+  const handElement = document.getElementById("hand-" + id);
+  
+  if (compElement) compElement.classList.add("hidden");
+  if (handElement) handElement.classList.add("hidden");
+
+  if (val === "Completed" && compElement) {
+    compElement.classList.remove("hidden");
+  }
+
+  if (val === "Handover" && handElement) {
+    handElement.classList.remove("hidden");
+  }
+}
+
+async function saveDamage(id) {
+  if (!supabase) {
+    alert("Supabase client not loaded.");
+    return;
+  }
+
+  try {
+    const compElement = document.getElementById("comp-" + id);
+    const handElement = document.getElementById("hand-" + id);
+    
+    // Handle completion
+    if (compElement && !compElement.classList.contains("hidden")) {
+      const whoSelect = document.getElementById("who-" + id);
+      const photoInput = document.getElementById("photo-" + id);
+      
+      if (!whoSelect?.value || !photoInput?.files?.length) {
+        alert("Completed requires person and photo");
+        return;
+      }
+      
+      const file = photoInput.files[0];
+      const photo = await readFileBase64(file);
+      
+      const { error } = await supabase
+        .from("damage_reports")
+        .update({
+          status: "Closed",
+          completed_by: whoSelect.value,
+          completed_photo: photo,
+          completed_at: new Date().toISOString()
+        })
+        .eq("id", id);
+        
+      if (error) throw error;
+    }
+
+    // Handle handover
+    if (handElement && !handElement.classList.contains("hidden")) {
+      const reasonSelect = document.getElementById("reason-" + id);
+      const handPhotoInput = document.getElementById("hand-photo-" + id);
+      
+      if (!reasonSelect?.value || !handPhotoInput?.files?.length) {
+        alert("Handover requires reason and photo");
+        return;
+      }
+      
+      const handFile = handPhotoInput.files[0];
+      const handPhoto = await readFileBase64(handFile);
+      
+      const { error } = await supabase
+        .from("damage_reports")
+        .update({
+          status: "Handover",
+          handover_reason: reasonSelect.value,
+          completed_photo: handPhoto,
+          handover_at: new Date().toISOString()
+        })
+        .eq("id", id);
+        
+      if (error) throw error;
+    }
+
+    // Refresh damage list
+    openDamagePopup();
+    
+  } catch (error) {
+    console.error('Failed to save damage:', error);
+    ErrorHandler.showError('Failed to save damage', error);
+  }
+}
+
+function closePopup(){
+  const popup = document.getElementById("damagePopup");
+  if (popup) {
+    popup.style.display = "none";
+  }
+}
+
+/* ================= SUBMIT ================= */
+async function submitPostClean() {
+  const btn = domElements.submitButton;
+  if (btn && btn.dataset.busy === "1") return;
+  
+  setButtonBusy(btn, true);
+
+  try {
+    await PerformanceMonitor.measureFunction('submit-postclean', async () => {
+      const postEquipment = Number(domElements.equipmentRetrieved?.value || 0);
+      if (!postEquipment) {
+        alert("Enter equipment retrieved");
+        return;
+      }
+
+      // Equipment validation
+      if (!await OptimizedValidationUtils.validateBeforeSubmit(AREA)) {
+        return;
+      }
+
+      const handoverValue = domElements.handoverSelect?.value;
+      if (!handoverValue) {
+        alert("Select handover option");
+        return;
+      }
+
+      // Process handover tasks
+      await processHandoverTasks(handoverValue);
+
+      // Process auto tasks from comments/failures
+      await processAutoTasks();
+
+      // Check damages
+      const openDamages = await OptimizedDbUtils.fetchOpenDamages(AREA);
+      if (openDamages.some(d => d.status === "Open")) {
+        if (domElements.damageWarning) {
+          domElements.damageWarning.style.display = "block";
+        }
+        alert("All damages must be acknowledged");
+        return;
+      }
+
+      // Process checklist
+      const checklist = await processChecklist();
+
+      // Save post-clean record
+      await savePostCleanRecord(postEquipment, checklist, handoverValue);
+
+      // Complete task lock
+      await completeTaskLock({
+        supabase,
+        area: AREA,
+        task: "postclean",
+        userName: domElements.empName?.value.trim() || ""
+      });
+
+      alert("✅ Post-cleaning submitted successfully");
+      window.location.href = "macy-decoration-control.html";
+    });
+    
+  } catch (error) {
+    console.error('Submit failed:', error);
+    ErrorHandler.showError('Failed to submit post-cleaning', error);
+  } finally {
+    setButtonBusy(btn, false);
+  }
+}
+
+async function processHandoverTasks(handoverValue) {
+  if (handoverValue !== "Yes") return;
+
+  const inputs = PerformanceOptimizer.getElements("#handoverBox input");
+  const tasks = [];
+  
+  inputs.forEach(input => {
+    if (input.value.trim()) {
+      tasks.push({
+        area: AREA,
+        source: "post-clean",
+        reference_id: window.currentPreclean?.id || null,
+        task_description: input.value.trim(),
+        status: "Pending",
+        created_at: new Date().toISOString()
+      });
+    }
+  });
+
+  if (tasks.length === 0) {
+    alert("Handover tasks required before submission.");
+    throw new Error("Handover tasks required");
+  }
+
+  await OptimizedDbUtils.batchInsert("handover_tasks", tasks);
+}
+
+async function processAutoTasks() {
+  const autoTasks = [];
+  const questions = PerformanceOptimizer.getElements(".question");
+  
+  questions.forEach(q => {
+    const sel = q.querySelector("select");
+    const txt = q.querySelector("textarea");
+    const questionText = q.childNodes[0]?.textContent?.trim() || "";
+    const failed = sel && sel.value === "Not Acceptable";
+    const hasComment = txt && txt.value.trim();
+    
+    if (failed || hasComment) {
+      autoTasks.push({
+        area: AREA,
+        source: "post-clean",
+        reference_id: window.currentPreclean?.id || null,
+        task_description: `${questionText} — ${sel ? sel.value : ""}${hasComment ? " | " + txt.value.trim() : ""}`,
+        status: "Pending",
+        created_at: new Date().toISOString()
+      });
+    }
+  });
+
+  if (autoTasks.length > 0) {
+    await OptimizedDbUtils.batchInsert("handover_tasks", autoTasks);
+  }
+}
+
+async function processChecklist() {
+  const checklist = [];
+  const questions = PerformanceOptimizer.getElements(".question");
+  
+  for (const q of questions) {
+    const sel = q.querySelector("select");
+    const txt = q.querySelector("textarea");
+    const file = q.querySelector("input[type=file]");
+    
+    let photo = null;
+    if (file && file.files && file.files.length > 0) {
+      photo = await readFileBase64(file.files[0]);
+    }
+    
+    checklist.push({
+      question: q.childNodes[0]?.textContent?.trim() || "",
+      value: sel ? sel.value : "",
+      comment: txt ? txt.value || "" : "",
+      photo: photo
+    });
+  }
+  
+  return checklist;
+}
+
+async function savePostCleanRecord(postEquipment, checklist, handoverValue) {
+  const autoTasks = await getAutoTasksCount();
+  
+  const { error } = await supabase
+    .from("post_cleaning_logs")
+    .insert({
+      preclean_id: window.currentPreclean?.id || null,
+      employee_name: domElements.empName?.value.trim() || "",
+      bags_returned: postEquipment,
+      checklist: checklist,
+      handover_required: handoverValue === "Yes" || autoTasks > 0,
+      submitted_at: new Date().toISOString()
+    });
+
+  if (error) throw error;
+}
+
+async function getAutoTasksCount() {
+  const questions = PerformanceOptimizer.getElements(".question");
+  let count = 0;
+  
+  questions.forEach(q => {
+    const sel = q.querySelector("select");
+    const txt = q.querySelector("textarea");
+    const failed = sel && sel.value === "Not Acceptable";
+    const hasComment = txt && txt.value.trim();
+    
+    if (failed || hasComment) {
+      count++;
+    }
+  });
+  
+  return count;
+}
+
+function fromStoredDescription(stored) {
+  try {
+    const parsed = JSON.parse(stored);
+    if (parsed && typeof parsed === "object" && "text" in parsed) {
+      return parsed.text || "";
+    }
+  } catch (e) {
+    // keep fallback
+  }
+  return stored || "";
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  PerformanceOptimizer.cleanup();
+  OptimizedDbUtils.cleanup();
+  OptimizedValidationUtils.cleanup();
+  OptimizedFileUtils.cleanup();
+  PerformanceMonitor.stopMonitoring();
+});
+</script>
+<script src="js/layout.js"></script>
+
+</body>
+</html>

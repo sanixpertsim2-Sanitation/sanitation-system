@@ -1,0 +1,17 @@
+{
+  "name": "sanixpert-google-sheets-integration",
+  "version": "1.0.0",
+  "description": "Google Sheets integration for Sanixpert weekend archive",
+  "main": "js/googleSheetsArchive.js",
+  "dependencies": {
+    "google-spreadsheet": "^3.3.0",
+    "googleapis": "^126.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "scripts": {
+    "install-deps": "npm install google-spreadsheet googleapis",
+    "test-archive": "node -e \"const { GoogleSheetsArchive } = require('./js/googleSheetsArchive.js'); console.log('Google Sheets Archive loaded successfully');\""
+  }
+}
