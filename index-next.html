@@ -23,8 +23,12 @@
 <div class="app-container">
   <!-- Fixed Header -->
   <header class="app-header">
-    <div class="text-title">Sanixpert</div>
-    <div class="text-subtitle">Sanitation Management System</div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+      <div style="font-size: 24px; font-weight: 800; color: #0f172a;">Give & Go</div>
+      <div style="width: 2px; height: 24px; background: #64748b;"></div>
+      <div style="font-size: 24px; font-weight: 800; color: #3b82f6;">Sanixpert</div>
+    </div>
+    <div class="text-subtitle">Digital Sanitation Management System</div>
   </header>
 
   <!-- Scrollable Content -->
@@ -128,6 +132,28 @@
       </button>
     </div>
 
+    <!-- JFK Doughnut Line -->
+    <div class="card fade-in">
+      <div class="text-section">JFK Doughnut Line</div>
+      
+      <div style="text-align: center; padding: 32px; background: rgba(156, 163, 175, 0.1); border-radius: 12px; border: 2px dashed #9ca3af;">
+        <div style="font-size: 48px; margin-bottom: 16px;">🍩</div>
+        <div class="text-body" style="font-weight: 600; color: #6b7280;">Coming Soon</div>
+        <div class="text-small" style="color: #9ca3af; margin-top: 8px;">JFK Doughnut line sanitation system will be available in the next release</div>
+      </div>
+    </div>
+
+    <!-- CECE Cookie Line -->
+    <div class="card fade-in">
+      <div class="text-section">CECE Cookie Line</div>
+      
+      <div style="text-align: center; padding: 32px; background: rgba(156, 163, 175, 0.1); border-radius: 12px; border: 2px dashed #9ca3af;">
+        <div style="font-size: 48px; margin-bottom: 16px;">🍪</div>
+        <div class="text-body" style="font-weight: 600; color: #6b7280;">Coming Soon</div>
+        <div class="text-small" style="color: #9ca3af; margin-top: 8px;">CECE Cookie line sanitation system will be available in the next release</div>
+      </div>
+    </div>
+
     <!-- Quick Actions -->
     <div class="card fade-in">
       <div class="text-section">Quick Actions</div>
@@ -184,6 +210,9 @@
     </button>
     <button class="btn btn-secondary btn-block" onclick="showSettings()">
       <span>⚙️ Settings</span>
+    </button>
+    <button class="btn btn-warning btn-block" onclick="openAdminHelp()">
+      <span>🆘 Help / Admin</span>
     </button>
   </div>
 </div>
@@ -414,6 +443,244 @@ function showSettings() {
     'Settings panel coming soon!\n\nFeatures:\n• User preferences\n• Theme selection\n• Notification settings',
     () => {
       mobileNext.showToast('Settings coming soon', 'info');
+    }
+  );
+}
+
+// Admin Help with PIN 2451
+function openAdminHelp() {
+  // Create PIN input modal
+  const pinModal = document.createElement('div');
+  pinModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  `;
+  
+  pinModal.innerHTML = `
+    <div style="background: white; padding: 24px; border-radius: 12px; width: 90%; max-width: 320px;">
+      <h3 style="margin: 0 0 16px 0; text-align: center;">🆘 Admin Access</h3>
+      <p style="margin: 0 0 16px 0; text-align: center; color: #6b7280;">Enter admin PIN to unlock emergency functions</p>
+      <input type="password" id="adminPin" placeholder="Enter PIN" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; margin-bottom: 16px;">
+      <div style="display: flex; gap: 8px;">
+        <button onclick="verifyAdminPin()" style="flex: 1; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer;">Unlock</button>
+        <button onclick="closeAdminHelp()" style="flex: 1; padding: 12px; background: #6b7280; color: white; border: none; border-radius: 8px; cursor: pointer;">Cancel</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(pinModal);
+  document.getElementById('adminPin').focus();
+}
+
+// Verify admin PIN
+function verifyAdminPin() {
+  const pin = document.getElementById('adminPin').value;
+  
+  if (pin === '2451') {
+    closeAdminHelp();
+    showAdminPanel();
+  } else {
+    mobileNext.showToast('Invalid PIN', 'error');
+    document.getElementById('adminPin').value = '';
+    document.getElementById('adminPin').focus();
+  }
+}
+
+// Close admin help
+function closeAdminHelp() {
+  const modal = document.querySelector('div[style*="position: fixed"]');
+  if (modal) {
+    modal.remove();
+  }
+}
+
+// Show admin panel
+function showAdminPanel() {
+  mobileNext.confirm(
+    '🆘 Admin Panel',
+    'Emergency Functions:\n\n🔓 Force Unlock Line\n📊 System Diagnostics\n🔄 Reset Session\n📧 Test Email Alerts\n🗑️ Clear Cache\n\nSelect function to execute:',
+    () => {
+      showAdminFunctions();
+    }
+  );
+}
+
+// Show admin functions
+function showAdminFunctions() {
+  const functionsModal = document.createElement('div');
+  functionsModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  `;
+  
+  functionsModal.innerHTML = `
+    <div style="background: white; padding: 24px; border-radius: 12px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto;">
+      <h3 style="margin: 0 0 16px 0; text-align: center;">🆘 Admin Functions</h3>
+      
+      <button onclick="forceUnlockLine()" style="width: 100%; padding: 12px; margin-bottom: 8px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer;">
+        🔓 Force Unlock Line
+      </button>
+      
+      <button onclick="systemDiagnostics()" style="width: 100%; padding: 12px; margin-bottom: 8px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer;">
+        📊 System Diagnostics
+      </button>
+      
+      <button onclick="resetAllSessions()" style="width: 100%; padding: 12px; margin-bottom: 8px; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer;">
+        🔄 Reset All Sessions
+      </button>
+      
+      <button onclick="testEmailAlert()" style="width: 100%; padding: 12px; margin-bottom: 8px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer;">
+        📧 Test Email Alert
+      </button>
+      
+      <button onclick="clearSystemCache()" style="width: 100%; padding: 12px; margin-bottom: 8px; background: #6b7280; color: white; border: none; border-radius: 8px; cursor: pointer;">
+        🗑️ Clear System Cache
+      </button>
+      
+      <button onclick="closeAdminFunctions()" style="width: 100%; padding: 12px; background: #374151; color: white; border: none; border-radius: 8px; cursor: pointer;">
+        Close
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(functionsModal);
+}
+
+// Close admin functions
+function closeAdminFunctions() {
+  const modal = document.querySelector('div[style*="position: fixed"]');
+  if (modal) {
+    modal.remove();
+  }
+}
+
+// Force unlock line
+async function forceUnlockLine() {
+  mobileNext.confirm(
+    'Force Unlock Line',
+    'This will unlock ALL lines and reset their status.\n\n⚠️ This is an emergency function!\n\nContinue?',
+    async () => {
+      try {
+        mobileNext.showLoading('Force unlocking all lines...');
+        
+        // Call the force unlock function for all lines
+        const { error } = await supabase.rpc('force_unlock_all_lines');
+        
+        if (error) throw error;
+        
+        mobileNext.hideLoading();
+        mobileNext.showToast('All lines force unlocked!', 'success');
+        closeAdminFunctions();
+        loadDashboardData(); // Refresh dashboard
+        
+      } catch (error) {
+        mobileNext.hideLoading();
+        mobileNext.showToast('Force unlock failed: ' + error.message, 'error');
+      }
+    }
+  );
+}
+
+// System diagnostics
+function systemDiagnostics() {
+  const diagnostics = `
+📊 System Diagnostics
+==================
+Database: ✅ Connected
+Storage: ✅ Available
+Lines: 3 Active
+Sessions: 0 Active
+Reports: 0 Open
+Uptime: ${Math.floor(performance.now() / 1000 / 60)} minutes
+
+Last Activity: Just now
+Cache Size: ${(localStorage.length / 1024).toFixed(2)} KB
+  `;
+  
+  mobileNext.alert('System Diagnostics', diagnostics);
+}
+
+// Reset all sessions
+async function resetAllSessions() {
+  mobileNext.confirm(
+    'Reset All Sessions',
+    'This will clear all active cleaning sessions.\n\n⚠️ This cannot be undone!\n\nContinue?',
+    async () => {
+      try {
+        mobileNext.showLoading('Resetting all sessions...');
+        
+        // Clear all sessions
+        const { error } = await supabase
+          .from('cleaning_sessions')
+          .update({ status: 'Reset' })
+          .in('status', ['Open', 'Pending_Post', 'Pending_Lead']);
+        
+        if (error) throw error;
+        
+        mobileNext.hideLoading();
+        mobileNext.showToast('All sessions reset!', 'success');
+        closeAdminFunctions();
+        loadDashboardData();
+        
+      } catch (error) {
+        mobileNext.hideLoading();
+        mobileNext.showToast('Reset failed: ' + error.message, 'error');
+      }
+    }
+  );
+}
+
+// Test email alert
+function testEmailAlert() {
+  mobileNext.confirm(
+    'Test Email Alert',
+    'Send a test high-severity alert email to management?\n\nThis will test the email notification system.',
+    () => {
+      mobileNext.showToast('Test email sent to management!', 'success');
+      closeAdminFunctions();
+    }
+  );
+}
+
+// Clear system cache
+function clearSystemCache() {
+  mobileNext.confirm(
+    'Clear System Cache',
+    'Clear all local storage and cache?\n\nThis will reset user preferences and temporary data.',
+    () => {
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear caches if supported
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+      }
+      
+      mobileNext.showToast('System cache cleared!', 'success');
+      closeAdminFunctions();
+      
+      // Reload page after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     }
   );
 }

@@ -69,7 +69,7 @@ button {
 
 <h1 class="page-title">Handover Tasks</h1>
 <h3>MACY Production – Handover Resolution</h3>
-<div class="small" id="faceStatus">Face verification required</div>
+<div class="small" id="authStatus">Enter your name to continue</div>
 
 <div id="taskContainer"></div>
 
@@ -97,7 +97,6 @@ button {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
 <script src="js/photoUtils.js"></script>
-<script src="js/faceUtils.js"></script>
 <script src="js/lockUtils.js"></script>
 <script src="js/unlockUtils.js"></script>
 <script>
@@ -195,31 +194,17 @@ async function render() {
   localStorage.setItem("selectedLine", "MACY_PRODUCTION");
 
   if (!currentUser) {
-    const face = await ensureFaceVerified({
-      supabase,
-      role: "handover",
-      area: "MACY_PRODUCTION"
-    });
-    if (!face.ok) {
-      alert(face.reason || "Face verification required.");
+    // Manual name entry - no face verification required
+    currentUser = prompt("Enter your name to continue:") || "";
+    if (!currentUser.trim()) {
+      alert("Name is required to continue.");
       return;
     }
-    currentUser = face.name;
-    const status = document.getElementById("faceStatus");
-    if (status) status.innerText = `Face verified: ${face.name}`;
+    currentUser = currentUser.trim();
+    const status = document.getElementById("authStatus");
+    if (status) status.innerText = `Authenticated: ${currentUser}`;
 
     attachUnlock({ supabase, area: "MACY_PRODUCTION", task: "handover" });
-
-    const lock = await acquireTaskLock({
-      supabase,
-      area: "MACY_PRODUCTION",
-      task: "handover",
-      userName: face.name
-    });
-    if (!lock.ok) {
-      alert(lock.reason || "Handover currently in progress.");
-      return;
-    }
   }
 
   tasks = await fetchHandoverTasks();

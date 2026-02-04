@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MACY Production - Post-Cleaning</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+  
+  <!-- Essential scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/dateUtils.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+  <script src="js/pwa-registration.js"></script>
+  <script src="js/ai-recommendations.js"></script>
+  <script src="js/sanixpert-auth.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+      <div style="font-size: 20px; font-weight: 800; color: #0f172a;">Give & Go</div>
+      <div style="width: 2px; height: 20px; background: #64748b;"></div>
+      <div style="font-size: 20px; font-weight: 800; color: #3b82f6;">Sanixpert</div>
+    </div>
+    <div class="text-subtitle">MACY Production - Post-Cleaning Verification</div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- Line Status -->
+    <div class="card fade-in" id="lineStatusCard">
+      <div class="text-section">Line Status</div>
+      <div id="lineStatusContent">
+        <div class="text-body" style="text-align: center; padding: 16px; background: rgba(156, 163, 175, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-weight: 600;">Checking line status...</div>
+          <div class="text-small" style="color: #94a3b8;">Please wait</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pre-Clean Reference -->
+    <div class="card fade-in" id="preCleanReference" style="display: none;">
+      <div class="text-section">Pre-Clean Reference</div>
+      <div id="preCleanData">
+        <div class="text-body" style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-weight: 600; color: #3b82f6;">Loading pre-clean data...</div>
+          <div class="text-small" style="color: #3b82f6;">Please wait</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Authentication -->
+    <div class="card fade-in" id="authCard">
+      <div class="text-section">User Authentication</div>
+      
+      <div class="form-group">
+        <label class="text-label">Your Name *</label>
+        <input type="text" class="input" id="userName" placeholder="Enter your full name" autocomplete="name">
+      </div>
+      
+      <button class="btn btn-primary btn-block" id="authBtn" onclick="authenticateUser()">
+        <span>🔐 Start Post-Cleaning</span>
+      </button>
+    </div>
+
+    <!-- Post-Cleaning Form (Hidden until authenticated) -->
+    <div id="postCleanForm" style="display: none;">
+      <!-- Employee Information -->
+      <div class="card fade-in">
+        <div class="text-section">Employee Information</div>
+        
+        <div class="form-group">
+          <label class="text-label">Employee Name</label>
+          <input type="text" class="input" id="employeeName" readonly style="background: #f8fafc;">
+        </div>
+        
+        <div class="form-group">
+          <label class="text-label">Date & Time</label>
+          <input type="text" class="input" id="dateTime" readonly>
+        </div>
+        
+        <div class="form-group">
+          <label class="text-label">Number of Bags Retrieved *</label>
+          <input type="number" class="input" id="bagsRetrieved" placeholder="0" min="0" required>
+          <div class="text-small" style="color: #64748b; margin-top: 4px;">Must match bags covered in pre-clean</div>
+        </div>
+      </div>
+
+      <!-- Bag Integrity Validation -->
+      <div class="card fade-in" id="bagIntegrityCard">
+        <div class="text-section">Bag Integrity Check</div>
+        <div id="bagIntegrityStatus">
+          <div class="text-body" style="text-align: center; padding: 16px; background: rgba(156, 163, 175, 0.1); border-radius: 12px;">
+            <div class="text-body" style="font-weight: 600;">⏳ Waiting for bag count...</div>
+            <div class="text-small" style="color: #94a3b8;">Enter bags retrieved to validate</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Equipment Checklist -->
+      <div class="card fade-in">
+        <div class="text-section">Equipment & Safety Checklist</div>
+        <p class="text-small" style="color: #64748b; margin-bottom: 16px;">All questions are mandatory. Camera will open for photo evidence.</p>
+        
+        <div class="question">
+          <div class="question-text">1. Verify all equipment has been properly cleaned and sanitized.</div>
+          <select class="select" id="equipment1" name="equipment1" required>
+            <option value="">Select...</option>
+            <option value="Acceptable">Acceptable</option>
+            <option value="Not Acceptable">Not Acceptable</option>
+            <option value="N/A">N/A</option>
+          </select>
+          <div class="question-extra hidden" id="equipment1-extra">
+            <input type="file" class="input" accept="image/*" capture="environment" required>
+            <textarea class="textarea" placeholder="Comment required..." name="equipment1-comment" required></textarea>
+          </div>
+        </div>
+
+        <div class="question">
+          <div class="question-text">2. Check for any remaining debris or contamination.</div>
+          <select class="select" id="equipment2" name="equipment2" required>
+            <option value="">Select...</option>
+            <option value="Acceptable">Acceptable</option>
+            <option value="Not Acceptable">Not Acceptable</option>
+            <option value="N/A">N/A</option>
+          </select>
+          <div class="question-extra hidden" id="equipment2-extra">
+            <input type="file" class="input" accept="image/*" capture="environment" required>
+            <textarea class="textarea" placeholder="Comment required..." name="equipment2-comment" required></textarea>
+          </div>
+        </div>
+
+        <div class="question">
+          <div class="question-text">3. Inspect safety guards and emergency stops.</div>
+          <select class="select" id="equipment3" name="equipment3" required>
+            <option value="">Select...</option>
+            <option value="Acceptable">Acceptable</option>
+            <option value="Not Acceptable">Not Acceptable</option>
+            <option value="N/A">N/A</option>
+          </select>
+          <div class="question-extra hidden" id="equipment3-extra">
+            <input type="file" class="input" accept="image/*" capture="environment" required>
+            <textarea class="textarea" placeholder="Comment required..." name="equipment3-comment" required></textarea>
+          </div>
+        </div>
+
+        <div class="question">
+          <div class="question-text">4. Verify cleaning chemical storage and disposal.</div>
+          <select class="select" id="equipment4" name="equipment4" required>
+            <option value="">Select...</option>
+            <option value="Acceptable">Acceptable</option>
+            <option value="Not Acceptable">Not Acceptable</option>
+            <option value="N/A">N/A</option>
+          </select>
+          <div class="question-extra hidden" id="equipment4-extra">
+            <input type="file" class="input" accept="image/*" capture="environment" required>
+            <textarea class="textarea" placeholder="Comment required..." name="equipment4-comment" required></textarea>
+          </div>
+        </div>
+
+        <div class="question">
+          <div class="question-text">5. Check workspace organization and tool storage.</div>
+          <select class="select" id="equipment5" name="equipment5" required>
+            <option value="">Select...</option>
+            <option value="Acceptable">Acceptable</option>
+            <option value="Not Acceptable">Not Acceptable</option>
+            <option value="N/A">N/A</option>
+          </select>
+          <div class="question-extra hidden" id="equipment5-extra">
+            <input type="file" class="input" accept="image/*" capture="environment" required>
+            <textarea class="textarea" placeholder="Comment required..." name="equipment5-comment" required></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Handover Tasks -->
+      <div class="card fade-in">
+        <div class="text-section">Handover Tasks</div>
+        <p class="text-small" style="color: #64748b; margin-bottom: 16px;">List any tasks that need to be handed over to the next shift.</p>
+        
+        <div id="handoverTasks">
+          <div class="handover-task">
+            <input type="text" class="input" placeholder="Task description..." class="handover-input">
+            <select class="select" style="margin-top: 8px;">
+              <option value="">Assign to...</option>
+              <option value="Night Shift">Night Shift</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Production">Production</option>
+              <option value="Sanitation">Sanitation</option>
+              <option value="Not Resolved">Not Resolved</option>
+            </select>
+          </div>
+        </div>
+        
+        <button type="button" class="btn btn-secondary btn-block" onclick="addHandoverTask()" style="margin-top: 12px;">
+          <span>➕ Add Handover Task</span>
+        </button>
+      </div>
+
+      <!-- Additional Notes -->
+      <div class="card fade-in">
+        <div class="text-section">Additional Notes</div>
+        <textarea class="textarea" id="additionalNotes" placeholder="Any additional observations or notes..." rows="3"></textarea>
+      </div>
+    </div>
+  </main>
+
+  <!-- Persistent Damage Report Button -->
+  <div class="damage-report-fab" id="damageReportFab" style="display: none;">
+    <button class="btn btn-danger" onclick="openDamageReport()" style="border-radius: 50%; width: 60px; height: 60px; font-size: 24px;">
+      <span>🔧</span>
+    </button>
+    <div class="text-small" style="text-align: center; margin-top: 4px; color: #ef4444;">Report Damage</div>
+  </div>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions" id="submitActions" style="display: none;">
+    <button class="btn btn-primary btn-block" id="submitBtn" onclick="submitPostCleaning()" disabled>
+      <span>✨ Submit Post-Cleaning</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="saveDraft()">
+      <span>💾 Save Draft</span>
+    </button>
+    <button class="btn btn-warning btn-block" onclick="unlockLine()">
+      <span>🔓 Unlock Line</span>
+    </button>
+  </div>
+</div>
+
+<!-- Bag Mismatch Modal -->
+<div id="bagMismatchModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+  <div style="background: white; padding: 24px; border-radius: 12px; width: 90%; max-width: 400px;">
+    <h3 style="margin: 0 0 16px 0; text-align: center; color: #ef4444;">⚠️ Count Mismatch!</h3>
+    <p style="margin: 0 0 16px 0; text-align: center; color: #6b7280;">
+      <span id="mismatchMessage"></span>
+    </p>
+    <div style="background: #fef2f2; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+      <div style="font-weight: 600; color: #dc2626;">Bag Integrity Check Failed</div>
+      <div style="color: #7f1d1d; font-size: 14px; margin-top: 4px;">You missed some coverings. Verify thoroughly and provide the real count.</div>
+    </div>
+    <button onclick="closeBagMismatchModal()" style="width: 100%; padding: 12px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer;">
+      I Understand - Let Me Recheck
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext framework
+const mobileNext = window.MobileNext;
+const supabase = window.supabaseClient;
+const auth = window.sanixpertAuth;
+
+// Page variables
+let currentLineId = null;
+let currentLineName = null;
+let sessionId = null;
+let preCleanData = null;
+
+// Get line and session from URL
+function getParamsFromURL() {
+  const urlParams = new URLSearchParams(window.location.search);
+  return {
+    line: urlParams.get('line') || 'MACY_PRODUCTION',
+    session: urlParams.get('session')
+  };
+}
+
+// Check line status and pre-clean completion
+async function checkLineStatus() {
+  try {
+    const params = getParamsFromURL();
+    currentLineId = params.line;
+    currentLineName = 'MACY Production Line';
+    sessionId = params.session;
+    
+    mobileNext.showLoading('Checking line status...');
+    
+    // Check if user can access the line
+    const accessResult = await auth.canAccessLine(currentLineId);
+    
+    if (!accessResult.canAccess) {
+      document.getElementById('lineStatusContent').innerHTML = `
+        <div class="text-body" style="text-align: center; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-weight: 600; color: #ef4444;">🔒 Line Locked</div>
+          <div class="text-small" style="color: #ef4444;">${accessResult.message}</div>
+        </div>
+      `;
+      document.getElementById('authCard').style.display = 'none';
+      mobileNext.hideLoading();
+      return false;
+    }
+    
+    // Check if pre-clean is completed
+    if (!sessionId) {
+      document.getElementById('lineStatusContent').innerHTML = `
+        <div class="text-body" style="text-align: center; padding: 16px; background: rgba(251, 191, 36, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-weight: 600; color: #f59e0b;">⏳ Pre-Clean Required</div>
+          <div class="text-small" style="color: #f59e0b;">Complete pre-cleaning first</div>
+        </div>
+      `;
+      document.getElementById('authCard').style.display = 'none';
+      mobileNext.hideLoading();
+      return false;
+    }
+    
+    // Load pre-clean data
+    await loadPreCleanData();
+    
+    // Show line is ready
+    document.getElementById('lineStatusContent').innerHTML = `
+      <div class="text-body" style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+        <div class="text-body" style="font-weight: 600; color: #22c55e;">✅ Ready for Post-Clean</div>
+        <div class="text-small" style="color: #22c55e;">Pre-clean completed successfully</div>
+      </div>
+    `;
+    
+    mobileNext.hideLoading();
+    return true;
+    
+  } catch (error) {
+    console.error('Line status check error:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Error checking line status', 'error');
+    return false;
+  }
+}
+
+// Load pre-clean data
+async function loadPreCleanData() {
+  try {
+    const { data, error } = await supabase
+      .from('cleaning_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .single();
+    
+    if (error) throw error;
+    
+    preCleanData = data;
+    
+    // Display pre-clean reference
+    document.getElementById('preCleanReference').style.display = 'block';
+    document.getElementById('preCleanData').innerHTML = `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="text-align: center; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
+          <div class="text-small" style="color: #3b82f6;">Pre-Clean By</div>
+          <div class="text-body" style="font-weight: 600;">${preCleanData.pre_clean_user}</div>
+        </div>
+        <div style="text-align: center; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+          <div class="text-small" style="color: #22c55e;">Bags Covered</div>
+          <div class="text-body" style="font-weight: 600; color: #22c55e;">${preCleanData.bags_covered}</div>
+        </div>
+      </div>
+      <div style="text-align: center; padding: 12px; background: rgba(156, 163, 175, 0.1); border-radius: 8px; margin-top: 8px;">
+        <div class="text-small" style="color: #64748b;">Pre-Clean Time</div>
+        <div class="text-body">${new Date(preCleanData.pre_clean_timestamp).toLocaleString()}</div>
+      </div>
+    `;
+    
+  } catch (error) {
+    console.error('Error loading pre-clean data:', error);
+    mobileNext.showToast('Error loading pre-clean data', 'error');
+  }
+}
+
+// Authenticate user
+async function authenticateUser() {
+  const userName = document.getElementById('userName').value.trim();
+  
+  if (!userName) {
+    mobileNext.showToast('Please enter your name', 'error');
+    return;
+  }
+  
+  try {
+    mobileNext.showLoading('Authenticating...');
+    
+    // Authenticate user
+    const authResult = await auth.authenticateUser(userName);
+    
+    if (!authResult.success) {
+      mobileNext.hideLoading();
+      mobileNext.showToast('Authentication failed: ' + authResult.error, 'error');
+      return;
+    }
+    
+    // Lock the line
+    const lockResult = await auth.lockLine(currentLineId, currentLineName);
+    
+    if (!lockResult.success) {
+      mobileNext.hideLoading();
+      mobileNext.showToast('Failed to lock line: ' + lockResult.error, 'error');
+      return;
+    }
+    
+    // Update UI for authenticated user
+    document.getElementById('employeeName').value = authResult.user.name;
+    document.getElementById('authCard').style.display = 'none';
+    document.getElementById('postCleanForm').style.display = 'block';
+    document.getElementById('damageReportFab').style.display = 'block';
+    document.getElementById('submitActions').style.display = 'block';
+    
+    // Start date/time updates
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    
+    // Setup handlers
+    setupChecklistHandlers();
+    setupBagIntegrityCheck();
+    
+    mobileNext.hideLoading();
+    mobileNext.showToast(`Welcome ${authResult.user.name}! Line locked successfully.`, 'success');
+    
+  } catch (error) {
+    console.error('Authentication error:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Authentication error: ' + error.message, 'error');
+  }
+}
+
+// Update date/time
+function updateDateTime() {
+  const dateTimeEl = document.getElementById('dateTime');
+  if (dateTimeEl) {
+    if (window.DateUtils) {
+      dateTimeEl.value = DateUtils.formatTimestamp(DateUtils.getCurrentTimestamp());
+    } else {
+      const now = new Date();
+      dateTimeEl.value = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+    }
+  }
+}
+
+// Setup bag integrity check
+function setupBagIntegrityCheck() {
+  const bagsRetrievedInput = document.getElementById('bagsRetrieved');
+  bagsRetrievedInput.addEventListener('input', validateBagIntegrity);
+}
+
+// Validate bag integrity
+function validateBagIntegrity() {
+  const bagsRetrieved = parseInt(document.getElementById('bagsRetrieved').value) || 0;
+  const bagsCovered = preCleanData?.bags_covered || 0;
+  const statusCard = document.getElementById('bagIntegrityStatus');
+  const submitBtn = document.getElementById('submitBtn');
+  
+  if (bagsRetrieved === 0) {
+    statusCard.innerHTML = `
+      <div class="text-body" style="text-align: center; padding: 16px; background: rgba(156, 163, 175, 0.1); border-radius: 12px;">
+        <div class="text-body" style="font-weight: 600;">⏳ Waiting for bag count...</div>
+        <div class="text-small" style="color: #94a3b8;">Enter bags retrieved to validate</div>
+      </div>
+    `;
+    submitBtn.disabled = true;
+    return;
+  }
+  
+  if (bagsRetrieved === bagsCovered) {
+    statusCard.innerHTML = `
+      <div class="text-body" style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+        <div class="text-body" style="font-weight: 600; color: #22c55e;">✅ Bag Integrity Valid</div>
+        <div class="text-small" style="color: #22c55e;">${bagsRetrieved} bags retrieved = ${bagsCovered} bags covered</div>
+      </div>
+    `;
+    submitBtn.disabled = false;
+  } else {
+    statusCard.innerHTML = `
+      <div class="text-body" style="text-align: center; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px;">
+        <div class="text-body" style="font-weight: 600; color: #ef4444;">❌ Bag Mismatch!</div>
+        <div class="text-small" style="color: #ef4444;">${bagsRetrieved} bags retrieved ≠ ${bagsCovered} bags covered</div>
+      </div>
+    `;
+    submitBtn.disabled = true;
+    
+    // Show mismatch modal
+    showBagMismatchModal(bagsRetrieved, bagsCovered);
+  }
+}
+
+// Show bag mismatch modal
+function showBagMismatchModal(retrieved, covered) {
+  const modal = document.getElementById('bagMismatchModal');
+  const message = document.getElementById('mismatchMessage');
+  
+  message.textContent = `You retrieved ${retrieved} bags but ${covered} bags were covered. You missed ${covered - retrieved} bags!`;
+  modal.style.display = 'flex';
+}
+
+// Close bag mismatch modal
+function closeBagMismatchModal() {
+  document.getElementById('bagMismatchModal').style.display = 'none';
+  document.getElementById('bagsRetrieved').focus();
+}
+
+// Setup checklist handlers
+function setupChecklistHandlers() {
+  const selects = document.querySelectorAll('.select');
+  selects.forEach(select => {
+    select.addEventListener('change', function() {
+      const questionId = this.id;
+      const extraDiv = document.getElementById(questionId + '-extra');
+      
+      if (this.value === 'Not Acceptable' || this.value === 'N/A') {
+        extraDiv.classList.remove('hidden');
+        const fileInput = extraDiv.querySelector('input[type="file"]');
+        const textarea = extraDiv.querySelector('textarea');
+        if (fileInput) fileInput.required = true;
+        if (textarea) textarea.required = true;
+      } else {
+        extraDiv.classList.add('hidden');
+        const fileInput = extraDiv.querySelector('input[type="file"]');
+        const textarea = extraDiv.querySelector('textarea');
+        if (fileInput) fileInput.required = false;
+        if (textarea) textarea.required = false;
+      }
+    });
+  });
+}
+
+// Add handover task
+function addHandoverTask() {
+  const container = document.getElementById('handoverTasks');
+  const taskDiv = document.createElement('div');
+  taskDiv.className = 'handover-task';
+  taskDiv.style.marginTop = '12px';
+  taskDiv.innerHTML = `
+    <input type="text" class="input" placeholder="Task description..." class="handover-input">
+    <select class="select" style="margin-top: 8px;">
+      <option value="">Assign to...</option>
+      <option value="Night Shift">Night Shift</option>
+      <option value="Maintenance">Maintenance</option>
+      <option value="Production">Production</option>
+      <option value="Sanitation">Sanitation</option>
+      <option value="Not Resolved">Not Resolved</option>
+    </select>
+    <button type="button" class="btn btn-danger" style="margin-top: 8px; padding: 8px;" onclick="this.parentElement.remove()">Remove</button>
+  `;
+  container.appendChild(taskDiv);
+}
+
+// Validate form
+function validateForm() {
+  const userName = document.getElementById('employeeName').value.trim();
+  const bagsRetrieved = parseInt(document.getElementById('bagsRetrieved').value);
+  
+  if (!userName) {
+    mobileNext.showToast('Employee name is required', 'error');
+    return false;
+  }
+  
+  if (!bagsRetrieved || bagsRetrieved < 0) {
+    mobileNext.showToast('Number of bags must be a positive number', 'error');
+    return false;
+  }
+  
+  // Check bag integrity
+  if (bagsRetrieved !== preCleanData?.bags_covered) {
+    mobileNext.showToast('Bag count mismatch! Please verify the count.', 'error');
+    return false;
+  }
+  
+  // Check all checklist questions
+  const selects = document.querySelectorAll('.select[required]');
+  for (let select of selects) {
+    if (!select.value) {
+      mobileNext.showToast('All checklist questions are required', 'error');
+      select.focus();
+      return false;
+    }
+    
+    // Check if extra fields are required and filled
+    if (select.value === 'Not Acceptable' || select.value === 'N/A') {
+      const extraDiv = document.getElementById(select.id + '-extra');
+      const fileInput = extraDiv?.querySelector('input[type="file"]');
+      const textarea = extraDiv?.querySelector('textarea');
+      
+      if (fileInput.required && !fileInput.files.length) {
+        mobileNext.showToast('Photo is required for this question', 'error');
+        return false;
+      }
+      
+      if (textarea.required && !textarea.value.trim()) {
+        mobileNext.showToast('Comment is required for this question', 'error');
+        return false;
+      }
+    }
+  }
+  
+  return true;
+}
+
+// Submit post-cleaning
+async function submitPostCleaning() {
+  if (!validateForm()) return;
+  
+  try {
+    mobileNext.showLoading('Submitting post-cleaning...');
+    
+    const employeeName = document.getElementById('employeeName').value.trim();
+    const bagsRetrieved = parseInt(document.getElementById('bagsRetrieved').value);
+    const additionalNotes = document.getElementById('additionalNotes').value.trim();
+    
+    // Collect checklist data
+    const checklist = [];
+    const selects = document.querySelectorAll('.select');
+    
+    for (let select of selects) {
+      const questionText = select.closest('.question').querySelector('.question-text').textContent;
+      const extraDiv = document.getElementById(select.id + '-extra');
+      const fileInput = extraDiv?.querySelector('input[type="file"]');
+      const textarea = extraDiv?.querySelector('textarea');
+      
+      const checklistItem = {
+        question: questionText,
+        answer: select.value,
+        comment: textarea?.value || '',
+        photoRequired: (select.value === 'Not Acceptable' || select.value === 'N/A'),
+        photoTaken: fileInput?.files.length > 0
+      };
+      
+      checklist.push(checklistItem);
+    }
+    
+    // Collect handover tasks
+    const handoverTasks = [];
+    const handoverInputs = document.querySelectorAll('.handover-task');
+    
+    handoverInputs.forEach(taskDiv => {
+      const description = taskDiv.querySelector('.handover-input')?.value.trim();
+      const assignedTo = taskDiv.querySelector('select')?.value;
+      
+      if (description && assignedTo) {
+        handoverTasks.push({
+          description,
+          assignedTo,
+          createdBy: employeeName
+        });
+      }
+    });
+    
+    // Update cleaning session
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('cleaning_sessions')
+      .update({
+        post_clean_user: employeeName,
+        bags_retrieved: bagsRetrieved,
+        post_clean_timestamp: new Date().toISOString(),
+        post_clean_checklist: checklist,
+        status: 'Pending_Lead'
+      })
+      .eq('id', sessionId)
+      .select()
+      .single();
+    
+    if (sessionError) throw sessionError;
+    
+    // Insert handover tasks if any
+    if (handoverTasks.length > 0) {
+      const { error: handoverError } = await supabase
+        .from('handover_tasks')
+        .insert(
+          handoverTasks.map(task => ({
+            session_id: sessionId,
+            line_id: currentLineId,
+            task_description: task.description,
+            task_type: task.assignedTo === 'Maintenance' ? 'Maintenance' : 'Sanitation',
+            status: 'Pending',
+            assigned_to: task.assignedTo,
+            created_by: task.createdBy
+          }))
+        );
+      
+      if (handoverError) throw handoverError;
+    }
+    
+    // Update line status
+    const { error: lineError } = await supabase
+      .from('lines')
+      .update({ 
+        status: 'Handover'
+      })
+      .eq('id', currentLineId);
+    
+    if (lineError) throw lineError;
+    
+    mobileNext.hideLoading();
+    mobileNext.showToast('Post-cleaning submitted successfully!', 'success');
+    
+    // Show completion message
+    setTimeout(() => {
+      mobileNext.confirm(
+        'Post-Cleaning Complete',
+        'Post-cleaning has been submitted successfully!\n\nNext step: Area Lead verification.\n\nWould you like to proceed to Lead Verification?',
+        () => {
+          window.location.href = `macy-production-lead-verification-next.html?line=${currentLineId}&session=${sessionId}`;
+        }
+      );
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Submit error:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to submit: ' + error.message, 'error');
+  }
+}
+
+// Save draft
+function saveDraft() {
+  const formData = {
+    employeeName: document.getElementById('employeeName').value,
+    bagsRetrieved: document.getElementById('bagsRetrieved').value,
+    additionalNotes: document.getElementById('additionalNotes').value,
+    checklist: []
+  };
+  
+  // Collect checklist data
+  const selects = document.querySelectorAll('.select');
+  selects.forEach(select => {
+    const textarea = document.getElementById(select.id + '-extra')?.querySelector('.textarea');
+    formData.checklist.push({
+      id: select.id,
+      value: select.value,
+      comment: textarea ? textarea.value : ''
+    });
+  });
+  
+  localStorage.setItem('draft_macy-production-postclean', JSON.stringify(formData));
+  mobileNext.showToast('Draft saved', 'success');
+}
+
+// Load draft
+function loadDraft() {
+  const draft = localStorage.getItem('draft_macy-production-postclean');
+  if (draft) {
+    try {
+      const formData = JSON.parse(draft);
+      
+      document.getElementById('employeeName').value = formData.employeeName || '';
+      document.getElementById('bagsRetrieved').value = formData.bagsRetrieved || '';
+      document.getElementById('additionalNotes').value = formData.additionalNotes || '';
+      
+      // Restore checklist
+      formData.checklist.forEach(item => {
+        const select = document.getElementById(item.id);
+        if (select) {
+          select.value = item.value;
+          select.dispatchEvent(new Event('change'));
+          
+          const textarea = document.getElementById(item.id + '-extra')?.querySelector('.textarea');
+          if (textarea) {
+            textarea.value = item.comment || '';
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.warn('Failed to load draft:', error);
+    }
+  }
+}
+
+// Unlock line
+async function unlockLine() {
+  mobileNext.confirm(
+    'Unlock Line',
+    'Are you sure you want to unlock this line?\n\nAll unsaved data will be lost.',
+    async () => {
+      try {
+        mobileNext.showLoading('Unlocking line...');
+        
+        const result = await auth.unlockLine();
+        
+        if (result.success) {
+          mobileNext.hideLoading();
+          mobileNext.showToast('Line unlocked successfully', 'success');
+          
+          // Redirect to home
+          setTimeout(() => {
+            window.location.href = 'index-next.html';
+          }, 1000);
+        } else {
+          mobileNext.hideLoading();
+          mobileNext.showToast('Failed to unlock line: ' + result.error, 'error');
+        }
+        
+      } catch (error) {
+        mobileNext.hideLoading();
+        mobileNext.showToast('Unlock error: ' + error.message, 'error');
+      }
+    }
+  );
+}
+
+// Open damage report
+function openDamageReport() {
+  window.location.href = `macy-production-damage-next.html?line=${currentLineId}&session=${sessionId}`;
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', async function() {
+  // Check line status first
+  const lineAvailable = await checkLineStatus();
+  
+  if (lineAvailable) {
+    // Load draft if exists
+    loadDraft();
+    
+    // Auto-save draft every 30 seconds
+    setInterval(saveDraft, 30000);
+  }
+  
+  console.log('🚀 MACY Production Post-Cleaning page loaded');
+});
+</script>
+
+</body>
+</html>

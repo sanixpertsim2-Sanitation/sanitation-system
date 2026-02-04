@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Database Heartbeat Monitor</title>
+  
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f8fafc;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .status-online {
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+    
+    .status-offline {
+      background: #ef4444;
+    }
+    
+    .status-warning {
+      background: #f59e0b;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .metric:last-child {
+      border-bottom: none;
+    }
+    
+    .metric-label {
+      color: #6b7280;
+      font-size: 14px;
+    }
+    
+    .metric-value {
+      font-weight: 600;
+      color: #1f2937;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin-right: 10px;
+    }
+    
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+    }
+    
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+    
+    .log-entry {
+      padding: 8px 0;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 12px;
+    }
+    
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    
+    .log-time {
+      color: #9ca3af;
+      margin-right: 10px;
+    }
+    
+    .log-success {
+      color: #22c55e;
+    }
+    
+    .log-error {
+      color: #ef4444;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>📡 Database Heartbeat Monitor</h1>
+    <p style="color: #6b7280;">Real-time monitoring of Supabase database connectivity</p>
+  </div>
+
+  <!-- Status Card -->
+  <div class="card">
+    <h3>Connection Status</h3>
+    <div class="metric">
+      <span class="metric-label">Status</span>
+      <span class="metric-value">
+        <span id="statusIndicator" class="status-indicator status-offline"></span>
+        <span id="statusText">Checking...</span>
+      </span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Last Heartbeat</span>
+      <span class="metric-value" id="lastHeartbeat">Never</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Response Time</span>
+      <span class="metric-value" id="responseTime">-</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Failure Count</span>
+      <span class="metric-value" id="failureCount">0</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Heartbeat Interval</span>
+      <span class="metric-value" id="heartbeatInterval">4 minutes</span>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn btn-primary" onclick="startHeartbeat()">Start Heartbeat</button>
+    <button class="btn btn-secondary" onclick="stopHeartbeat()">Stop Heartbeat</button>
+    <button class="btn btn-primary" onclick="forceHeartbeat()">Force Heartbeat</button>
+    <button class="btn btn-secondary" onclick="testConnection()">Test Connection</button>
+    <button class="btn btn-secondary" onclick="showStats()">Show Stats</button>
+  </div>
+
+  <!-- System Status -->
+  <div class="card">
+    <h3>System Status</h3>
+    <div id="systemStatus">
+      <div class="metric">
+        <span class="metric-label">Active Sessions</span>
+        <span class="metric-value" id="activeSessions">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Pending Reports</span>
+        <span class="metric-value" id="pendingReports">-</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">System Load</span>
+        <span class="metric-value" id="systemLoad">-</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Logs -->
+  <div class="card">
+    <h3>Recent Heartbeat Logs</h3>
+    <div id="heartbeatLogs">
+      <div class="log-entry">
+        <span class="log-time">--:--</span>
+        <span>Waiting for heartbeat data...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/database-heartbeat.js"></script>
+
+<script>
+const supabase = window.supabaseClient;
+let logsUpdateInterval = null;
+
+// Initialize monitor
+document.addEventListener('DOMContentLoaded', async function() {
+  await updateSystemStatus();
+  startLogUpdates();
+  
+  // Update status every 5 seconds
+  setInterval(updateStatus, 5000);
+});
+
+// Update status display
+function updateStatus() {
+  const heartbeat = window.databaseHeartbeat;
+  const stats = heartbeat.getStats();
+  
+  // Update status indicator
+  const indicator = document.getElementById('statusIndicator');
+  const statusText = document.getElementById('statusText');
+  
+  if (stats.isActive) {
+    if (stats.failureCount === 0) {
+      indicator.className = 'status-indicator status-online';
+      statusText.textContent = 'Online';
+    } else if (stats.failureCount < 3) {
+      indicator.className = 'status-indicator status-warning';
+      statusText.textContent = 'Warning';
+    } else {
+      indicator.className = 'status-indicator status-offline';
+      statusText.textContent = 'Offline';
+    }
+  } else {
+    indicator.className = 'status-indicator status-offline';
+    statusText.textContent = 'Stopped';
+  }
+  
+  // Update other metrics
+  document.getElementById('lastHeartbeat').textContent = 
+    stats.lastHeartbeat ? new Date(stats.lastHeartbeat).toLocaleTimeString() : 'Never';
+  document.getElementById('failureCount').textContent = stats.failureCount;
+  document.getElementById('heartbeatInterval').textContent = 
+    (stats.interval / 60000).toFixed(1) + ' minutes';
+}
+
+// Update system status
+async function updateSystemStatus() {
+  try {
+    const { data, error } = await supabase.rpc('system_status');
+    
+    if (error) throw error;
+    
+    document.getElementById('activeSessions').textContent = data.active_sessions;
+    document.getElementById('pendingReports').textContent = data.pending_reports;
+    document.getElementById('systemLoad').textContent = data.system_load;
+    
+  } catch (error) {
+    console.error('Error updating system status:', error);
+    document.getElementById('activeSessions').textContent = 'Error';
+    document.getElementById('pendingReports').textContent = 'Error';
+    document.getElementById('systemLoad').textContent = 'Error';
+  }
+}
+
+// Update heartbeat logs
+async function updateLogs() {
+  try {
+    const { data, error } = await supabase
+      .from('system_logs')
+      .select('*')
+      .eq('event_type', 'HEARTBEAT')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    if (error) throw error;
+    
+    const logsContainer = document.getElementById('heartbeatLogs');
+    
+    if (!data || data.length === 0) {
+      logsContainer.innerHTML = `
+        <div class="log-entry">
+          <span class="log-time">--:--</span>
+          <span>No heartbeat logs found</span>
+        </div>
+      `;
+      return;
+    }
+    
+    logsContainer.innerHTML = data.map(log => {
+      const time = new Date(log.created_at).toLocaleTimeString();
+      const success = log.event_data?.success;
+      const responseTime = log.event_data?.response_time || 0;
+      const error = log.event_data?.error;
+      
+      return `
+        <div class="log-entry">
+          <span class="log-time">${time}</span>
+          <span class="${success ? 'log-success' : 'log-error'}">
+            ${success ? '✅' : '❌'} ${responseTime}ms ${error ? '- ' + error : ''}
+          </span>
+        </div>
+      `;
+    }).join('');
+    
+  } catch (error) {
+    console.error('Error updating logs:', error);
+  }
+}
+
+// Start log updates
+function startLogUpdates() {
+  updateLogs();
+  logsUpdateInterval = setInterval(updateLogs, 10000); // Update every 10 seconds
+}
+
+// Control functions
+function startHeartbeat() {
+  window.databaseHeartbeat.start();
+  updateStatus();
+}
+
+function stopHeartbeat() {
+  window.databaseHeartbeat.stop();
+  updateStatus();
+}
+
+function forceHeartbeat() {
+  window.databaseHeartbeat.forceHeartbeat();
+  updateStatus();
+}
+
+async function testConnection() {
+  try {
+    const { data, error } = await supabase.rpc('connection_test');
+    
+    if (error) throw error;
+    
+    document.getElementById('responseTime').textContent = data.response_time_ms + 'ms';
+    alert(`Connection test successful!\nResponse time: ${data.response_time_ms}ms`);
+    
+  } catch (error) {
+    document.getElementById('responseTime').textContent = 'Error';
+    alert('Connection test failed: ' + error.message);
+  }
+}
+
+function showStats() {
+  const stats = window.databaseHeartbeat.getStats();
+  
+  alert(`Heartbeat Statistics:\n\n` +
+    `Active: ${stats.isActive}\n` +
+    `Last Heartbeat: ${stats.lastHeartbeat ? new Date(stats.lastHeartbeat).toLocaleString() : 'Never'}\n` +
+    `Failure Count: ${stats.failureCount}/${stats.maxFailures}\n` +
+    `Interval: ${stats.interval / 1000} seconds\n` +
+    `Uptime: ${Math.floor(stats.uptime / 1000)} seconds`);
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+  if (logsUpdateInterval) {
+    clearInterval(logsUpdateInterval);
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sanixpert Live Dashboard</title>
+  
+  <!-- Mobile-Next Framework -->
+  <link rel="stylesheet" href="css/mobile-next.css">
+  <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+  
+  <!-- Chart.js for analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Essential scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/dateUtils.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+  <script src="js/pwa-registration.js"></script>
+  <script src="js/ai-recommendations.js"></script>
+  <script src="js/sanixpert-auth.js"></script>
+  <script src="js/database-heartbeat.js"></script>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Fixed Header -->
+  <header class="app-header">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+      <div style="font-size: 24px; font-weight: 800; color: #0f172a;">Give & Go</div>
+      <div style="width: 2px; height: 24px; background: #64748b;"></div>
+      <div style="font-size: 24px; font-weight: 800; color: #3b82f6;">Sanixpert</div>
+    </div>
+    <div class="text-subtitle">Live Operations Dashboard</div>
+    <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 8px;">
+      <div id="heartbeatStatus" style="display: flex; align-items: center; gap: 4px;">
+        <div style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite;"></div>
+        <span style="color: #22c55e; font-size: 12px;">Database Connected</span>
+      </div>
+      <div style="width: 1px; height: 12px; background: #64748b;"></div>
+      <div class="text-small" style="color: #64748b;">
+        Last update: <span id="lastUpdated">Just now</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Scrollable Content -->
+  <main class="app-content">
+    <!-- Red Alerts Banner -->
+    <div class="card fade-in" id="alertsBanner" style="display: none;">
+      <div class="text-section">🚨 Red Alerts</div>
+      <div id="alertsContent">
+        <div class="text-body" style="text-align: center; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-weight: 600; color: #ef4444;">Checking for alerts...</div>
+          <div class="text-small" style="color: #ef4444;">Please wait</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Status Overview -->
+    <div class="card fade-in">
+      <div class="text-section">📊 Live Status Overview</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 16px; background: rgba(34, 197, 94, 0.1); border-radius: 12px;">
+          <div style="font-size: 24px; margin-bottom: 4px;">✅</div>
+          <div class="text-body" style="font-weight: 600;" id="readyLines">0</div>
+          <div class="text-small" style="color: #22c55e;">Ready Lines</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(251, 191, 36, 0.1); border-radius: 12px;">
+          <div style="font-size: 24px; margin-bottom: 4px;">🔄</div>
+          <div class="text-body" style="font-weight: 600;" id="activeLines">0</div>
+          <div class="text-small" style="color: #f59e0b;">Active Lines</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="text-align: center; padding: 16px; background: rgba(59, 130, 246, 0.1); border-radius: 12px;">
+          <div style="font-size: 24px; margin-bottom: 4px;">🧹</div>
+          <div class="text-body" style="font-weight: 600;" id="completedToday">0</div>
+          <div class="text-small" style="color: #3b82f6;">Completed Today</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: rgba(239, 68, 68, 0.1); border-radius: 12px;">
+          <div style="font-size: 24px; margin-bottom: 4px;">🔧</div>
+          <div class="text-body" style="font-weight: 600;" id="openDamages">0</div>
+          <div class="text-small" style="color: #ef4444;">Open Damages</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line Status Cards -->
+    <div class="card fade-in">
+      <div class="text-section">🏭 Line Status</div>
+      <div id="lineStatusCards">
+        <div class="text-body" style="text-align: center; padding: 16px; background: rgba(156, 163, 175, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-weight: 600;">Loading line status...</div>
+          <div class="text-small" style="color: #94a3b8;">Please wait</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Analytics -->
+    <div class="card fade-in">
+      <div class="text-section">📈 Progress Analytics</div>
+      
+      <div style="margin-bottom: 20px;">
+        <div class="text-small" style="color: #64748b; margin-bottom: 8px;">Daily Completion Rate</div>
+        <canvas id="progressChart" style="width: 100%; height: 200px;"></canvas>
+      </div>
+      
+      <div>
+        <div class="text-small" style="color: #64748b; margin-bottom: 8px;">Workflow Distribution</div>
+        <canvas id="workflowChart" style="width: 100%; height: 200px;"></canvas>
+      </div>
+    </div>
+
+    <!-- Recent Activity Feed -->
+    <div class="card fade-in">
+      <div class="text-section">📋 Recent Activity Feed</div>
+      <div id="activityFeed">
+        <div class="text-body" style="text-align: center; padding: 16px; background: rgba(156, 163, 175, 0.1); border-radius: 12px;">
+          <div class="text-body" style="font-weight: 600;">Loading activity...</div>
+          <div class="text-small" style="color: #94a3b8;">Please wait</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Health -->
+    <div class="card fade-in">
+      <div class="text-section">🔧 System Health</div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="text-align: center; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+          <div style="font-size: 20px; margin-bottom: 4px;">🟢</div>
+          <div class="text-small">Database</div>
+          <div class="text-small" style="color: #22c55e;">Online</div>
+        </div>
+        <div style="text-align: center; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+          <div style="font-size: 20px; margin-bottom: 4px;">🟢</div>
+          <div class="text-small">Storage</div>
+          <div class="text-small" style="color: #22c55e;">Available</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+        <div style="text-align: center; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+          <div style="font-size: 20px; margin-bottom: 4px;">🟢</div>
+          <div class="text-small">Email Service</div>
+          <div class="text-small" style="color: #22c55e;">Active</div>
+        </div>
+        <div style="text-align: center; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+          <div style="font-size: 20px; margin-bottom: 4px;">🟢</div>
+          <div class="text-small">API</div>
+          <div class="text-small" style="color: #22c55e;">Responsive</div>
+        </div>
+      </div>
+      
+      <div class="text-small text-center" style="margin-top: 12px; color: #94a3b8;">
+        Last updated: <span id="lastUpdated">Just now</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Actions -->
+  <div class="sticky-actions">
+    <button class="btn btn-primary btn-block" onclick="refreshDashboard()">
+      <span>🔄 Refresh Dashboard</span>
+    </button>
+    <button class="btn btn-secondary btn-block" onclick="exportReport()">
+      <span>📊 Export Report</span>
+    </button>
+    <button class="btn btn-warning btn-block" onclick="testEmailAlert()">
+      <span>📧 Test Email Alert</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// Initialize MobileNext framework
+const mobileNext = window.MobileNext;
+const supabase = window.supabaseClient;
+
+// Dashboard state
+let dashboardData = {
+  lines: [],
+  sessions: [],
+  reports: [],
+  alerts: [],
+  systemHealth: {
+    database: true,
+    storage: true,
+    email: true,
+    api: true
+  }
+};
+
+// Charts
+let progressChart = null;
+let workflowChart = null;
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', async function() {
+  await initializeDashboard();
+  startRealTimeUpdates();
+  setupCharts();
+  console.log('🚀 Sanixpert Live Dashboard loaded');
+});
+
+// Initialize dashboard
+async function initializeDashboard() {
+  try {
+    mobileNext.showLoading('Loading dashboard...');
+    
+    await Promise.all([
+      loadLineStatus(),
+      loadAlerts(),
+      loadActivityFeed(),
+      loadAnalytics()
+    ]);
+    
+    updateSystemHealth();
+    mobileNext.hideLoading();
+    
+  } catch (error) {
+    console.error('Dashboard initialization error:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to load dashboard', 'error');
+  }
+}
+
+// Load line status
+async function loadLineStatus() {
+  try {
+    const { data, error } = await supabase
+      .from('line_status_overview')
+      .select('*')
+      .order('name');
+    
+    if (error) throw error;
+    
+    dashboardData.lines = data || [];
+    updateLineStatusCards();
+    updateOverviewStats();
+    
+  } catch (error) {
+    console.error('Error loading line status:', error);
+  }
+}
+
+// Load alerts
+async function loadAlerts() {
+  try {
+    // Load high severity damage reports
+    const { data: damageAlerts, error: damageError } = await supabase
+      .from('reports')
+      .select('*')
+      .eq('severity', 'High')
+      .eq('status', 'Open')
+      .order('created_at', { ascending: false });
+    
+    if (damageError) throw damageError;
+    
+    // Load system alerts
+    const { data: systemAlerts, error: systemError } = await supabase
+      .from('system_logs')
+      .select('*')
+      .in('event_type', ['HIGH_SEVERITY_ALERT', 'SYSTEM_ERROR'])
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    if (systemError) throw systemError;
+    
+    dashboardData.alerts = [
+      ...(damageAlerts || []).map(alert => ({
+        type: 'damage',
+        severity: 'High',
+        message: `High severity damage: ${alert.description}`,
+        lineId: alert.line_id,
+        timestamp: alert.created_at,
+        action: 'review'
+      })),
+      ...(systemAlerts || []).map(alert => ({
+        type: 'system',
+        severity: 'High',
+        message: alert.description,
+        timestamp: alert.created_at,
+        action: 'investigate'
+      }))
+    ];
+    
+    updateAlertsBanner();
+    
+  } catch (error) {
+    console.error('Error loading alerts:', error);
+  }
+}
+
+// Load activity feed
+async function loadActivityFeed() {
+  try {
+    const activities = [];
+    
+    // Load recent sessions
+    const { data: sessions, error: sessionError } = await supabase
+      .from('cleaning_sessions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    if (!sessionError && sessions) {
+      sessions.forEach(session => {
+        activities.push({
+          type: 'session',
+          icon: '🧹',
+          title: `Cleaning session started`,
+          description: `${session.pre_clean_user} began pre-cleaning`,
+          timestamp: session.created_at,
+          status: session.status
+        });
+      });
+    }
+    
+    // Load recent reports
+    const { data: reports, error: reportError } = await supabase
+      .from('reports')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    if (!reportError && reports) {
+      reports.forEach(report => {
+        activities.push({
+          type: 'report',
+          icon: '🔧',
+          title: `Damage report filed`,
+          description: `${report.description}`,
+          timestamp: report.created_at,
+          severity: report.severity
+        });
+      });
+    }
+    
+    dashboardData.activities = activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    updateActivityFeed();
+    
+  } catch (error) {
+    console.error('Error loading activity feed:', error);
+  }
+}
+
+// Load analytics
+async function loadAnalytics() {
+  try {
+    // Load daily activity summary
+    const { data, error } = await supabase
+      .from('daily_activity_summary')
+      .select('*')
+      .order('activity_date', { ascending: false })
+      .limit(7);
+    
+    if (error) throw error;
+    
+    dashboardData.analytics = data || [];
+    updateCharts();
+    
+  } catch (error) {
+    console.error('Error loading analytics:', error);
+  }
+}
+
+// Update line status cards
+function updateLineStatusCards() {
+  const container = document.getElementById('lineStatusCards');
+  
+  if (!dashboardData.lines.length) {
+    container.innerHTML = `
+      <div class="text-body" style="text-align: center; padding: 16px; background: rgba(156, 163, 175, 0.1); border-radius: 12px;">
+        <div class="text-body" style="font-weight: 600;">No lines found</div>
+        <div class="text-small" style="color: #94a3b8;">Check system configuration</div>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = dashboardData.lines.map(line => {
+    const statusColor = getStatusColor(line.status);
+    const statusIcon = getStatusIcon(line.status);
+    const lockedBy = line.locked_by ? `🔒 ${line.locked_by}` : '';
+    
+    return `
+      <div style="padding: 12px; background: ${statusColor}20; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${statusColor};">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div style="flex: 1;">
+            <div class="text-body" style="font-weight: 600;">${line.name}</div>
+            <div class="text-small" style="color: #64748b;">${line.line_type} Line</div>
+            <div class="text-small" style="color: ${statusColor};">${statusIcon} ${line.status}</div>
+            ${lockedBy ? `<div class="text-small" style="color: #f59e0b;">${lockedBy}</div>` : ''}
+          </div>
+          <div style="font-size: 24px;">${statusIcon}</div>
+        </div>
+        ${line.high_severity_reports > 0 ? `
+          <div style="margin-top: 8px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 6px;">
+            <div class="text-small" style="color: #ef4444;">🚨 ${line.high_severity_reports} high severity reports</div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// Update overview stats
+function updateOverviewStats() {
+  const readyLines = dashboardData.lines.filter(line => line.status === 'Ready').length;
+  const activeLines = dashboardData.lines.filter(line => line.locked_by).length;
+  const completedToday = dashboardData.lines.reduce((sum, line) => sum + (line.completed_sessions || 0), 0);
+  const openDamages = dashboardData.lines.reduce((sum, line) => sum + (line.open_reports || 0), 0);
+  
+  document.getElementById('readyLines').textContent = readyLines;
+  document.getElementById('activeLines').textContent = activeLines;
+  document.getElementById('completedToday').textContent = completedToday;
+  document.getElementById('openDamages').textContent = openDamages;
+}
+
+// Update alerts banner
+function updateAlertsBanner() {
+  const banner = document.getElementById('alertsBanner');
+  const content = document.getElementById('alertsContent');
+  
+  if (!dashboardData.alerts.length) {
+    banner.style.display = 'none';
+    return;
+  }
+  
+  banner.style.display = 'block';
+  content.innerHTML = dashboardData.alerts.slice(0, 3).map(alert => `
+    <div style="padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #ef4444;">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 600; color: #ef4444;">🚨 ${alert.type === 'damage' ? 'Damage Alert' : 'System Alert'}</div>
+          <div class="text-small" style="color: #ef4444;">${alert.message}</div>
+          <div class="text-small" style="color: #64748b;">${getTimeAgo(new Date(alert.timestamp))}</div>
+        </div>
+        <button onclick="handleAlert('${alert.type}', '${alert.action}')" style="padding: 8px; background: #ef4444; color: white; border: none; border-radius: 6px; font-size: 12px;">
+          ${alert.action}
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Update activity feed
+function updateActivityFeed() {
+  const container = document.getElementById('activityFeed');
+  
+  if (!dashboardData.activities.length) {
+    container.innerHTML = `
+      <div class="text-body" style="text-align: center; padding: 16px; background: rgba(156, 163, 175, 0.1); border-radius: 12px;">
+        <div class="text-body" style="font-weight: 600;">No recent activity</div>
+        <div class="text-small" style="color: #94a3b8;">Check back later</div>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = dashboardData.activities.slice(0, 5).map(activity => `
+    <div style="padding: 12px; background: rgba(156, 163, 175, 0.1); border-radius: 8px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: start; gap: 12px;">
+        <div style="font-size: 20px; margin-top: 2px;">${activity.icon}</div>
+        <div style="flex: 1;">
+          <div class="text-body" style="font-weight: 500;">${activity.title}</div>
+          <div class="text-small" style="color: #64748b;">${activity.description}</div>
+          <div class="text-small" style="color: #94a3b8;">${getTimeAgo(new Date(activity.timestamp))}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Setup charts
+function setupCharts() {
+  // Progress Chart
+  const progressCtx = document.getElementById('progressChart').getContext('2d');
+  progressChart = new Chart(progressCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Completion Rate',
+        data: [],
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100
+        }
+      }
+    }
+  });
+  
+  // Workflow Chart
+  const workflowCtx = document.getElementById('workflowChart').getContext('2d');
+  workflowChart = new Chart(workflowCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Pre-Clean', 'Post-Clean', 'Lead Verification', 'Completed'],
+      datasets: [{
+        data: [0, 0, 0, 0],
+        backgroundColor: ['#3b82f6', '#f59e0b', '#8b5cf6', '#22c55e']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+}
+
+// Update charts
+function updateCharts() {
+  if (!dashboardData.analytics.length) return;
+  
+  // Update progress chart
+  const labels = dashboardData.analytics.map(item => new Date(item.activity_date).toLocaleDateString());
+  const completionRates = dashboardData.analytics.map(item => {
+    const total = item.sessions_started || 1;
+    const completed = item.sessions_completed || 0;
+    return Math.round((completed / total) * 100);
+  });
+  
+  progressChart.data.labels = labels.reverse();
+  progressChart.data.datasets[0].data = completionRates.reverse();
+  progressChart.update();
+  
+  // Update workflow chart
+  const workflowData = getWorkflowDistribution();
+  workflowChart.data.datasets[0].data = workflowData;
+  workflowChart.update();
+}
+
+// Get workflow distribution
+function getWorkflowDistribution() {
+  const sessions = dashboardData.sessions || [];
+  const distribution = {
+    'Open': 0,
+    'Pending_Post': 0,
+    'Pending_Lead': 0,
+    'Completed': 0
+  };
+  
+  sessions.forEach(session => {
+    if (distribution.hasOwnProperty(session.status)) {
+      distribution[session.status]++;
+    }
+  });
+  
+  return [
+    distribution['Open'],
+    distribution['Pending_Post'],
+    distribution['Pending_Lead'],
+    distribution['Completed']
+  ];
+}
+
+// Update system health
+function updateSystemHealth() {
+  // In a real implementation, this would check actual system health
+  // For now, we'll simulate healthy status
+  dashboardData.systemHealth = {
+    database: true,
+    storage: true,
+    email: true,
+    api: true
+  };
+  
+  document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+}
+
+// Handle alert
+function handleAlert(type, action) {
+  if (type === 'damage') {
+    window.location.href = 'macy-production-damage-next.html';
+  } else if (type === 'system') {
+    mobileNext.alert('System Alert', 'This alert requires administrator attention.');
+  }
+}
+
+// Refresh dashboard
+async function refreshDashboard() {
+  await initializeDashboard();
+  mobileNext.showToast('Dashboard refreshed', 'success');
+}
+
+// Export report
+function exportReport() {
+  const reportData = {
+    timestamp: new Date().toISOString(),
+    lines: dashboardData.lines,
+    alerts: dashboardData.alerts,
+    activities: dashboardData.activities,
+    systemHealth: dashboardData.systemHealth
+  };
+  
+  const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sanixpert-report-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  mobileNext.showToast('Report exported successfully', 'success');
+}
+
+// Test email alert
+function testEmailAlert() {
+  mobileNext.confirm(
+    'Test Email Alert',
+    'Send a test high-severity alert email to management?\n\nThis will test the email notification system.',
+    async () => {
+      try {
+        mobileNext.showLoading('Sending test email...');
+        
+        // In a real implementation, this would call an email service
+        // For now, we'll simulate the email sending
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Log the test email
+        await supabase
+          .from('system_logs')
+          .insert({
+            event_type: 'EMAIL_TEST',
+            description: 'Test email alert sent to management',
+            event_data: {
+              type: 'test',
+              timestamp: new Date().toISOString()
+            }
+          });
+        
+        mobileNext.hideLoading();
+        mobileNext.showToast('Test email sent successfully!', 'success');
+        
+      } catch (error) {
+        mobileNext.hideLoading();
+        mobileNext.showToast('Failed to send test email: ' + error.message, 'error');
+      }
+    }
+  );
+}
+
+// Start real-time updates
+function startRealTimeUpdates() {
+  // Update dashboard every 30 seconds
+  setInterval(async () => {
+    await Promise.all([
+      loadLineStatus(),
+      loadAlerts(),
+      loadActivityFeed()
+    ]);
+    updateSystemHealth();
+  }, 30000);
+  
+  // Check for high severity alerts every 10 seconds
+  setInterval(async () => {
+    await loadAlerts();
+  }, 10000);
+}
+
+// Utility functions
+function getStatusColor(status) {
+  const colors = {
+    'Ready': '#22c55e',
+    'Pre-Cleaning': '#3b82f6',
+    'Post-Cleaning': '#f59e0b',
+    'Handover': '#8b5cf6',
+    'Released': '#22c55e'
+  };
+  return colors[status] || '#64748b';
+}
+
+function getStatusIcon(status) {
+  const icons = {
+    'Ready': '✅',
+    'Pre-Cleaning': '🧹',
+    'Post-Cleaning': '✨',
+    'Handover': '🔄',
+    'Released': '🚀'
+  };
+  return icons[status] || '⏳';
+}
+
+function getTimeAgo(date) {
+  const now = new Date();
+  const diff = now - date;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return date.toLocaleDateString();
+}
+</script>
+
+</body>
+</html>

@@ -76,10 +76,8 @@ select,textarea,input{
 <div class="section">
   <h3>Employee Information</h3>
 
-  <div class="small" id="faceStatus">Face verification required</div>
-
   <label>Employee Name *</label>
-  <input type="text" id="empName">
+  <input type="text" id="empName" placeholder="Enter your full name" required>
 
   <label>Date & Time</label>
   <input type="text" id="dateTime" readonly>
@@ -336,7 +334,6 @@ style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
 <script src="js/photoUtils.js"></script>
-<script src="js/faceUtils.js"></script>
 <script src="js/lockUtils.js"></script>
 <script src="js/unlockUtils.js"></script>
 <script>
@@ -436,32 +433,12 @@ window.onload = async () => {
     new Date().toLocaleString();
   document.getElementById("bagsRetrieved")
     .addEventListener("input", updatePostcleanButton);
-  const face = await ensureFaceVerified({
-    supabase,
-    role: "sanitation",
-    area
-  });
-  if (!face.ok) {
-    alert(face.reason || "Face verification required.");
-    return;
-  }
-  document.getElementById("empName").value = face.name || "";
-  document.getElementById("empName").readOnly = true;
-  const status = document.getElementById("faceStatus");
-  if (status) status.innerText = `Face verified: ${face.name}`;
+  
+  // Manual name entry - no face verification required
+  document.getElementById("empName").readOnly = false;
+  document.getElementById("empName").placeholder = "Enter your full name";
 
   attachUnlock({ supabase, area, task: "postclean" });
-
-  const lock = await acquireTaskLock({
-    supabase,
-    area,
-    task: "postclean",
-    userName: face.name
-  });
-  if (!lock.ok) {
-    alert(lock.reason || "Post-Cleaning currently in progress.");
-    return;
-  }
 
   updatePostcleanButton();
 };

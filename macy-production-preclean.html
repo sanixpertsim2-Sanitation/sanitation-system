@@ -60,10 +60,8 @@ textarea {
 <div class="section">
   <h3>General Information</h3>
 
-  <div class="small" id="faceStatus">Face verification required</div>
-
   <label>Employee Name *</label>
-  <input type="text" id="employeeName" oninput="saveDraft()">
+  <input type="text" id="employeeName" oninput="saveDraft()" placeholder="Enter your full name" required>
 
   <label>Date & Time</label>
   <input type="text" id="dateTime" readonly>
@@ -290,7 +288,6 @@ textarea {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabaseClient.js"></script>
 <script src="js/photoUtils.js"></script>
-<script src="js/faceUtils.js"></script>
 <script src="js/lockUtils.js"></script>
 <script src="js/dateUtils.js"></script>
 <script src="js/unlockUtils.js"></script>
@@ -346,42 +343,19 @@ if (lineName) {
 }
 updatePrecleanButton();
 
-// Lock + face verification
+// Lock + manual authentication
 (async function () {
   const area = currentArea;
-  const face = await ensureFaceVerified({
-    supabase,
-    role: "sanitation",
-    area
-  });
-  if (!face.ok) {
-    alert(face.reason || "Face verification required.");
-    return;
-  }
+  
+  // Manual name entry - no face verification required
   const nameField = document.getElementById("employeeName");
   if (nameField) {
-    nameField.value = face.name || "";
-    nameField.readOnly = true;
-    nameField.dispatchEvent(new Event("input", { bubbles: true }));
-  }
-  const status = document.getElementById("faceStatus");
-  if (status) {
-    status.innerText = `Face verified: ${face.name}`;
+    nameField.readOnly = false;
+    nameField.placeholder = "Enter your full name";
   }
 
   updatePrecleanButton();
   attachUnlock({ supabase, area, task: "preclean" });
-
-  const lock = await acquireTaskLock({
-    supabase,
-    area,
-    task: "preclean",
-    userName: face.name
-  });
-  if (!lock.ok) {
-    alert(lock.reason || "Pre-Cleaning currently in progress.");
-    return;
-  }
 })();
 
 /* ===============================
