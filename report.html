@@ -3,6 +3,8 @@
 <head>
   <title>Sanitation Verification Report</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 </head>
 
 <body>
@@ -131,7 +133,7 @@ async function buildReport() {
   html += `<p>Bags Used: ${pre?.bags_used ?? "-"}</p>`;
   html += `<p>Bags Retrieved: ${post?.bags_returned ?? "-"}</p>`;
 
-  html += `<hr><h3>Damage Report</h3>`;
+  html += `<hr><h3>Damage Log</h3>`;
 
   (damage || []).forEach(d => {
     html += `

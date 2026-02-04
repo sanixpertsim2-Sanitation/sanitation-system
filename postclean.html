@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
 <style>
 .section{
@@ -68,7 +70,7 @@ select,textarea,input{
 <div class="container">
 
 <h1 class="page-title">MACY – <span id="areaName"></span></h1>
-<h3>Post-Cleaning Verification</h3>
+<h3>Post-Clean Verification</h3>
 
 <!-- EMPLOYEE INFO -->
 <div class="section">
@@ -310,7 +312,7 @@ onclick="openDamagePopup()">
 </button>
 
 <button class="submit-btn sticky-cta" onclick="submitPostClean()">
-Submit Post-Cleaning
+Submit Post-Clean
 </button>
 <button id="unlockHelp" class="small" style="opacity:0.2;margin-top:10px;background:none;border:none;color:#94a3b8;cursor:pointer;">
   Help / Unlock
@@ -357,10 +359,11 @@ function updatePostcleanButton() {
     .every(q => {
       const sel = q.querySelector("select");
       if (!sel || !sel.value) return false;
+      const requiresPhoto = q.dataset.alwaysPhoto === "1" || sel.value === "Not Acceptable" || sel.value === "N/A";
       const requiresComment = sel.value === "Not Acceptable" || sel.value === "N/A";
       const file = q.querySelector("input[type=file]");
       const txt = q.querySelector("textarea");
-      if (!file || !file.files || !file.files.length) return false;
+      if (requiresPhoto && (!file || !file.files || !file.files.length)) return false;
       if (requiresComment && (!txt || !txt.value.trim())) return false;
       return true;
     });
@@ -636,7 +639,7 @@ async function submitPostClean(){
 
   if(preBags && postBags !== preBags){
     const proceed = confirm(
-      "Covering count mismatch – verify thoroughly.\n\n" +
+      "Covering count mismatch — verify thoroughly.\n\n" +
       "Pre-clean: " + preBags +
       "\nPost-clean: " + postBags +
       "\n\nContinue anyway?"
@@ -661,6 +664,7 @@ async function submitPostClean(){
     inputs.forEach(i=>{
       if(i.value.trim()){
         tasks.push({
+          area: area,
           source: "post-clean",
           reference_id: preclean ? preclean.id : null,
           task_description: i.value.trim(),
@@ -720,6 +724,7 @@ async function submitPostClean(){
     const hasComment = txt && txt.value.trim();
     if (failed || hasComment) {
       autoTasks.push({
+        area: area,
         source: "post-clean",
         reference_id: preclean ? preclean.id : null,
         task_description: `${questionText} — ${sel ? sel.value : ""}${hasComment ? " | " + txt.value.trim() : ""}`,

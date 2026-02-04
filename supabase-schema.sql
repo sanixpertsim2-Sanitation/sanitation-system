@@ -91,6 +91,8 @@ with check (true);
 create table if not exists handover_tasks (
   id uuid primary key default gen_random_uuid(),
 
+  area text,
+
   source text not null, 
   -- pre-clean | post-clean | area-verification | damage
 

@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
 <style>
 .section{
@@ -420,7 +422,7 @@ function toggleFinding(sel){
 }
 
 function reviewDamages(){
-  window.location.href="postclean.html";
+  window.location.href="damage.html";
 }
 function goHandover(){
   window.location.href="macy-production-handover.html";
@@ -497,9 +499,11 @@ async function fetchLatestPrecleanId(area) {
 
 async function hasPendingHandovers() {
   if (!supabase) return false;
+  const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
   const { data, error } = await supabase
     .from("handover_tasks")
     .select("id,status")
+    .eq("area", area)
     .eq("status", "Pending")
     .limit(1);
   if (error) {
@@ -515,6 +519,7 @@ async function loadHandoverReview(area) {
   const { data, error } = await supabase
     .from("handover_tasks")
     .select("*")
+    .eq("area", area)
     .eq("status", "Pending")
     .order("created_at", { ascending: true });
   if (error) {
@@ -676,6 +681,7 @@ async function submitArea(){
 
   issueTasks.forEach(i => {
     newTasks.push({
+      area: area,
       source: "area-verification",
       reference_id: precleanId,
       task_description: `${i.question} — ${i.answer}${i.comment ? " | " + i.comment : ""}`,

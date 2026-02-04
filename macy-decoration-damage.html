@@ -2,10 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>MACY Decoration – Damage Reports</title>
+<title>MACY Decoration – Damage Report</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 
 <style>
 .section{
@@ -55,7 +57,7 @@ textarea, input, select{
 <div class="container">
 
 <h1 class="page-title">MACY – Decoration</h1>
-<h3>Damage Reporting</h3>
+<h3>Damage Report</h3>
 
 <!-- NEW DAMAGE -->
 <div class="section">
@@ -84,16 +86,16 @@ textarea, input, select{
     <option value="Low">Low</option>
   </select>
 
-<label>Capture Damage Photo *</label>
-<input type="file" id="damagePhoto" accept="image/*" capture="environment">
-<img id="preview" style="width:100%;border-radius:12px;display:none;margin-top:10px">
+<label>Capture Damage Photos *</label>
+<input type="file" id="damagePhoto" accept="image/*" capture="environment" multiple>
+<div id="previewList"></div>
 
   <button class="submit-btn" onclick="submitDamage()">Submit Damage</button>
 </div>
 
 <!-- EXISTING -->
 <div class="section">
-  <h3>Reported Damages</h3>
+  <h3>Damage Log</h3>
   <div id="damageList"></div>
 </div>
 
@@ -105,6 +107,7 @@ textarea, input, select{
 <script>
 const supabase = window.supabaseClient;
 let damagePhotoBase64 = "";
+let damagePhotos = [];
 
 function setButtonBusy(btn, isBusy) {
   if (!btn) return;
@@ -120,7 +123,7 @@ function updateDamageButton() {
   const component = document.getElementById("area").value.trim();
   const desc = document.getElementById("damageDesc").value.trim();
   const severity = document.getElementById("severity").value;
-  btn.disabled = !(reporter && component && desc && severity && damagePhotoBase64);
+  btn.disabled = !(reporter && component && desc && severity && damagePhotos.length);
 }
 
 function fromStoredDescription(stored) {
@@ -132,7 +135,7 @@ function fromStoredDescription(stored) {
   } catch (e) {
     // keep fallback
   }
-  return { text: stored || "", component: "", reporter: "", reported_at: "" };
+  return { text: stored || "", photo: "", photos: [], component: "", reporter: "", reported_at: "" };
 }
 
 async function readFileBase64(file) {
@@ -151,7 +154,7 @@ async function submitDamage(){
   const severity = document.getElementById("severity").value;
   const lineArea = localStorage.getItem("selectedArea") || "MACY_DECORATION";
 
-  if(!reporter || !component || !desc || !severity || !damagePhotoBase64){
+  if(!reporter || !component || !desc || !severity || !damagePhotos.length){
     alert("All fields required.");
     setButtonBusy(btn, false);
     return;
@@ -168,7 +171,8 @@ async function submitDamage(){
     component: component,
     reporter: reporter,
     reported_at: new Date().toISOString(),
-    photo: damagePhotoBase64
+    photo: damagePhotoBase64,
+    photos: damagePhotos
   };
 
   try {
@@ -206,8 +210,10 @@ async function submitDamage(){
   document.getElementById("damageDesc").value = "";
   document.getElementById("damagePhoto").value = "";
   damagePhotoBase64 = "";
+  damagePhotos = [];
   setButtonBusy(btn, false);
-  loadDamages();
+  document.getElementById("reportedAt").value = new Date().toLocaleString();
+  history.back();
 }
 
 function sendDamageAlert(payload) {
@@ -249,6 +255,10 @@ async function loadDamages(){
   }
 
   (data || []).forEach(d=>{
+    const parsed = fromStoredDescription(d.description);
+    const photos = parsed.photos && parsed.photos.length
+      ? parsed.photos
+      : (parsed.photo ? [parsed.photo] : []);
     list.innerHTML+=`
       <div class="damage-card">
         <b>${d.area}</b>${(fromStoredDescription(d.description).component ? " (" + fromStoredDescription(d.description).component + ")" : "")}<br>
@@ -259,6 +269,7 @@ async function loadDamages(){
         </div>
         <br>
         <span class="status-badge ${statusClass(d.status)}">${d.status}</span>
+        ${photos.map(p => `<img src="${p}" alt="Damage" style="width:100%;margin-top:12px;border-radius:10px">`).join("")}
 
         ${(d.status==="Completed" || d.status==="Closed") && d.completed_photo
           ? `<img src="${d.completed_photo}" alt="Completion" style="width:100%;margin-top:12px;border-radius:10px">`
@@ -315,11 +326,27 @@ window.onload=()=>{
   document.getElementById("lineArea").value = area;
   document.getElementById("reportedAt").value = new Date().toLocaleString();
   document.getElementById("damagePhoto").addEventListener("change", async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    damagePhotoBase64 = await readFileBase64(file);
-    document.getElementById("preview").src = damagePhotoBase64;
-    document.getElementById("preview").style.display = "block";
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (!files.length) return;
+    damagePhotos = [];
+    damagePhotoBase64 = "";
+    const previewList = document.getElementById("previewList");
+    previewList.innerHTML = "";
+    for (let file of files) {
+      const stamped = await readFileBase64(file);
+      if (stamped) {
+        damagePhotos.push(stamped);
+        if (!damagePhotoBase64) {
+          damagePhotoBase64 = stamped;
+        }
+        previewList.innerHTML += `
+          <div style="margin-top:10px">
+            <img src="${stamped}" style="width:100%;border-radius:12px">
+            <div class="small">🕒 ${new Date().toLocaleString()}</div>
+          </div>
+        `;
+      }
+    }
     updateDamageButton();
   });
   updateDamageButton();

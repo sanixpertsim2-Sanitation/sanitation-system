@@ -5,6 +5,8 @@
 <title>Post-Release Findings</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 </head>
 <body>
 
@@ -15,13 +17,14 @@
   <div class="section">
     <h3>New Finding</h3>
     <input id="reporterName" placeholder="Reported by (Name)">
+    <input id="findingTime" placeholder="Date & Time" readonly>
     <textarea id="findingDesc" placeholder="Describe the finding"></textarea>
     <input id="findingPhotos" type="file" accept="image/*" capture="environment" multiple>
     <button class="submit-btn sticky-cta" onclick="submitFinding()">Submit Finding</button>
   </div>
 
   <div class="section">
-    <h3>Open Findings</h3>
+  <h3>Findings Log</h3>
     <div id="findingList"></div>
   </div>
 </div>
@@ -33,6 +36,7 @@
 const supabase = window.supabaseClient;
 const area = localStorage.getItem("selectedArea") || "MACY_PRODUCTION";
 document.getElementById("lineName").innerText = area;
+document.getElementById("findingTime").value = new Date().toLocaleString();
 
 async function submitFinding() {
   const reporter = document.getElementById("reporterName").value.trim();
@@ -65,6 +69,7 @@ async function submitFinding() {
 
   document.getElementById("findingDesc").value = "";
   document.getElementById("findingPhotos").value = "";
+  document.getElementById("findingTime").value = new Date().toLocaleString();
   loadFindings();
 }
 
@@ -104,11 +109,19 @@ async function loadFindings() {
   const list = document.getElementById("findingList");
   list.innerHTML = "";
   (data || []).forEach(item => {
+    const photoList = (item.photos || [])
+      .map(p => `<img src="${p}" style="width:100%;margin-top:10px;border-radius:10px">`)
+      .join("");
+    const closedPhoto = item.closed_photo
+      ? `<img src="${item.closed_photo}" style="width:100%;margin-top:10px;border-radius:10px">`
+      : "";
     list.innerHTML += `
       <div class="section-card">
         <b>${item.reported_by}</b> — ${new Date(item.created_at).toLocaleString()}<br>
         ${item.description}<br>
         <span class="status-badge ${item.status === "Closed" ? "status-success" : "status-warning"}">${item.status}</span><br>
+        ${photoList}
+        ${closedPhoto}
         ${item.status === "Open" ? `<button class="submit-btn" onclick="closeFinding('${item.id}')">Close Finding</button>` : ""}
       </div>
     `;
