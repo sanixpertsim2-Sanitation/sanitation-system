@@ -18,6 +18,7 @@
   <script src="js/mobile-analytics.js"></script>
   <script src="js/pwa-registration.js"></script>
   <script src="js/ai-recommendations.js"></script>
+  <script src="js/faceUtils.js"></script>
 </head>
 <body>
 
@@ -35,8 +36,16 @@
       <div class="text-section">Employee Information</div>
       
       <div class="form-group">
+        <label class="text-label">Face Verification</label>
+        <div class="text-small" id="faceStatus" style="color: #fbbf24;">📸 Face verification required</div>
+        <button class="btn btn-secondary btn-block" onclick="startFaceVerification()">
+          <span>📸 Verify Face</span>
+        </button>
+      </div>
+      
+      <div class="form-group">
         <label class="text-label">Employee Name *</label>
-        <input type="text" class="input" id="employeeName" placeholder="Enter your name" name="employeeName">
+        <input type="text" class="input" id="employeeName" placeholder="Face verification will auto-fill" name="employeeName" readonly>
       </div>
       
       <div class="form-group">
@@ -219,12 +228,85 @@ const mobileNext = window.MobileNext;
 
 // Page-specific logic
 const supabase = window.supabaseClient;
+let verifiedFace = null;
+
+// Face verification
+async function startFaceVerification() {
+  try {
+    mobileNext.showLoading('Starting face verification...');
+    
+    // Create file input for face capture
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'camera';
+    
+    input.onchange = async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // Detect face
+      const faceDetected = await detectFaceFromFile(file);
+      
+      if (faceDetected) {
+        // Get face registry data
+        const { data: faceData, error } = await supabase
+          .from('face_registry')
+          .select('*')
+          .order('last_seen_at', { ascending: false })
+          .limit(1);
+        
+        if (!error && faceData.length > 0) {
+          verifiedFace = faceData[0];
+          document.getElementById('employeeName').value = verifiedFace.name;
+          document.getElementById('faceStatus').textContent = `✅ Face verified: ${verifiedFace.name}`;
+          document.getElementById('faceStatus').style.color = '#22c55e';
+          
+          // Update last_seen_at
+          await supabase
+            .from('face_registry')
+            .update({ last_seen_at: new Date().toISOString() })
+            .eq('id', verifiedFace.id);
+          
+          mobileNext.hideLoading();
+          mobileNext.showToast('Face verification successful!', 'success');
+        } else {
+          document.getElementById('faceStatus').textContent = '❌ No face record found';
+          document.getElementById('faceStatus').style.color = '#ef4444';
+          mobileNext.hideLoading();
+          mobileNext.showToast('No face record found in system', 'error');
+        }
+      } else {
+        document.getElementById('faceStatus').textContent = '❌ No face detected';
+        document.getElementById('faceStatus').style.color = '#ef4444';
+        mobileNext.hideLoading();
+        mobileNext.showToast('No face detected in photo', 'error');
+      }
+    };
+    
+    input.click();
+    
+  } catch (error) {
+    mobileNext.hideLoading();
+    console.error('Face verification error:', error);
+    document.getElementById('faceStatus').textContent = '❌ Verification failed';
+    document.getElementById('faceStatus').style.color = '#ef4444';
+    mobileNext.showToast('Face verification failed', 'error');
+  }
+}
 
 // Update date/time
 function updateDateTime() {
   const dateTimeEl = document.getElementById('dateTime');
   if (dateTimeEl) {
-    dateTimeEl.value = new Date().toLocaleString();
+    // Use DateUtils for consistent timestamp handling
+    if (window.DateUtils) {
+      dateTimeEl.value = DateUtils.formatTimestamp(DateUtils.getCurrentTimestamp());
+    } else {
+      // Fallback to current date/time
+      const now = new Date();
+      dateTimeEl.value = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+    }
   }
 }
 
@@ -280,6 +362,13 @@ function validateForm() {
 async function submitPreCleaning() {
   if (!validateForm()) return;
   
+  // Check face verification
+  if (!verifiedFace) {
+    mobileNext.showToast('Face verification required before submission', 'error');
+    document.getElementById('faceStatus').scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+  
   const submitBtn = document.getElementById('submitBtn');
   submitBtn.disabled = true;
   submitBtn.classList.add('loading');
@@ -288,42 +377,32 @@ async function submitPreCleaning() {
   
   try {
     const employeeName = document.getElementById('employeeName').value.trim();
-    const bagsUsed = parseInt(document.getElementById('bagsUsed').value) || 0;
+    const bagsUsed = parseInt(document.getElementById('bagsUsed').value);
     const additionalNotes = document.getElementById('additionalNotes').value.trim();
     
     // Collect checklist data
     const checklist = [];
-    const questions = document.querySelectorAll('.question');
-    
-    questions.forEach((question, index) => {
-      const select = question.querySelector('.select');
-      const textarea = question.querySelector('.textarea');
-      const fileInput = question.querySelector('input[type="file"]');
-      
-      if (select && select.value) {
-        const item = {
-          id: select.id,
-          question: question.querySelector('.question-text').textContent,
-          answer: select.value,
-          comment: textarea ? textarea.value.trim() : '',
-          photoRequired: select.value === 'Not Acceptable' || select.value === 'NA',
-          photo: null // TODO: Handle photo upload
-        };
-        checklist.push(item);
-      }
+    const selects = document.querySelectorAll('.select');
+    selects.forEach(select => {
+      const textarea = document.getElementById(select.id + '-extra')?.querySelector('.textarea');
+      checklist.push({
+        question: select.previousElementSibling.textContent,
+        answer: select.value,
+        comment: textarea ? textarea.value : ''
+      });
     });
     
-    // Save to Supabase
-    const { data, error } = await supabase
-      .from('pre_cleaning_logs')
-      .insert({
-        area: 'MACY_PRODUCTION',
-        employee_name: employeeName,
-        bags_used: bagsUsed,
-        checklist: checklist,
-        status: 'submitted',
-        submitted_at: DateUtils.getCurrentTimestamp()
-      });
+    // Submit to Supabase
+    const { data, error } = await supabase.from('pre_cleaning_logs').insert({
+      employee_name: employeeName,
+      bags_used: bagsUsed,
+      checklist: checklist,
+      additional_notes: additionalNotes,
+      status: 'submitted',
+      submitted_at: DateUtils.getCurrentTimestamp(),
+      face_verified: true,
+      face_id: verifiedFace.id
+    });
     
     if (error) throw error;
     
@@ -335,6 +414,11 @@ async function submitPreCleaning() {
       if (confirm('Form submitted successfully! Clear the form?')) {
         document.querySelector('form').reset();
         localStorage.removeItem('draft_macy-production-preclean');
+        verifiedFace = null;
+        document.getElementById('employeeName').readOnly = false;
+        document.getElementById('employeeName').placeholder = 'Enter your name';
+        document.getElementById('faceStatus').textContent = '📸 Face verification required';
+        document.getElementById('faceStatus').style.color = '#fbbf24';
       }
     }, 1000);
     
