@@ -9,6 +9,93 @@
   <link rel="stylesheet" href="css/mobile-next.css">
   <link rel="stylesheet" href="css/mobile-next-enhanced.css">
   
+  <style>
+    /* Fix question layout issues */
+    .question {
+      margin-bottom: 20px;
+      padding: 16px;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .question-text {
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #1f2937;
+      line-height: 1.4;
+    }
+    
+    .question-extra {
+      margin-top: 12px;
+      padding: 12px;
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+    }
+    
+    .question-extra.hidden {
+      display: none;
+    }
+    
+    .question-extra:not(.hidden) {
+      display: block !important;
+    }
+    
+    .file-input-wrapper {
+      position: relative;
+      margin-bottom: 12px;
+    }
+    
+    .file-input-wrapper input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px dashed #3b82f6;
+      border-radius: 8px;
+      background: #f0f9ff;
+      cursor: pointer;
+    }
+    
+    .file-input-wrapper input[type="file"]::-webkit-file-upload-button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      margin-right: 12px;
+      cursor: pointer;
+    }
+    
+    .comment-label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #374151;
+    }
+    
+    /* Ensure proper spacing */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .card {
+      margin-bottom: 20px;
+    }
+    
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      .question {
+        padding: 12px;
+        margin-bottom: 16px;
+      }
+      
+      .question-text {
+        font-size: 14px;
+        margin-bottom: 10px;
+      }
+    }
+  </style>
+  
   <!-- Essential scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabaseClient.js"></script>
@@ -85,7 +172,7 @@
       <!-- Equipment Checklist -->
       <div class="card fade-in">
         <div class="text-section">Equipment & Safety Checklist</div>
-        <p class="text-small" style="color: #64748b; margin-bottom: 16px;">All questions are mandatory. Camera will open for photo evidence.</p>
+        <p class="text-small" style="color: #64748b; margin-bottom: 16px;">All questions are mandatory. Camera will open for photo evidence when "Not Acceptable" or "N/A" is selected.</p>
         
         <div class="question">
           <div class="question-text">1. Verify the equipment for any inadequate condition and safety issues.</div>
@@ -96,8 +183,11 @@
             <option value="N/A">N/A</option>
           </select>
           <div class="question-extra hidden" id="equipment1-extra">
-            <input type="file" class="input" accept="image/*" capture="environment" required>
-            <textarea class="textarea" placeholder="Comment required..." name="equipment1-comment" required></textarea>
+            <div class="file-input-wrapper">
+              <input type="file" class="input" accept="image/*" capture="environment" required>
+            </div>
+            <label class="comment-label">Comment required:</label>
+            <textarea class="textarea" placeholder="Please describe the issue..." name="equipment1-comment" required></textarea>
           </div>
         </div>
 
@@ -110,8 +200,11 @@
             <option value="N/A">N/A</option>
           </select>
           <div class="question-extra hidden" id="equipment2-extra">
-            <input type="file" class="input" accept="image/*" capture="environment" required>
-            <textarea class="textarea" placeholder="Comment required..." name="equipment2-comment" required></textarea>
+            <div class="file-input-wrapper">
+              <input type="file" class="input" accept="image/*" capture="environment" required>
+            </div>
+            <label class="comment-label">Comment required:</label>
+            <textarea class="textarea" placeholder="Please describe the issue..." name="equipment2-comment" required></textarea>
           </div>
         </div>
 
@@ -124,8 +217,11 @@
             <option value="N/A">N/A</option>
           </select>
           <div class="question-extra hidden" id="equipment3-extra">
-            <input type="file" class="input" accept="image/*" capture="environment" required>
-            <textarea class="textarea" placeholder="Comment required..." name="equipment3-comment" required></textarea>
+            <div class="file-input-wrapper">
+              <input type="file" class="input" accept="image/*" capture="environment" required>
+            </div>
+            <label class="comment-label">Comment required:</label>
+            <textarea class="textarea" placeholder="Please describe the issue..." name="equipment3-comment" required></textarea>
           </div>
         </div>
 
@@ -138,8 +234,11 @@
             <option value="N/A">N/A</option>
           </select>
           <div class="question-extra hidden" id="equipment4-extra">
-            <input type="file" class="input" accept="image/*" capture="environment" required>
-            <textarea class="textarea" placeholder="Comment required..." name="equipment4-comment" required></textarea>
+            <div class="file-input-wrapper">
+              <input type="file" class="input" accept="image/*" capture="environment" required>
+            </div>
+            <label class="comment-label">Comment required:</label>
+            <textarea class="textarea" placeholder="Please describe the issue..." name="equipment4-comment" required></textarea>
           </div>
         </div>
 
@@ -152,8 +251,11 @@
             <option value="N/A">N/A</option>
           </select>
           <div class="question-extra hidden" id="equipment5-extra">
-            <input type="file" class="input" accept="image/*" capture="environment" required>
-            <textarea class="textarea" placeholder="Comment required..." name="equipment5-comment" required></textarea>
+            <div class="file-input-wrapper">
+              <input type="file" class="input" accept="image/*" capture="environment" required>
+            </div>
+            <label class="comment-label">Comment required:</label>
+            <textarea class="textarea" placeholder="Please describe the issue..." name="equipment5-comment" required></textarea>
           </div>
         </div>
       </div>
@@ -288,7 +390,7 @@ async function authenticateUser() {
     document.getElementById('damageReportFab').style.display = 'block';
     document.getElementById('submitActions').style.display = 'block';
     
-    // Start date/time updates
+    // Start date/time updates - FIXED
     updateDateTime();
     setInterval(updateDateTime, 1000);
     
@@ -305,20 +407,37 @@ async function authenticateUser() {
   }
 }
 
-// Update date/time
+// Update date/time - FIXED
 function updateDateTime() {
   const dateTimeEl = document.getElementById('dateTime');
   if (dateTimeEl) {
-    if (window.DateUtils) {
-      dateTimeEl.value = DateUtils.formatTimestamp(DateUtils.getCurrentTimestamp());
-    } else {
+    try {
+      if (window.DateUtils) {
+        const now = DateUtils.getCurrentTimestamp();
+        dateTimeEl.value = DateUtils.formatTimestamp(now);
+      } else {
+        const now = new Date();
+        const formatted = now.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }) + ' ' + now.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        dateTimeEl.value = formatted;
+      }
+    } catch (error) {
+      console.error('Date update error:', error);
+      // Fallback to simple format
       const now = new Date();
-      dateTimeEl.value = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+      dateTimeEl.value = now.toLocaleString();
     }
   }
 }
 
-// Setup checklist handlers
+// Setup checklist handlers - IMPROVED
 function setupChecklistHandlers() {
   const selects = document.querySelectorAll('.select');
   selects.forEach(select => {
@@ -326,26 +445,42 @@ function setupChecklistHandlers() {
       const questionId = this.id;
       const extraDiv = document.getElementById(questionId + '-extra');
       
+      console.log('Select changed:', questionId, this.value);
+      
       if (this.value === 'Not Acceptable' || this.value === 'N/A') {
+        // Show extra fields
         extraDiv.classList.remove('hidden');
         // Make fields required
         const fileInput = extraDiv.querySelector('input[type="file"]');
         const textarea = extraDiv.querySelector('textarea');
-        if (fileInput) fileInput.required = true;
-        if (textarea) textarea.required = true;
+        if (fileInput) {
+          fileInput.required = true;
+          console.log('File input made required for:', questionId);
+        }
+        if (textarea) {
+          textarea.required = true;
+          console.log('Textarea made required for:', questionId);
+        }
       } else {
+        // Hide extra fields
         extraDiv.classList.add('hidden');
         // Remove required attribute
         const fileInput = extraDiv.querySelector('input[type="file"]');
         const textarea = extraDiv.querySelector('textarea');
-        if (fileInput) fileInput.required = false;
-        if (textarea) textarea.required = false;
+        if (fileInput) {
+          fileInput.required = false;
+          fileInput.value = ''; // Clear file
+        }
+        if (textarea) {
+          textarea.required = false;
+          textarea.value = ''; // Clear comment
+        }
       }
     });
   });
 }
 
-// Validate form
+// Validate form - IMPROVED
 function validateForm() {
   const userName = document.getElementById('employeeName').value.trim();
   const bagsUsed = document.getElementById('bagsUsed').value;
@@ -375,13 +510,18 @@ function validateForm() {
       const fileInput = extraDiv.querySelector('input[type="file"]');
       const textarea = extraDiv.querySelector('textarea');
       
-      if (fileInput.required && !fileInput.files.length) {
+      console.log('Validating extra fields for:', select.id, 'Value:', select.value);
+      console.log('Extra div visible:', !extraDiv.classList.contains('hidden'));
+      
+      if (fileInput && fileInput.required && !fileInput.files.length) {
         mobileNext.showToast('Photo is required for this question', 'error');
+        fileInput.focus();
         return false;
       }
       
-      if (textarea.required && !textarea.value.trim()) {
+      if (textarea && textarea.required && !textarea.value.trim()) {
         mobileNext.showToast('Comment is required for this question', 'error');
+        textarea.focus();
         return false;
       }
     }
@@ -397,6 +537,9 @@ async function submitPreCleaning() {
   try {
     mobileNext.showLoading('Submitting pre-cleaning...');
     
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    
     const employeeName = document.getElementById('employeeName').value.trim();
     const bagsUsed = parseInt(document.getElementById('bagsUsed').value);
     const additionalNotes = document.getElementById('additionalNotes').value.trim();
@@ -404,67 +547,54 @@ async function submitPreCleaning() {
     // Collect checklist data
     const checklist = [];
     const selects = document.querySelectorAll('.select');
-    
-    for (let select of selects) {
-      const questionText = select.closest('.question').querySelector('.question-text').textContent;
+    selects.forEach(select => {
       const extraDiv = document.getElementById(select.id + '-extra');
-      const fileInput = extraDiv?.querySelector('input[type="file"]');
-      const textarea = extraDiv?.querySelector('textarea');
+      const textarea = extraDiv.querySelector('textarea');
+      const fileInput = extraDiv.querySelector('input[type="file"]');
       
-      const checklistItem = {
-        question: questionText,
+      checklist.push({
+        question: select.previousElementSibling.textContent,
         answer: select.value,
-        comment: textarea?.value || '',
-        photoRequired: (select.value === 'Not Acceptable' || select.value === 'N/A'),
-        photoTaken: fileInput?.files.length > 0
-      };
-      
-      checklist.push(checklistItem);
-    }
+        comment: textarea ? textarea.value : '',
+        hasPhoto: fileInput && fileInput.files.length > 0
+      });
+    });
     
-    // Create cleaning session
-    const { data: sessionData, error: sessionError } = await supabase
+    // Create session record
+    const sessionData = {
+      line_id: currentLineId,
+      line_name: currentLineName,
+      pre_clean_user: employeeName,
+      pre_clean_timestamp: new Date().toISOString(),
+      bags_covered: bagsUsed,
+      checklist: checklist,
+      additional_notes: additionalNotes,
+      status: 'Pending_Post'
+    };
+    
+    // Submit to Supabase
+    const { data, error } = await supabase
       .from('cleaning_sessions')
-      .insert({
-        line_id: currentLineId,
-        pre_clean_user: employeeName,
-        bags_covered: bagsUsed,
-        pre_clean_timestamp: new Date().toISOString(),
-        pre_clean_checklist: checklist,
-        status: 'Pending_Post'
-      })
-      .select()
-      .single();
+      .insert([sessionData])
+      .select();
     
-    if (sessionError) throw sessionError;
+    if (error) throw error;
     
-    sessionId = sessionData.id;
-    
-    // Update line status
-    const { error: lineError } = await supabase
-      .from('lines')
-      .update({ 
-        status: 'Post-Cleaning',
-        current_session_id: sessionId
-      })
-      .eq('id', currentLineId);
-    
-    if (lineError) throw lineError;
+    if (data && data.length > 0) {
+      sessionId = data[0].id;
+    }
     
     mobileNext.hideLoading();
     mobileNext.showToast('Pre-cleaning submitted successfully!', 'success');
     
-    // Hide submit button (vanish after submission)
-    document.getElementById('submitActions').style.display = 'none';
+    // Hide submit button and show success
+    submitBtn.style.display = 'none';
     
     // Show completion message
     setTimeout(() => {
-      mobileNext.confirm(
+      mobileNext.alert(
         'Pre-Cleaning Complete',
-        'Pre-cleaning has been submitted successfully!\n\nNext step: Post-Cleaning verification.\n\nWould you like to proceed to Post-Cleaning?',
-        () => {
-          window.location.href = `macy-production-postclean-next.html?line=${currentLineId}&session=${sessionId}`;
-        }
+        `Pre-cleaning has been successfully submitted!\n\nEmployee: ${employeeName}\nBags Covered: ${bagsUsed}\nSession ID: ${sessionId}\n\nPlease proceed to post-cleaning when ready.`
       );
     }, 1000);
     
@@ -472,94 +602,94 @@ async function submitPreCleaning() {
     console.error('Submit error:', error);
     mobileNext.hideLoading();
     mobileNext.showToast('Failed to submit: ' + error.message, 'error');
+    
+    // Re-enable submit button
+    document.getElementById('submitBtn').disabled = false;
   }
 }
 
 // Save draft
 function saveDraft() {
-  const formData = {
+  const draftData = {
     employeeName: document.getElementById('employeeName').value,
     bagsUsed: document.getElementById('bagsUsed').value,
     additionalNotes: document.getElementById('additionalNotes').value,
     checklist: []
   };
   
-  // Collect checklist data
+  // Save checklist answers
   const selects = document.querySelectorAll('.select');
   selects.forEach(select => {
-    const textarea = document.getElementById(select.id + '-extra')?.querySelector('.textarea');
-    formData.checklist.push({
+    const extraDiv = document.getElementById(select.id + '-extra');
+    const textarea = extraDiv.querySelector('textarea');
+    
+    draftData.checklist.push({
       id: select.id,
-      value: select.value,
+      answer: select.value,
       comment: textarea ? textarea.value : ''
     });
   });
   
-  localStorage.setItem('draft_macy-production-preclean', JSON.stringify(formData));
-  mobileNext.showToast('Draft saved', 'success');
+  localStorage.setItem('preclean_draft', JSON.stringify(draftData));
+  mobileNext.showToast('Draft saved successfully', 'success');
 }
 
 // Load draft
 function loadDraft() {
-  const draft = localStorage.getItem('draft_macy-production-preclean');
+  const draft = localStorage.getItem('preclean_draft');
   if (draft) {
     try {
-      const formData = JSON.parse(draft);
+      const draftData = JSON.parse(draft);
       
-      document.getElementById('employeeName').value = formData.employeeName || '';
-      document.getElementById('bagsUsed').value = formData.bagsUsed || '';
-      document.getElementById('additionalNotes').value = formData.additionalNotes || '';
+      document.getElementById('bagsUsed').value = draftData.bagsUsed || '';
+      document.getElementById('additionalNotes').value = draftData.additionalNotes || '';
       
       // Restore checklist
-      formData.checklist.forEach(item => {
+      draftData.checklist.forEach(item => {
         const select = document.getElementById(item.id);
         if (select) {
-          select.value = item.value;
+          select.value = item.answer;
           select.dispatchEvent(new Event('change'));
           
-          const textarea = document.getElementById(item.id + '-extra')?.querySelector('.textarea');
-          if (textarea) {
-            textarea.value = item.comment || '';
+          const extraDiv = document.getElementById(item.id + '-extra');
+          const textarea = extraDiv.querySelector('textarea');
+          if (textarea && item.comment) {
+            textarea.value = item.comment;
           }
         }
       });
       
+      mobileNext.showToast('Draft loaded', 'success');
     } catch (error) {
-      console.warn('Failed to load draft:', error);
+      console.error('Error loading draft:', error);
     }
   }
 }
 
 // Unlock line
 async function unlockLine() {
-  mobileNext.confirm(
-    'Unlock Line',
-    'Are you sure you want to unlock this line?\n\nAll unsaved data will be lost.',
-    async () => {
-      try {
-        mobileNext.showLoading('Unlocking line...');
-        
-        const result = await auth.unlockLine();
-        
-        if (result.success) {
-          mobileNext.hideLoading();
-          mobileNext.showToast('Line unlocked successfully', 'success');
-          
-          // Redirect to home
-          setTimeout(() => {
-            window.location.href = 'index-next.html';
-          }, 1000);
-        } else {
-          mobileNext.hideLoading();
-          mobileNext.showToast('Failed to unlock line: ' + result.error, 'error');
-        }
-        
-      } catch (error) {
-        mobileNext.hideLoading();
-        mobileNext.showToast('Unlock error: ' + error.message, 'error');
-      }
+  try {
+    mobileNext.showLoading('Unlocking line...');
+    
+    const result = await auth.unlockLine(currentLineId);
+    
+    if (result.success) {
+      mobileNext.hideLoading();
+      mobileNext.showToast('Line unlocked successfully', 'success');
+      
+      // Redirect to home after delay
+      setTimeout(() => {
+        window.location.href = 'index-next.html';
+      }, 2000);
+    } else {
+      throw new Error(result.error);
     }
-  );
+    
+  } catch (error) {
+    console.error('Unlock error:', error);
+    mobileNext.hideLoading();
+    mobileNext.showToast('Failed to unlock line: ' + error.message, 'error');
+  }
 }
 
 // Open damage report
@@ -573,14 +703,18 @@ document.addEventListener('DOMContentLoaded', async function() {
   const lineAvailable = await checkAndLockLine();
   
   if (lineAvailable) {
-    // Load draft if exists
+    // Load any existing draft
     loadDraft();
     
-    // Auto-save draft every 30 seconds
-    setInterval(saveDraft, 30000);
+    console.log('🚀 MACY Production Pre-Cleaning page loaded');
   }
-  
-  console.log('🚀 MACY Production Pre-Cleaning page loaded');
+});
+
+// Handle page visibility changes
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && document.getElementById('dateTime')) {
+    updateDateTime();
+  }
 });
 </script>
 

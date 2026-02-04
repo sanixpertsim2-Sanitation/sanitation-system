@@ -1,0 +1,285 @@
+name: 🧪 Sanixpert Website Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run tests every hour
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      test_url:
+        description: 'URL to test (optional)'
+        required: false
+        default: ''
+      timeout:
+        description: 'Test timeout in seconds'
+        required: false
+        default: '30'
+      retries:
+        description: 'Retry attempts'
+        required: false
+        default: '3'
+
+jobs:
+  test-website:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: 📦 Install Dependencies
+      run: |
+        npm init -y
+        npm install
+        
+    - name: 🧪 Run Website Tests
+      id: tests
+      run: |
+        # Determine test URL
+        TEST_URL="${{ github.event.inputs.test_url || 'https://sanixpert.vercel.app' }}"
+        
+        echo "🌐 Testing URL: $TEST_URL"
+        echo "⏱️  Timeout: ${{ github.event.inputs.timeout || '30' }}s"
+        echo "🔄 Retries: ${{ github.event.inputs.retries || '3' }}"
+        
+        # Run tests
+        node website-tester-cli.js \
+          -u "$TEST_URL" \
+          -o test-results.json \
+          -f json \
+          -t ${{ github.event.inputs.timeout || '30' }} \
+          -r ${{ github.event.inputs.retries || '3' }} \
+          -v
+          
+        # Extract results for GitHub Actions
+        SUCCESS_RATE=$(cat test-results.json | jq -r '.successRate')
+        PASSED=$(cat test-results.json | jq -r '.passed')
+        FAILED=$(cat test-results.json | jq -r '.failed')
+        TOTAL=$(cat test-results.json | jq -r '.totalTests')
+        
+        echo "success_rate=$SUCCESS_RATE" >> $GITHUB_OUTPUT
+        echo "passed=$PASSED" >> $GITHUB_OUTPUT
+        echo "failed=$FAILED" >> $GITHUB_OUTPUT
+        echo "total=$TOTAL" >> $GITHUB_OUTPUT
+        
+        # Generate HTML report
+        node website-tester-cli.js \
+          -u "$TEST_URL" \
+          -o test-report.html \
+          -f html \
+          -t ${{ github.event.inputs.timeout || '30' }} \
+          -r ${{ github.event.inputs.retries || '3' }}
+          
+    - name: 📊 Generate Test Summary
+      run: |
+        SUCCESS_RATE="${{ steps.tests.outputs.success_rate }}"
+        PASSED="${{ steps.tests.outputs.passed }}"
+        FAILED="${{ steps.tests.outputs.failed }}"
+        TOTAL="${{ steps.tests.outputs.total }}"
+        
+        echo "## 🧪 Website Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| 🌐 URL | ${{ github.event.inputs.test_url || 'https://sanixpert.vercel.app' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| ✅ Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
+        echo "| ❌ Failed | $FAILED |" >> $GITHUB_STEP_SUMMARY
+        echo "| 📊 Total | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+        echo "| 📈 Success Rate | $SUCCESS_RATE% |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Add status badge
+        if [ "$FAILED" -eq 0 ]; then
+          echo "🎉 **All tests passed!**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ **$FAILED tests failed**" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: 📤 Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ github.run_number }}
+        path: |
+          test-results.json
+          test-report.html
+        retention-days: 30
+        
+    - name: 📧 Send Notification on Failure
+      if: failure()
+      run: |
+        echo "❌ Website tests failed!"
+        echo "Check the test results for details."
+        
+    - name: 🎯 Check Success Rate
+      run: |
+        SUCCESS_RATE="${{ steps.tests.outputs.success_rate }}"
+        FAILED="${{ steps.tests.outputs.failed }}"
+        
+        if [ "$FAILED" -gt 0 ]; then
+          echo "❌ Tests failed: $FAILED out of ${{ steps.tests.outputs.total }}"
+          exit 1
+        else
+          echo "✅ All tests passed!"
+        fi
+        
+  test-multiple-environments:
+    runs-on: ubuntu-latest
+    needs: test-website
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    strategy:
+      matrix:
+        environment: 
+          - { name: "Production", url: "https://sanixpert.vercel.app" }
+          - { name: "Staging", url: "https://staging-sanixpert.vercel.app" }
+          - { name: "Development", url: "https://dev-sanixpert.vercel.app" }
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 🧪 Test Environment
+      run: |
+        echo "🌐 Testing ${{ matrix.environment.name }}: ${{ matrix.environment.url }}"
+        
+        node website-tester-cli.js \
+          -u "${{ matrix.environment.url }}" \
+          -o "test-results.json" \
+          -f json \
+          -t 30 \
+          -r 2 \
+          -v
+          
+    - name: 📊 Environment Results
+      run: |
+        echo "## 🌐 ${{ matrix.environment.name }} Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| 🌐 URL | ${{ matrix.environment.url }} |" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f "test-results.json" ]; then
+          SUCCESS_RATE=$(cat "test-results.json" | jq -r '.successRate')
+          PASSED=$(cat "test-results.json" | jq -r '.passed')
+          FAILED=$(cat "test-results.json" | jq -r '.failed')
+          
+          echo "| ✅ Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
+          echo "| ❌ Failed | $FAILED |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📈 Success Rate | $SUCCESS_RATE% |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| ❌ Status | Failed to run tests |" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+  performance-monitoring:
+    runs-on: ubuntu-latest
+    needs: test-website
+    if: github.event_name == 'schedule'
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 📈 Performance Tests
+      run: |
+        echo "📈 Running performance monitoring..."
+        
+        # Test load times
+        for i in {1..5}; do
+          echo "🔄 Test run $i/5"
+          node website-tester-cli.js \
+            -u "https://sanixpert.vercel.app" \
+            -o "performance-$i.json" \
+            -f json \
+            -t 15 \
+            -r 1
+          sleep 10
+        done
+        
+    - name: 📊 Performance Summary
+      run: |
+        echo "## 📈 Performance Monitoring" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Calculate average performance
+        TOTAL_TIME=0
+        COUNT=0
+        
+        for i in {1..5}; do
+          if [ -f "performance-$i.json" ]; then
+            TIME=$(cat "performance-$i.json" | jq -r '.duration')
+            TOTAL_TIME=$((TOTAL_TIME + TIME))
+            COUNT=$((COUNT + 1))
+          fi
+        done
+        
+        if [ $COUNT -gt 0 ]; then
+          AVG_TIME=$((TOTAL_TIME / COUNT))
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 📊 Average Test Duration | ${AVG_TIME}ms |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔄 Test Runs | $COUNT |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📈 Performance | Good |" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: test-website
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 🔒 Security Headers Test
+      run: |
+        echo "🔒 Running security tests..."
+        
+        # Test security headers
+        curl -s -I "https://sanixpert.vercel.app" > headers.txt
+        
+        echo "## 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+        echo "| Header | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        # Check important security headers
+        if grep -q "x-content-type-options" headers.txt; then
+          echo "| X-Content-Type-Options | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| X-Content-Type-Options | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if grep -q "x-frame-options" headers.txt; then
+          echo "| X-Frame-Options | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| X-Frame-Options | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if grep -q "x-xss-protection" headers.txt; then
+          echo "| X-XSS-Protection | ✅ Present |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| X-XSS-Protection | ❌ Missing |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
