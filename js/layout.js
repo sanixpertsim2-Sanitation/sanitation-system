@@ -5,10 +5,14 @@
   const header = document.createElement("header");
   header.id = "globalHeader";
   header.className = "global-header";
-  const logoSrc = "images/logo.png";
+  const giveGoLogo = "images/logo.png";
+  const sanixpertLogo = "images/logo.png";
   header.innerHTML = `
     <div class="global-header__left">
-      <img src="${logoSrc}" alt="Give & Go - Sanixpert" class="global-logo" />
+      <div class="global-logo-stack">
+        <img src="${giveGoLogo}" alt="Give & Go" class="global-logo" />
+        <img src="${sanixpertLogo}" alt="Sanixpert" class="global-logo global-logo--secondary" />
+      </div>
       <div class="global-title">
         <div class="global-title__name">Sanixpert</div>
         <div class="global-title__sub">Intelligent Digital Sanitation Checklist</div>

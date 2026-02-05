@@ -73,3 +73,18 @@ async function readAndStampImage(file) {
     URL.revokeObjectURL(fileUrl); // Always cleanup, even on error
   }
 }
+
+function enforceCameraOnlyInputs() {
+  const inputs = document.querySelectorAll('input[type="file"]');
+  inputs.forEach(input => {
+    input.setAttribute("accept", "image/*");
+    if (!input.getAttribute("capture")) {
+      const capture = input.dataset.capture || "environment";
+      input.setAttribute("capture", capture);
+    }
+  });
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("DOMContentLoaded", enforceCameraOnlyInputs);
+}

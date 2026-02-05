@@ -17,6 +17,12 @@ async function acquireTaskLock({ supabase, area, task, userName }) {
     return { ok: false, reason: "Task already submitted. Use Help / Unlock to reopen." };
   }
   if (existing && existing.status === "InProgress" && existing.locked_by !== userName) {
+    if (task === "line") {
+      return { ok: false, reason: `${existing.locked_by} is currently cleaning this line.` };
+    }
+    if (task === "preclean") {
+      return { ok: false, reason: `${existing.locked_by} is currently working on this pre-cleaning.` };
+    }
     const labelMap = {
       preclean: "Pre-Cleaning",
       postclean: "Post-Cleaning",

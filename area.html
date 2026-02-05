@@ -35,13 +35,43 @@
   <button class="area-btn" disabled>Labeller (Coming Soon — Activation Pending)</button>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/lockUtils.js"></script>
 <script>
-function selectArea(area) {
+async function selectArea(area) {
   // UI-state only: track selected line/area for routing + headers.
   localStorage.setItem("selectedLine", area);
   localStorage.setItem("selectedArea", area);
 
   if (area === "MACY_PRODUCTION") {
+    const name = window.prompt("Employee Name");
+    const employeeName = name ? name.trim() : "";
+    if (!employeeName) {
+      alert("Employee Name is required to continue.");
+      return;
+    }
+
+    const supabase = window.supabaseClient;
+    if (!supabase || typeof acquireTaskLock !== "function") {
+      alert("Unable to verify line lock. Please refresh and try again.");
+      return;
+    }
+
+    const lockResult = await acquireTaskLock({
+      supabase,
+      area,
+      task: "preclean",
+      userName: employeeName
+    });
+
+    if (!lockResult.ok) {
+      alert(lockResult.reason);
+      return;
+    }
+
+    localStorage.setItem("sanixpertEmployeeName", employeeName);
+    localStorage.setItem("sanixpertLineLockArea", area);
 
     // ✅ CLEAN ENTRY POINT (very important)
     localStorage.removeItem("macyProdReleased");

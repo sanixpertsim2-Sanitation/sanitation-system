@@ -21,6 +21,7 @@
   <script src="js/mobile-analytics.js"></script>
   <script src="js/pwa-registration.js"></script>
   <script src="js/ai-recommendations.js"></script>
+  <script src="js/photoUtils.js"></script>
   <script src="js/sanixpert-auth.js"></script>
   <script src="js/universal-fixes.js"></script>
   <script src="js/premium-mobile.js"></script>
@@ -34,10 +35,13 @@
 <div class="app-container">
   <!-- Fixed Header -->
   <header class="app-header">
-    <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-      <div style="font-size: 20px; font-weight: 800; color: #0f172a;">Give & Go</div>
-      <div style="width: 2px; height: 20px; background: #64748b;"></div>
-      <div style="font-size: 20px; font-weight: 800; color: #3b82f6;">Sanixpert</div>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+      <img src="images/logo.png" alt="Give & Go" style="width: 36px; height: 36px; object-fit: contain;">
+      <img src="images/logo.png" alt="Sanixpert" style="width: 32px; height: 32px; object-fit: contain; opacity: 0.9;">
+      <div style="display: flex; flex-direction: column; line-height: 1.1;">
+        <span style="font-size: 14px; font-weight: 800; color: #0f172a;">Give & Go</span>
+        <span style="font-size: 12px; font-weight: 700; color: #3b82f6;">Sanixpert</span>
+      </div>
     </div>
     <div class="text-subtitle">MACY Production - Post-Cleaning Verification</div>
   </header>
@@ -247,13 +251,13 @@
 <!-- Bag Mismatch Modal -->
 <div id="bagMismatchModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;">
   <div style="background: white; padding: 24px; border-radius: 12px; width: 90%; max-width: 400px;">
-    <h3 style="margin: 0 0 16px 0; text-align: center; color: #ef4444;">⚠️ Count Mismatch!</h3>
+    <h3 style="margin: 0 0 16px 0; text-align: center; color: #ef4444;">⚠️ Mismatch! Count missing coverings.</h3>
     <p style="margin: 0 0 16px 0; text-align: center; color: #6b7280;">
       <span id="mismatchMessage"></span>
     </p>
     <div style="background: #fef2f2; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
       <div style="font-weight: 600; color: #dc2626;">Bag Integrity Check Failed</div>
-      <div style="color: #7f1d1d; font-size: 14px; margin-top: 4px;">You missed some coverings. Verify thoroughly and provide the real count.</div>
+      <div style="color: #7f1d1d; font-size: 14px; margin-top: 4px;">Mismatch! Count missing coverings.</div>
     </div>
     <button onclick="closeBagMismatchModal()" style="width: 100%; padding: 12px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer;">
       I Understand - Let Me Recheck
@@ -572,7 +576,7 @@ function validateForm() {
   
   // Check bag integrity
   if (bagsRetrieved !== preCleanData?.bags_covered) {
-    mobileNext.showToast('Bag count mismatch! Please verify the count.', 'error');
+    mobileNext.showToast('Mismatch! Count missing coverings.', 'error');
     return false;
   }
   

@@ -219,12 +219,59 @@ function renderFallback(status, action, area) {
     </button>`;
 }
 
+async function ensureLineLock(area) {
+  if (!supabase || typeof acquireTaskLock !== "function") {
+    return { ok: false, reason: "Unable to verify line lock. Please refresh and try again." };
+  }
+
+  let employeeName = (localStorage.getItem("sanixpertEmployeeName") || "").trim();
+  if (!employeeName) {
+    const nameInput = window.prompt("Employee Name");
+    employeeName = nameInput ? nameInput.trim() : "";
+  }
+  if (!employeeName) {
+    return { ok: false, reason: "Employee Name is required to continue." };
+  }
+
+  const lockResult = await acquireTaskLock({
+    supabase,
+    area,
+    task: "line",
+    userName: employeeName
+  });
+
+  if (!lockResult.ok) {
+    return lockResult;
+  }
+
+  localStorage.setItem("sanixpertEmployeeName", employeeName);
+  localStorage.setItem("sanixpertLineLockArea", area);
+  return { ok: true, employeeName };
+}
+
+function showLineLockedUI(message) {
+  const status = document.getElementById("statusBox");
+  const action = document.getElementById("actionBox");
+
+  if (status) {
+    status.innerHTML = `<div class="status orange">🔒 ${message}</div>`;
+  }
+  if (action) {
+    action.innerHTML = "";
+  }
+}
+
 async function renderControl() {
 
   const area = localStorage.getItem("selectedArea") || "MACY_DECORATION";
   localStorage.setItem("selectedLine", area);
   localStorage.setItem("selectedArea", area);
   setHeader(area);
+  const lockStatus = await ensureLineLock(area);
+  if (!lockStatus.ok) {
+    showLineLockedUI(lockStatus.reason);
+    return;
+  }
   const preclean = await fetchLatestPreclean(area);
   const postclean = await fetchPostclean(preclean ? preclean.id : null);
   const handoverRequired = postclean ? !!postclean.handover_required : false;

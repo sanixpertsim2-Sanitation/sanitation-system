@@ -270,6 +270,50 @@ async function fetchPostclean(precleanId) {
   });
 }
 
+async function ensureLineLock(area) {
+  if (!supabase || typeof acquireTaskLock !== "function") {
+    return { ok: false, reason: "Unable to verify line lock. Please refresh and try again." };
+  }
+
+  let employeeName = (localStorage.getItem("sanixpertEmployeeName") || "").trim();
+  if (!employeeName) {
+    const nameInput = window.prompt("Employee Name");
+    employeeName = nameInput ? nameInput.trim() : "";
+  }
+  if (!employeeName) {
+    return { ok: false, reason: "Employee Name is required to continue." };
+  }
+
+  const lockResult = await acquireTaskLock({
+    supabase,
+    area,
+    task: "preclean",
+    userName: employeeName
+  });
+
+  if (!lockResult.ok) {
+    return lockResult;
+  }
+
+  localStorage.setItem("sanixpertEmployeeName", employeeName);
+  localStorage.setItem("sanixpertLineLockArea", area);
+  return { ok: true, employeeName };
+}
+
+function showLineLockedUI(message) {
+  const status = document.getElementById("statusBox");
+  const action = document.getElementById("actionBox");
+
+  if (status) {
+    status.innerHTML = `<div class="status orange">🔒 ${message}</div>`;
+  }
+  if (action) {
+    action.innerHTML = "";
+  }
+
+  document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('loading'));
+}
+
 // Batch fetch all status data in parallel for better performance
 async function fetchAllStatusData(area) {
   if (!supabase) return {};
@@ -450,6 +494,12 @@ async function initializeControlPanel() {
   setHeader(area);
   
   try {
+    const lockStatus = await ensureLineLock(area);
+    if (!lockStatus.ok) {
+      showLineLockedUI(lockStatus.reason);
+      return;
+    }
+
     // Fetch all data in parallel for better performance
     const statusData = await fetchAllStatusData(area);
     
