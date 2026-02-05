@@ -133,53 +133,105 @@ class SanixpertUniversalFixes {
     const questionId = select.id;
     const extraDiv = document.getElementById(questionId + '-extra');
     
-    if (!extraDiv) return;
+    if (!extraDiv) {
+      console.warn('Extra div not found for:', questionId);
+      return;
+    }
     
-    console.log('Checklist changed:', questionId, select.value);
+    console.log('📋 Checklist changed:', questionId, select.value);
     
     if (select.value === 'Not Acceptable' || select.value === 'N/A') {
       // Show extra fields with animation
+      console.log('📷 Showing camera and comment fields for:', questionId);
       extraDiv.classList.remove('hidden');
       extraDiv.style.display = 'block';
+      extraDiv.style.opacity = '0';
+      extraDiv.style.transform = 'translateY(-10px)';
       
-      // Make fields required
+      // Animate in
+      setTimeout(() => {
+        extraDiv.style.transition = 'all 0.3s ease';
+        extraDiv.style.opacity = '1';
+        extraDiv.style.transform = 'translateY(0)';
+      }, 10);
+      
+      // Make fields required and add camera functionality
       const fileInput = extraDiv.querySelector('input[type="file"]');
       const textarea = extraDiv.querySelector('textarea');
+      const commentLabel = extraDiv.querySelector('.comment-label');
       
       if (fileInput) {
         fileInput.required = true;
         fileInput.classList.add('camera-required');
-        console.log('File input made required for:', questionId);
+        
+        // Ensure camera capture is set
+        if (!fileInput.hasAttribute('capture')) {
+          fileInput.setAttribute('capture', 'environment');
+        }
+        
+        // Add camera click handler for mobile
+        fileInput.addEventListener('click', () => {
+          console.log('📷 Camera input clicked for:', questionId);
+        });
+        
+        console.log('✅ Camera input configured for:', questionId);
+      } else {
+        console.warn('⚠️ Camera input not found in:', extraDiv);
       }
       
       if (textarea) {
         textarea.required = true;
         textarea.classList.add('comment-required');
-        console.log('Textarea made required for:', questionId);
+        console.log('✅ Comment textarea configured for:', questionId);
+      } else {
+        console.warn('⚠️ Comment textarea not found in:', extraDiv);
+      }
+      
+      if (commentLabel) {
+        commentLabel.classList.add('required');
       }
       
       // Add visual feedback
       select.closest('.question').classList.add('has-error');
       
+      // Scroll to the new fields
+      setTimeout(() => {
+        extraDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 300);
+      
     } else {
-      // Hide extra fields
-      extraDiv.classList.add('hidden');
-      extraDiv.style.display = 'none';
+      // Hide extra fields with animation
+      console.log('🙈 Hiding camera and comment fields for:', questionId);
+      extraDiv.style.transition = 'all 0.3s ease';
+      extraDiv.style.opacity = '0';
+      extraDiv.style.transform = 'translateY(-10px)';
+      
+      setTimeout(() => {
+        extraDiv.classList.add('hidden');
+        extraDiv.style.display = 'none';
+      }, 300);
       
       // Remove required attribute and clear values
       const fileInput = extraDiv.querySelector('input[type="file"]');
       const textarea = extraDiv.querySelector('textarea');
+      const commentLabel = extraDiv.querySelector('.comment-label');
       
       if (fileInput) {
         fileInput.required = false;
         fileInput.classList.remove('camera-required');
         fileInput.value = ''; // Clear file
+        console.log('🗑️ Camera input cleared for:', questionId);
       }
       
       if (textarea) {
         textarea.required = false;
         textarea.classList.remove('comment-required');
         textarea.value = ''; // Clear comment
+        console.log('🗑️ Comment textarea cleared for:', questionId);
+      }
+      
+      if (commentLabel) {
+        commentLabel.classList.remove('required');
       }
       
       // Remove visual feedback

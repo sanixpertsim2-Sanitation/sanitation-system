@@ -87,6 +87,37 @@
   background: #2563eb;
 }
 
+/* Camera input specific styling */
+.file-input-wrapper input[type="file"][capture="environment"] {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.file-input-wrapper input[type="file"][capture="environment"]:hover {
+  border-color: #dc2626;
+  background: #fee2e2;
+}
+
+.file-input-wrapper input[type="file"][capture="environment"]::-webkit-file-upload-button {
+  background: #ef4444;
+}
+
+.file-input-wrapper input[type="file"][capture="environment"]::-webkit-file-upload-button:hover {
+  background: #dc2626;
+}
+
+/* Camera icon indicator */
+.file-input-wrapper::before {
+  content: "📷";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 /* Comment styling */
 .comment-label {
   display: block;
@@ -94,6 +125,12 @@
   margin-bottom: 8px;
   color: #374151;
   font-size: 14px;
+}
+
+.comment-label.required::after {
+  content: " *";
+  color: #ef4444;
+  font-weight: 700;
 }
 
 .question-extra .textarea {
