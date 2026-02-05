@@ -43,5 +43,18 @@ try {
     // In development, show a warning but continue
     if (window.SANIXPERT_CONFIG.DEVELOPMENT) {
         console.warn('Running in development mode without PIN - configure SANIXPERT_ADMIN_PIN for production');
+        // Set a development PIN for testing
+        window.SANIXPERT_CONFIG.ADMIN_PIN = '2451';
+    } else {
+        // In production, we cannot continue without proper configuration
+        document.body.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: Arial, sans-serif;">
+                <div style="text-align: center; padding: 40px; background: #f8f9fa; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h2 style="color: #dc3545; margin-bottom: 16px;">⚠️ Configuration Error</h2>
+                    <p style="color: #6c757d; margin-bottom: 20px;">System not properly configured for production deployment.</p>
+                    <p style="color: #495057; font-size: 14px;">Please contact administrator to set up required environment variables.</p>
+                </div>
+            </div>
+        `;
     }
 }
