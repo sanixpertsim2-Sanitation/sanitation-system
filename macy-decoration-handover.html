@@ -175,7 +175,7 @@ function renderSection(title, items, typeLabel) {
         placeholder="Explain what action was taken"></textarea>
       <label>Capture fix photo *</label>
       <input type="file" accept="image/*" capture="environment"
-        onchange="stampPhoto(this)">
+        data-task-index="${cardIndex}" onchange="stampPhoto(this)">
       <div class="photo-time"></div>
       <button onclick="completeTask(${cardIndex}, '${typeLabel}', 'Completed')">
         ✔ Mark as Completed
@@ -250,9 +250,9 @@ async function completeTask(i, type, statusLabel) {
     document.getElementById(`comment-${i}`).value.trim();
 
   const input =
-    document.querySelectorAll("input[type=file]")[i];
+    container.querySelector(`input[type="file"][data-task-index="${i}"]`);
 
-  if (!comment || !input.files.length) {
+  if (!comment || !input || !input.files.length) {
     alert("Comment and photo required.");
     return;
   }

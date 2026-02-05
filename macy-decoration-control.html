@@ -174,11 +174,12 @@ async function hasOpenDamages(area) {
   return data && data.length > 0;
 }
 
-async function hasLineRelease() {
+async function hasLineRelease(area) {
   if (!supabase) return false;
   const { data, error } = await supabase
     .from("line_release_logs")
     .select("id")
+    .eq("area", area)
     .order("verified_at", { ascending: false })
     .limit(1);
   if (error) {
@@ -225,7 +226,7 @@ async function renderControl() {
   const preclean = await fetchLatestPreclean(area);
   const postclean = await fetchPostclean(preclean ? preclean.id : null);
   const handoverRequired = postclean ? !!postclean.handover_required : false;
-  const released = await hasLineRelease();
+  const released = await hasLineRelease(area);
   const pendingHandovers = await hasPendingHandovers();
   const handoverDamages = await hasHandoverDamages(area);
   const openDamages = await hasOpenDamages(area);
