@@ -12,6 +12,8 @@ class FaceDetectionSystem {
         this.faceMatcher = null;
         this.modelsLoaded = false;
         this.detectionActive = false;
+        this.detectionTimeout = null;
+        this.activeDialogs = new Set();
     }
 
     /**
@@ -100,6 +102,55 @@ class FaceDetectionSystem {
         if (this.videoElement) {
             this.videoElement.srcObject = null;
         }
+    }
+
+    /**
+     * Stop face detection loop and cleanup resources
+     */
+    stopDetection() {
+        this.detectionActive = false;
+        if (this.detectionTimeout) {
+            clearTimeout(this.detectionTimeout);
+            this.detectionTimeout = null;
+        }
+        this.stopCamera();
+    }
+
+    /**
+     * Safe DOM element removal with proper cleanup
+     */
+    safeRemoveElement(element) {
+        if (element && element.parentNode && element.parentNode.contains(element)) {
+            element.parentNode.removeChild(element);
+        }
+    }
+
+    /**
+     * Track active dialogs for cleanup
+     */
+    addDialog(dialog) {
+        if (dialog) {
+            this.activeDialogs.add(dialog);
+        }
+    }
+
+    /**
+     * Remove dialog and cleanup tracking
+     */
+    removeDialog(dialog) {
+        this.safeRemoveElement(dialog);
+        this.activeDialogs.delete(dialog);
+    }
+
+    /**
+     * Cleanup all active dialogs and detection
+     */
+    cleanup() {
+        this.stopDetection();
+        this.activeDialogs.forEach(dialog => {
+            this.safeRemoveElement(dialog);
+        });
+        this.activeDialogs.clear();
     }
 
     /**
@@ -207,6 +258,7 @@ class FaceDetectionSystem {
             `;
             
             document.body.appendChild(dialog);
+            this.addDialog(dialog);
             
             const video = dialog.querySelector('#regVideo');
             const canvas = dialog.querySelector('#regCanvas');
@@ -243,9 +295,7 @@ class FaceDetectionSystem {
                             // Stop stream
                             video.srcObject.getTracks().forEach(track => track.stop());
                             
-                            if (dialog && dialog.parentNode) {
-                                document.body.removeChild(dialog);
-                            }
+                            this.removeDialog(dialog);
                             resolve({
                                 success: true,
                                 descriptor: Array.from(detections.descriptor)
@@ -261,9 +311,7 @@ class FaceDetectionSystem {
             
             skipBtn.addEventListener('click', () => {
                 video.srcObject.getTracks().forEach(track => track.stop());
-                if (dialog && dialog.parentNode) {
-                    document.body.removeChild(dialog);
-                }
+                this.removeDialog(dialog);
                 resolve({ success: false });
             });
         });
@@ -294,6 +342,7 @@ class FaceDetectionSystem {
             `;
             
             document.body.appendChild(dialog);
+            this.addDialog(dialog);
             
             const video = dialog.querySelector('#authVideo');
             const usePINBtn = dialog.querySelector('#usePIN');
@@ -304,7 +353,7 @@ class FaceDetectionSystem {
                     video.srcObject = stream;
                     this.detectionActive = true;
                     
-                    // Start face detection loop
+                    // Start face detection loop with proper timeout management
                     const detectLoop = async () => {
                         if (!this.detectionActive) return;
                         
@@ -327,9 +376,7 @@ class FaceDetectionSystem {
                                             // Face matched
                                             this.detectionActive = false;
                                             video.srcObject.getTracks().forEach(track => track.stop());
-                                            if (dialog && dialog.parentNode) {
-                                                document.body.removeChild(dialog);
-                                            }
+                                            this.removeDialog(dialog);
                                             
                                             resolve({
                                                 success: true,
@@ -344,14 +391,14 @@ class FaceDetectionSystem {
                                 }
                             }
                             
-                            // Continue detection loop
+                            // Continue detection loop with proper timeout management
                             if (this.detectionActive) {
-                                setTimeout(detectLoop, 500);
+                                this.detectionTimeout = setTimeout(detectLoop, 500);
                             }
                         } catch (error) {
                             console.error('Detection error:', error);
                             if (this.detectionActive) {
-                                setTimeout(detectLoop, 500);
+                                this.detectionTimeout = setTimeout(detectLoop, 500);
                             }
                         }
                     };
@@ -362,9 +409,7 @@ class FaceDetectionSystem {
             usePINBtn.addEventListener('click', () => {
                 this.detectionActive = false;
                 video.srcObject.getTracks().forEach(track => track.stop());
-                if (dialog && dialog.parentNode) {
-                    document.body.removeChild(dialog);
-                }
+                this.removeDialog(dialog);
                 resolve({ success: false });
             });
         });
@@ -395,6 +440,7 @@ class FaceDetectionSystem {
             `;
             
             document.body.appendChild(dialog);
+            this.addDialog(dialog);
             
             const employeeIdInput = dialog.querySelector('#employeeIdInput');
             const pinInput = dialog.querySelector('#pinInput');
@@ -427,7 +473,12 @@ class FaceDetectionSystem {
                 }
                 
                 // Get valid PIN from environment or configuration
-                const validPIN = window.SANIXPERT_CONFIG?.ADMIN_PIN || '2451'; // Fallback for development
+                const validPIN = window.SANIXPERT_CONFIG?.ADMIN_PIN;
+                
+                if (!validPIN) {
+                    this.showNotification('System not configured properly. Contact administrator.', 'error');
+                    return;
+                }
                 
                 if (pin === validPIN) {
                     // Lookup employee name automatically
@@ -442,7 +493,7 @@ class FaceDetectionSystem {
                     }
                     
                     if (dialog && dialog.parentNode) {
-                        document.body.removeChild(dialog);
+                        this.removeDialog(dialog);
                     }
                     resolve({
                         success: true,
@@ -473,9 +524,7 @@ class FaceDetectionSystem {
             });
             
             cancelBtn.addEventListener('click', () => {
-                if (dialog && dialog.parentNode) {
-                    document.body.removeChild(dialog);
-                }
+                this.removeDialog(dialog);
                 resolve({ success: false });
             });
         });
@@ -515,6 +564,7 @@ class FaceDetectionSystem {
             `;
             
             document.body.appendChild(dialog);
+            this.addDialog(dialog);
             
             const employeeIdInput = dialog.querySelector('#employeeId');
             const userRoleSelect = dialog.querySelector('#userRole');
@@ -556,9 +606,7 @@ class FaceDetectionSystem {
                 // Save user to database
                 await this.saveUserData(employeeName, userRole, employeeId);
                 
-                if (dialog && dialog.parentNode) {
-                    document.body.removeChild(dialog);
-                }
+                this.removeDialog(dialog);
                 resolve({
                     success: true,
                     user: { name: employeeName, role: userRole, employeeId: employeeId }

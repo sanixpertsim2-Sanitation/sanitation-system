@@ -10,6 +10,55 @@ class CameraIntegration {
         this.videoElement = null;
         this.canvasElement = null;
         this.isInitialized = false;
+        this.activeDialogs = new Set();
+    }
+
+    /**
+     * Show notification message
+     */
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `camera-notification camera-notification-${type}`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 100);
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                this.safeRemoveElement(notification);
+            }, 300);
+        }, 3000);
+    }
+
+    /**
+     * Safe DOM element removal
+     */
+    safeRemoveElement(element) {
+        if (element && element.parentNode && element.parentNode.contains(element)) {
+            element.parentNode.removeChild(element);
+        }
+    }
+
+    /**
+     * Add dialog tracking
+     */
+    addDialog(dialog) {
+        if (dialog) {
+            this.activeDialogs.add(dialog);
+        }
+    }
+
+    /**
+     * Remove dialog with tracking
+     */
+    removeDialog(dialog) {
+        this.safeRemoveElement(dialog);
+        this.activeDialogs.delete(dialog);
     }
 
     /**
@@ -298,18 +347,37 @@ class CameraIntegration {
                     captureBtn.disabled = true;
                     captureBtn.innerHTML = '<span class="loading">⏳</span> Capturing...';
 
-                    const photoData = await this.capturePhoto(true, title);
+                    let photoData;
+                    try {
+                        photoData = await this.capturePhoto(true, title);
+                    } catch (captureError) {
+                        console.error('Photo capture failed:', captureError);
+                        this.showNotification('Failed to capture photo. Please try again.', 'error');
+                        return;
+                    }
                     
-                    // Upload photo
-                    const uploadResult = await this.uploadPhoto(
-                        photoData.blob, 
-                        `${Date.now()}.jpg`
-                    );
+                    let uploadResult;
+                    try {
+                        uploadResult = await this.uploadPhoto(
+                            photoData.blob, 
+                            `${Date.now()}.jpg`
+                        );
+                    } catch (uploadError) {
+                        console.error('Photo upload failed:', uploadError);
+                        this.showNotification('Failed to upload photo. Photo saved locally.', 'warning');
+                        // Still add the photo with local dataUrl even if upload failed
+                        uploadResult = {
+                            url: photoData.dataUrl,
+                            path: `local-${Date.now()}.jpg`,
+                            timestamp: photoData.timestamp
+                        };
+                    }
 
                     capturedPhotos.push({
                         url: uploadResult.url,
                         timestamp: photoData.timestamp,
-                        dataUrl: photoData.dataUrl
+                        dataUrl: photoData.dataUrl,
+                        uploadStatus: uploadResult.path.startsWith('local-') ? 'local' : 'uploaded'
                     });
 
                     // Update UI
@@ -319,9 +387,7 @@ class CameraIntegration {
                     } else {
                         // Auto-resolve for single photo
                         this.stopCamera();
-                        if (overlay && overlay.parentNode) {
-                            document.body.removeChild(overlay);
-                        }
+                        this.removeDialog(overlay);
                         resolve(capturedPhotos);
                         return;
                     }
@@ -333,8 +399,8 @@ class CameraIntegration {
                     }, 100);
 
                 } catch (error) {
-                    console.error('Capture failed:', error);
-                    alert('Failed to capture photo. Please try again.');
+                    console.error('Capture process failed:', error);
+                    this.showNotification('Capture process failed. Please try again.', 'error');
                 } finally {
                     captureBtn.disabled = false;
                     captureBtn.innerHTML = '<span class="capture-icon">📸</span> Capture Photo';
@@ -344,18 +410,14 @@ class CameraIntegration {
             // Done capturing
             doneBtn.addEventListener('click', () => {
                 this.stopCamera();
-                if (overlay && overlay.parentNode) {
-                    document.body.removeChild(overlay);
-                }
+                this.removeDialog(overlay);
                 resolve(capturedPhotos);
             });
 
             // Close camera
             closeBtn.addEventListener('click', () => {
                 this.stopCamera();
-                if (overlay && overlay.parentNode) {
-                    document.body.removeChild(overlay);
-                }
+                this.removeDialog(overlay);
                 resolve(null);
             });
 
@@ -363,9 +425,7 @@ class CameraIntegration {
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
                     this.stopCamera();
-                    if (overlay && overlay.parentNode) {
-                        document.body.removeChild(overlay);
-                    }
+                    this.removeDialog(overlay);
                     resolve(null);
                 }
             });
@@ -442,6 +502,39 @@ const cameraCSS = `
     align-items: center;
     justify-content: center;
     z-index: 10000;
+}
+
+.camera-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 10001;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.camera-notification.show {
+    transform: translateX(0);
+}
+
+.camera-notification-error {
+    background: #ef4444;
+}
+
+.camera-notification-warning {
+    background: #f59e0b;
+}
+
+.camera-notification-info {
+    background: #3b82f6;
+}
+
+.camera-notification-success {
+    background: #10b981;
 }
 
 .camera-modal {
