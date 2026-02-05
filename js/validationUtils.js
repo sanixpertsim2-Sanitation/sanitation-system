@@ -37,7 +37,7 @@ class ValidationUtils {
         const missing = equipmentCovered - equipmentRetrieved;
         return {
           valid: false,
-          error: `Covering is missing to retrieve! Need to recover ${missing} equipment(s). Please verify thoroughly before proceeding.`,
+          error: "Mismatch! Count missing coverings.",
           missing: missing,
           expected: equipmentCovered,
           actual: equipmentRetrieved

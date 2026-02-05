@@ -65,12 +65,26 @@ button{
 </select>
 
 <div class="small" id="faceStatus">Face verification required</div>
+<button type="button" class="warn" onclick="openPinModal()">Use PIN 2451</button>
 
 <label>Signature *</label>
 <canvas id="signPad"></canvas>
 <button onclick="clearSignature()">Clear Signature</button>
 
 <div class="small" id="declarationText"></div>
+</div>
+
+<!-- PIN Modal -->
+<div id="pinModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 2000;">
+  <div style="background: #0f172a; padding: 20px; border-radius: 16px; width: min(90vw, 340px);">
+    <h3 style="margin-bottom: 12px;">PIN Verification</h3>
+    <p class="small" style="opacity: 0.8; margin-bottom: 12px;">Enter the 4-digit PIN to continue.</p>
+    <input type="password" id="pinInput" placeholder="PIN" maxlength="4" inputmode="numeric">
+    <div style="display:flex; gap: 10px; margin-top: 12px;">
+      <button type="button" onclick="verifyPin()">Verify</button>
+      <button type="button" class="warn" onclick="closePinModal()">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <!-- QUESTIONS -->
@@ -318,6 +332,8 @@ localStorage.setItem(
   "selectedLine",
   localStorage.getItem("selectedArea") || "MACY_PRODUCTION"
 );
+let leadVerifiedName = "";
+const PIN_CODE = "2451";
 
 // Face verification + lock on open.
 (async function () {
@@ -335,12 +351,14 @@ localStorage.setItem(
   if (leadSelect) {
     leadSelect.value = face.name || "";
   }
+  leadVerifiedName = face.name || "";
   const status = document.getElementById("faceStatus");
   if (status) status.innerText = `Face verified: ${face.name}`;
   const declaration = document.getElementById("declarationText");
   if (declaration) {
     declaration.innerText = `All areas verified and completed by ${face.name}`;
   }
+  updateInspectionButton();
 
   attachUnlock({ supabase, area, task: "inspection" });
   loadHandoverReview(area);
@@ -356,6 +374,42 @@ localStorage.setItem(
     return;
   }
 })();
+
+function openPinModal() {
+  document.getElementById("pinModal").classList.remove("hidden");
+  document.getElementById("pinInput").value = "";
+  document.getElementById("pinInput").focus();
+}
+
+function closePinModal() {
+  document.getElementById("pinModal").classList.add("hidden");
+}
+
+function verifyPin() {
+  const pin = document.getElementById("pinInput").value.trim();
+  const leadSelect = document.getElementById("leadName");
+  const selectedLead = leadSelect ? leadSelect.value : "";
+
+  if (!selectedLead) {
+    alert("Select Area Lead Name before PIN verification.");
+    return;
+  }
+
+  if (pin !== PIN_CODE) {
+    alert("Invalid PIN.");
+    return;
+  }
+
+  leadVerifiedName = selectedLead;
+  const status = document.getElementById("faceStatus");
+  if (status) status.innerText = `PIN verified: ${selectedLead}`;
+  const declaration = document.getElementById("declarationText");
+  if (declaration) {
+    declaration.innerText = `All areas verified and completed by ${selectedLead}`;
+  }
+  updateInspectionButton();
+  closePinModal();
+}
 function setButtonBusy(btn, isBusy) {
   if (!btn) return;
   btn.disabled = isBusy;
@@ -367,6 +421,7 @@ function updateInspectionButton() {
   const btn = document.querySelector("button[onclick='submitArea()']");
   if (!btn || btn.dataset.busy === "1") return;
   const lead = document.getElementById("leadName").value;
+  const verified = !!leadVerifiedName;
   const allAnswered = Array.from(document.querySelectorAll(".section.question select"))
     .every(sel => sel.value && sel.value.length > 0);
   const requiredSatisfied = Array.from(document.querySelectorAll(".section.question"))
@@ -380,7 +435,7 @@ function updateInspectionButton() {
       if (requiresComment && (!txt || !txt.value.trim())) return false;
       return true;
     });
-  btn.disabled = !(lead && allAnswered && requiredSatisfied);
+  btn.disabled = !(lead && verified && allAnswered && requiredSatisfied);
 }
 
 /* SIGN */

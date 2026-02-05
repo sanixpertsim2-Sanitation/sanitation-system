@@ -53,10 +53,20 @@ body::before {
   align-items: center;
   gap: 12px;
 }
+.global-logo-stack {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .global-logo {
   width: 44px;
   height: 44px;
   object-fit: contain;
+}
+.global-logo--secondary {
+  width: 40px;
+  height: 40px;
+  opacity: 0.9;
 }
 .global-title__name {
   font-weight: 700;

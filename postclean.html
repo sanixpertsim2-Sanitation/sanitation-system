@@ -615,16 +615,9 @@ async function submitPostClean(){
   const preBags = preclean ? Number(preclean.bags_used || 0) : 0;
 
   if(preBags && postBags !== preBags){
-    const proceed = confirm(
-      "Covering count mismatch — verify thoroughly.\n\n" +
-      "Pre-clean: " + preBags +
-      "\nPost-clean: " + postBags +
-      "\n\nContinue anyway?"
-    );
-    if (!proceed) {
-      setButtonBusy(btn, false);
-      return;
-    }
+    alert("Mismatch! Count missing coverings.");
+    setButtonBusy(btn, false);
+    return;
   }
 
   const handoverValue = document.getElementById("handoverSelect").value;

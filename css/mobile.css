@@ -68,10 +68,22 @@ body {
   gap: 10px;
 }
 
+.global-logo-stack {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .global-logo {
   width: 36px;
   height: 36px;
   object-fit: contain;
+}
+
+.global-logo--secondary {
+  width: 32px;
+  height: 32px;
+  opacity: 0.9;
 }
 
 .global-title__name {
