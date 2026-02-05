@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sanixpert - Ultra Premium Sanitation Management</title>
+  
+  <!-- Ultra Premium CSS -->
+  <link rel="stylesheet" href="css/ultra-premium.css">
+  
+  <!-- Essential scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/dateUtils.js"></script>
+  <script src="js/mobile-next.js"></script>
+  <script src="js/mobile-next-enhanced.js"></script>
+  <script src="js/mobile-analytics.js"></script>
+  <script src="js/pwa-registration.js"></script>
+  <script src="js/ai-recommendations.js"></script>
+  <script src="js/sanixpert-auth.js"></script>
+  <script src="js/universal-fixes.js"></script>
+  <script src="js/premium-mobile.js"></script>
+  <script src="js/page-transitions.js"></script>
+  <script src="js/ultra-premium.js"></script>
+  
+  <style>
+    /* Page specific styles */
+    .hero-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .hero-content {
+      text-align: center;
+      z-index: 2;
+      max-width: 800px;
+      padding: var(--space-2xl);
+    }
+    
+    .hero-title {
+      font-size: 4rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: var(--space-lg);
+      line-height: 1.1;
+      animation: glow 3s ease-in-out infinite;
+    }
+    
+    @keyframes glow {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.2); }
+    }
+    
+    .hero-subtitle {
+      font-size: 1.5rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: var(--space-2xl);
+      font-weight: 300;
+    }
+    
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: var(--space-xl);
+      padding: var(--space-2xl);
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .feature-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: var(--space-xl);
+      text-align: center;
+      transition: all var(--transition-normal);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-gradient);
+      transform: scaleX(0);
+      transition: transform var(--transition-normal);
+    }
+    
+    .feature-card:hover::before {
+      transform: scaleX(1);
+    }
+    
+    .feature-icon {
+      font-size: 3rem;
+      margin-bottom: var(--space-md);
+      display: block;
+    }
+    
+    .feature-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: var(--space-md);
+    }
+    
+    .feature-description {
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.6;
+    }
+    
+    .stats-section {
+      padding: var(--space-3xl) var(--space-xl);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-top: 1px solid var(--glass-border);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-xl);
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .stat-card {
+      text-align: center;
+      padding: var(--space-lg);
+    }
+    
+    .stat-number {
+      font-size: 3rem;
+      font-weight: 900;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: var(--space-sm);
+    }
+    
+    .stat-label {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .cta-section {
+      padding: var(--space-3xl) var(--space-xl);
+      text-align: center;
+    }
+    
+    .cta-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: var(--space-lg);
+    }
+    
+    .cta-description {
+      font-size: 1.25rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: var(--space-2xl);
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .floating-shapes {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 1;
+    }
+    
+    .shape {
+      position: absolute;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    .shape:nth-child(1) {
+      width: 300px;
+      height: 300px;
+      top: 10%;
+      left: 10%;
+      animation-delay: 0s;
+    }
+    
+    .shape:nth-child(2) {
+      width: 200px;
+      height: 200px;
+      top: 60%;
+      right: 10%;
+      animation-delay: 5s;
+    }
+    
+    .shape:nth-child(3) {
+      width: 150px;
+      height: 150px;
+      bottom: 10%;
+      left: 30%;
+      animation-delay: 10s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(30px, -30px) rotate(120deg); }
+      66% { transform: translate(-20px, 20px) rotate(240deg); }
+    }
+    
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2.5rem;
+      }
+      
+      .hero-subtitle {
+        font-size: 1.25rem;
+      }
+      
+      .feature-grid {
+        grid-template-columns: 1fr;
+        padding: var(--space-lg);
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .stat-number {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="premium-bg"></div>
+
+<div class="app-container">
+  <!-- Ultra Premium Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+        <div style="font-size: 2rem; font-weight: 900; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Give & Go</div>
+        <div style="width: 3px; height: 30px; background: linear-gradient(135deg, #f093fb, #f5576c); border-radius: 2px;"></div>
+        <div style="font-size: 2rem; font-weight: 900; background: linear-gradient(135deg, #4facfe, #00f2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Sanixpert</div>
+      </div>
+    </div>
+    <div class="subtitle">Ultra Premium Sanitation Management System</div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="floating-shapes">
+      <div class="shape"></div>
+      <div class="shape"></div>
+      <div class="shape"></div>
+    </div>
+    
+    <div class="hero-content">
+      <h1 class="hero-title">Next-Generation Sanitation Management</h1>
+      <p class="hero-subtitle">Experience the future of industrial sanitation with cutting-edge technology, premium design, and unparalleled efficiency.</p>
+      
+      <div style="display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="navigateTo('dashboard-premium-bento.html')">
+          <span>✨</span>
+          Premium Dashboard
+        </button>
+        <button class="btn btn-secondary" onclick="navigateTo('index-next.html')">
+          <span>🏠</span>
+          Classic View
+        </button>
+        <button class="btn btn-success" onclick="navigateTo('test-page-transitions.html')">
+          <span>🧪</span>
+          Test System
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🎨</div>
+      <h3 class="feature-title">Ultra Premium Design</h3>
+      <p class="feature-description">Cutting-edge glassmorphism design with advanced animations, particle effects, and premium visual experiences.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h3 class="feature-title">Mobile Excellence</h3>
+      <p class="feature-description">Optimized for all devices with touch-friendly interactions, smooth scrolling, and professional mobile experience.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">🚀</div>
+      <h3 class="feature-title">Advanced Automation</h3>
+      <p class="feature-description">Intelligent automation with real-time updates, predictive analytics, and seamless workflow management.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3 class="feature-title">Premium Analytics</h3>
+      <p class="feature-description">Comprehensive insights with beautiful visualizations, real-time monitoring, and advanced reporting.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3 class="feature-title">Enterprise Security</h3>
+      <p class="feature-description">Bank-level security with encrypted data, secure authentication, and compliance with industry standards.</p>
+    </div>
+    
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3 class="feature-title">Lightning Fast</h3>
+      <p class="feature-description">Optimized performance with instant loading, smooth animations, and responsive interactions.</p>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number" data-target="1000">0</div>
+        <div class="stat-label">Daily Operations</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-number" data-target="99.9">0</div>
+        <div class="stat-label">Uptime %</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-number" data-target="500">0</div>
+        <div class="stat-label">Happy Users</div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-number" data-target="24">0</div>
+        <div class="stat-label">Hour Support</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <h2 class="cta-title">Ready to Transform Your Sanitation Management?</h2>
+    <p class="cta-description">Join hundreds of facilities already using Sanixpert Ultra Premium to streamline operations and ensure compliance.</p>
+    
+    <div style="display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;">
+      <button class="btn btn-primary btn-block" style="max-width: 300px;" onclick="navigateTo('macy-production-preclean-enhanced.html')">
+        <span>🚀</span>
+        Get Started Now
+      </button>
+      <button class="btn btn-secondary btn-block" style="max-width: 300px;" onclick="navigateTo('dashboard-live-enhanced.html')">
+        <span>📈</span>
+        View Dashboard
+      </button>
+    </div>
+  </section>
+</div>
+
+<script>
+// Ultra Premium Page Script
+class UltraPremiumPage {
+  constructor() {
+    this.init();
+  }
+
+  init() {
+    console.log('🚀 Ultra Premium Page initialized');
+    
+    // Animate stats
+    this.animateStats();
+    
+    // Setup parallax
+    this.setupParallax();
+    
+    // Setup scroll animations
+    this.setupScrollAnimations();
+    
+    // Setup mouse effects
+    this.setupMouseEffects();
+  }
+
+  animateStats() {
+    const statNumbers = document.querySelectorAll('.stat-number');
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const target = parseFloat(entry.target.dataset.target);
+          const duration = 2000;
+          const start = 0;
+          const increment = target / (duration / 16);
+          let current = start;
+          
+          const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+              current = target;
+              clearInterval(timer);
+            }
+            
+            if (target % 1 === 0) {
+              entry.target.textContent = Math.floor(current);
+            } else {
+              entry.target.textContent = current.toFixed(1);
+            }
+          }, 16);
+          
+          observer.unobserve(entry.target);
+        }
+      });
+    });
+    
+    statNumbers.forEach(stat => observer.observe(stat));
+  }
+
+  setupParallax() {
+    const shapes = document.querySelectorAll('.shape');
+    
+    window.addEventListener('scroll', () => {
+      const scrollY = window.pageYOffset;
+      
+      shapes.forEach((shape, index) => {
+        const speed = (index + 1) * 0.5;
+        shape.style.transform = `translateY(${scrollY * speed}px)`;
+      });
+    });
+  }
+
+  setupScrollAnimations() {
+    const cards = document.querySelectorAll('.feature-card, .stat-card');
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '0';
+          entry.target.style.transform = 'translateY(50px)';
+          
+          setTimeout(() => {
+            entry.target.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+          }, 100);
+          
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    
+    cards.forEach(card => observer.observe(card));
+  }
+
+  setupMouseEffects() {
+    const featureCards = document.querySelectorAll('.feature-card');
+    
+    featureCards.forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const rotateX = (y - centerY) / 10;
+        const rotateY = (centerX - x) / 10;
+        
+        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+      });
+      
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+      });
+    });
+  }
+}
+
+// Navigation function
+function navigateTo(page) {
+  console.log(`🚀 Navigating to: ${page}`);
+  
+  // Add transition effect
+  document.body.style.opacity = '0';
+  document.body.style.transform = 'scale(0.98)';
+  
+  setTimeout(() => {
+    window.location.href = page;
+  }, 300);
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  new UltraPremiumPage();
+});
+
+// Initialize ultra premium automation
+if (window.ultraPremium) {
+  console.log('✨ Ultra Premium Automation already loaded');
+} else {
+  console.log('⚠️ Ultra Premium Automation not loaded');
+}
+</script>
+
+</body>
+</html>
