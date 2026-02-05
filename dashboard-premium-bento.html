@@ -583,7 +583,7 @@
   <!-- Premium Modal -->
   <div id="premiumModal" class="premium-modal">
     <div class="modal-backdrop" onclick="closeModal()"></div>
-    <div class="modal-content">
+    <div class="modal-content" id="modalContent">
       <div class="modal-grabber"></div>
       <div class="modal-header">
         <h2 class="modal-title" id="modalTitle">Line Details</h2>
@@ -600,6 +600,139 @@
       </div>
     </div>
   </div>
+
+  <!-- Success Celebration Styles -->
+  <style>
+    .success-celebration {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem;
+      text-align: center;
+    }
+    
+    .checkmark-circle {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+    
+    .checkmark-bg {
+      width: 6rem;
+      height: 6rem;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
+      animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    @keyframes scaleIn {
+      0% { transform: scale(0); }
+      100% { transform: scale(1); }
+    }
+    
+    .checkmark-svg {
+      width: 3rem;
+      height: 3rem;
+      stroke: white;
+      stroke-width: 3;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: drawCheckmark 0.5s ease-out 0.3s forwards;
+    }
+    
+    @keyframes drawCheckmark {
+      to { stroke-dashoffset: 0; }
+    }
+    
+    .success-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 0.5rem;
+      opacity: 0;
+      animation: fadeInUp 0.5s ease-out 0.5s forwards;
+    }
+    
+    .success-message {
+      font-size: 1rem;
+      color: #94a3b8;
+      margin-bottom: 2rem;
+      opacity: 0;
+      animation: fadeInUp 0.5s ease-out 0.6s forwards;
+    }
+    
+    .success-button {
+      padding: 0.75rem 2rem;
+      background: white;
+      color: black;
+      font-weight: 700;
+      border-radius: 0.75rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s;
+      opacity: 0;
+      animation: fadeInUp 0.5s ease-out 0.7s forwards;
+    }
+    
+    .success-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2);
+    }
+    
+    .success-button:active {
+      transform: scale(0.95);
+    }
+    
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+    }
+    
+    .modal-content.success-mode {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border-color: rgba(16, 185, 129, 0.3);
+      animation: successPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes successPulse {
+      0%, 100% { box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3); }
+      50% { box-shadow: 0 -4px 30px rgba(16, 185, 129, 0.2); }
+    }
+    
+    .verified-badge {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 2rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      to { opacity: 1; }
+      from { opacity: 0; }
+    }
+  </style>
 </div>
 
 <script>
@@ -612,6 +745,7 @@ const lineData = {
     lastCheck: '2 min ago',
     progress: 78,
     isActive: true,
+    isVerified: false,
     metrics: {
       temperature: '72°F',
       humidity: '45%',
@@ -632,6 +766,7 @@ const lineData = {
     lastCheck: '1 hour ago',
     progress: 100,
     isActive: false,
+    isVerified: true,
     metrics: {
       temperature: '68°F',
       humidity: '42%',
@@ -652,6 +787,7 @@ const lineData = {
     lastCheck: '3 hours ago',
     progress: 0,
     isActive: false,
+    isVerified: false,
     alert: 'Scheduled for 2:00 PM',
     metrics: {
       temperature: '70°F',
@@ -668,14 +804,30 @@ const lineData = {
   }
 };
 
+// Current modal state
+let currentLine = null;
+let isChecklistMode = true;
+
 // Modal Functions
 function openModal(lineName) {
   const modal = document.getElementById('premiumModal');
   const modalTitle = document.getElementById('modalTitle');
   const modalBody = document.getElementById('modalBody');
-  const line = lineData[lineName];
+  const modalContent = document.getElementById('modalContent');
   
-  modalTitle.textContent = line.name;
+  currentLine = lineData[lineName];
+  isChecklistMode = true;
+  
+  modalTitle.textContent = currentLine.name;
+  modalContent.classList.remove('success-mode');
+  
+  showChecklistContent();
+  
+  modal.classList.add('active');
+}
+
+function showChecklistContent() {
+  const modalBody = document.getElementById('modalBody');
   
   modalBody.innerHTML = `
     <div style="space-y: 1.5rem;">
@@ -685,15 +837,15 @@ function openModal(lineName) {
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
           <div>
             <p style="font-size: 0.875rem; color: #94a3b8;">Temperature</p>
-            <p style="font-weight: 600; color: white;">${line.metrics.temperature}</p>
+            <p style="font-weight: 600; color: white;">${currentLine.metrics.temperature}</p>
           </div>
           <div>
             <p style="font-size: 0.875rem; color: #94a3b8;">Humidity</p>
-            <p style="font-weight: 600; color: white;">${line.metrics.humidity}</p>
+            <p style="font-weight: 600; color: white;">${currentLine.metrics.humidity}</p>
           </div>
           <div>
             <p style="font-size: 0.875rem; color: #94a3b8;">Pressure</p>
-            <p style="font-weight: 600; color: white;">${line.metrics.pressure}</p>
+            <p style="font-weight: 600; color: white;">${currentLine.metrics.pressure}</p>
           </div>
         </div>
       </div>
@@ -702,7 +854,7 @@ function openModal(lineName) {
       <div style="background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; padding: 1rem;">
         <h3 style="font-size: 1.125rem; font-weight: 600; color: white; margin-bottom: 1rem;">Sanitation Checklist</h3>
         <div style="space-y: 0.75rem;">
-          ${line.checklist.map((item, index) => `
+          ${currentLine.checklist.map((item, index) => `
             <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: rgba(255, 255, 255, 0.02); border-radius: 0.75rem;">
               <div style="width: 1.5rem; height: 1.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; ${item.completed ? 'background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.3);' : 'background: rgba(148, 163, 184, 0.2); border: 1px solid rgba(148, 163, 184, 0.3);'}">
                 ${item.completed ? 
@@ -718,8 +870,8 @@ function openModal(lineName) {
 
       <!-- Action Buttons -->
       <div style="space-y: 0.75rem;">
-        <button style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #22d3ee, #3b82f6); color: black; font-weight: 700; border-radius: 1rem; border: none; cursor: pointer;">
-          ${line.isActive ? 'Continue Sanitation' : 'Start Sanitation'}
+        <button onclick="completeSanitation()" style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #22d3ee, #3b82f6); color: black; font-weight: 700; border-radius: 1rem; border: none; cursor: pointer;">
+          ${currentLine.isActive ? 'Continue Sanitation' : 'Start Sanitation'}
         </button>
         <button style="width: 100%; padding: 1rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; font-weight: 600; border-radius: 1rem; cursor: pointer;">
           View Detailed Report
@@ -727,13 +879,187 @@ function openModal(lineName) {
       </div>
     </div>
   `;
+}
+
+function showSuccessCelebration() {
+  const modalBody = document.getElementById('modalBody');
+  const modalContent = document.getElementById('modalContent');
+  const modalTitle = document.getElementById('modalTitle');
   
-  modal.classList.add('active');
+  // Add success mode class for background pulse
+  modalContent.classList.add('success-mode');
+  modalTitle.textContent = 'Success!';
+  
+  modalBody.innerHTML = `
+    <div class="success-celebration">
+      <!-- Animated Checkmark Circle -->
+      <div class="checkmark-circle">
+        <div class="checkmark-bg">
+          <svg class="checkmark-svg" viewBox="0 0 24 24">
+            <path d="M4.5 12.75l6 6 9-13.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <h2 class="success-title">Line Sanitized!</h2>
+      
+      <p class="success-message">
+        ${currentLine.name} Line is now verified and safe for production.
+      </p>
+
+      <button class="success-button" onclick="returnToDashboard()">
+        Return to Dashboard
+      </button>
+    </div>
+  `;
+  
+  // Trigger haptic feedback if available
+  if (navigator.vibrate) {
+    navigator.vibrate([200, 100, 200]);
+  }
+  
+  // Play success sound (create a simple beep)
+  playSuccessSound();
+  
+  // Create confetti effect
+  createConfetti();
+}
+
+function createConfetti() {
+  // Simple confetti effect using CSS animations
+  const colors = ['#22d3ee', '#34d399', '#ffffff'];
+  const confettiCount = 50;
+  
+  for (let i = 0; i < confettiCount; i++) {
+    const confetti = document.createElement('div');
+    confetti.style.cssText = `
+      position: fixed;
+      width: 8px;
+      height: 8px;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      left: ${Math.random() * 100}%;
+      top: -10px;
+      border-radius: 50%;
+      z-index: 9999;
+      pointer-events: none;
+      animation: confettiFall ${2 + Math.random() * 2}s linear forwards;
+    `;
+    
+    document.body.appendChild(confetti);
+    
+    setTimeout(() => confetti.remove(), 4000);
+  }
+  
+  // Add confetti animation
+  if (!document.getElementById('confettiStyles')) {
+    const style = document.createElement('style');
+    style.id = 'confettiStyles';
+    style.textContent = `
+      @keyframes confettiFall {
+        to {
+          transform: translateY(100vh) rotate(360deg);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+function playSuccessSound() {
+  // Create a simple success sound using Web Audio API
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+  
+  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.1);
+}
+
+function completeSanitation() {
+  // Switch to success mode
+  isChecklistMode = false;
+  
+  // Update line data to show verified
+  currentLine.isVerified = true;
+  currentLine.progress = 100;
+  currentLine.status = 'Verified';
+  currentLine.checklist.forEach(item => item.completed = true);
+  
+  // Show success celebration
+  showSuccessCelebration();
+}
+
+function returnToDashboard() {
+  // Update the line card to show verified status
+  updateLineCard(currentLine.name);
+  
+  // Close modal
+  closeModal();
+}
+
+function updateLineCard(lineName) {
+  // Find and update the line card to show verified badge
+  const cards = document.querySelectorAll('.bento-card');
+  cards.forEach(card => {
+    if (card.textContent.includes(lineName)) {
+      // Add verified badge
+      const existingBadge = card.querySelector('.verified-badge');
+      if (!existingBadge) {
+        const badge = document.createElement('div');
+        badge.className = 'verified-badge';
+        badge.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+          VERIFIED
+        `;
+        card.style.position = 'relative';
+        card.appendChild(badge);
+      }
+      
+      // Update status indicator
+      const statusElement = card.querySelector('.line-status');
+      if (statusElement) {
+        statusElement.className = 'line-status status-active';
+        statusElement.textContent = 'VERIFIED';
+      }
+      
+      // Update progress
+      const progressFill = card.querySelector('.progress-fill');
+      if (progressFill) {
+        progressFill.style.width = '100%';
+        progressFill.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+      }
+      
+      // Remove scanning beam for verified lines
+      const scanningBeam = card.querySelector('.scanning-beam');
+      if (scanningBeam) {
+        scanningBeam.remove();
+      }
+    }
+  });
 }
 
 function closeModal() {
   const modal = document.getElementById('premiumModal');
+  const modalContent = document.getElementById('modalContent');
+  
   modal.classList.remove('active');
+  modalContent.classList.remove('success-mode');
+  
+  // Reset state
+  currentLine = null;
+  isChecklistMode = true;
 }
 
 // Initialize Premium Mobile Experience
@@ -742,7 +1068,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.premiumMobile.initialize();
   }
   
-  console.log('🎨 Premium Bento Grid Dashboard loaded');
+  console.log('🎨 Premium Bento Grid Dashboard with Success Celebration loaded');
 });
 </script>
 
