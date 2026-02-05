@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handover Management - MACY Production</title>
+    
+    <!-- External Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Local Styles -->
+    <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+    
+    <style>
+        .handover-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .task-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #e5e7eb;
+        }
+        
+        .task-card.pending {
+            border-left-color: #f59e0b;
+        }
+        
+        .task-card.completed {
+            border-left-color: #10b981;
+        }
+        
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .task-photo {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        .task-photo:hover {
+            transform: scale(1.05);
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        
+        .status-completed {
+            background: #f0fdf4;
+            color: #059669;
+        }
+        
+        .action-button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 4px;
+        }
+        
+        .btn-complete {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-complete:hover {
+            background: #059669;
+        }
+        
+        .btn-view {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-view:hover {
+            background: #2563eb;
+        }
+        
+        .btn-add {
+            background: #8b5cf6;
+            color: white;
+        }
+        
+        .btn-add:hover {
+            background: #7c3aed;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .section-header {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .progress-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .progress-bar {
+            background: #e5e7eb;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #10b981, #059669);
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .task-type-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 12px;
+        }
+        
+        .type-maintenance { background: #fef3c7; color: #d97706; }
+        .type-sanitation { background: #dbeafe; color: #2563eb; }
+        .type-production { background: #fce7f3; color: #ec4899; }
+        .type-contractor { background: #f3e8ff; color: #9333ea; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="handover-container">
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Handover Management</h1>
+                    <p class="text-gray-600">MACY Production Line - Task Handover System</p>
+                </div>
+                <button class="action-button btn-view" onclick="goBack()">
+                    ← Back to Workflow
+                </button>
+            </div>
+        </header>
+
+        <!-- Progress Overview -->
+        <div class="progress-section">
+            <h3 class="text-lg font-semibold mb-4">Handover Progress</h3>
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-600">Completion Status</span>
+                <span class="text-sm font-semibold" id="progressText">0% Complete</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-sm text-gray-500 mt-2">
+                <span id="pendingCount">0 Pending</span>
+                <span id="completedCount">0 Completed</span>
+            </div>
+        </div>
+
+        <!-- Post-Cleaning Handovers -->
+        <div class="section-header">
+            <h2 class="text-xl font-bold">📋 Post-Cleaning Handovers</h2>
+            <p class="opacity-90">Tasks identified during post-cleaning that require handover</p>
+        </div>
+        
+        <div id="postCleanHandovers">
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <p>No post-cleaning handovers found</p>
+            </div>
+        </div>
+
+        <!-- Findings & Observations -->
+        <div class="section-header">
+            <h2 class="text-xl font-bold">🔍 Findings & Observations</h2>
+            <p class="opacity-90">Additional observations and findings from area verification</p>
+        </div>
+        
+        <div id="findingsSection">
+            <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <p>No additional findings</p>
+            </div>
+        </div>
+
+        <!-- Add New Finding -->
+        <div class="mt-6">
+            <button class="action-button btn-add" onclick="openAddFinding()">
+                ➕ Add New Finding
+            </button>
+        </div>
+
+        <!-- Complete Handover Section -->
+        <div class="mt-8" id="completeSection" style="display: none;">
+            <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-green-800 mb-4">✅ All Tasks Completed!</h3>
+                <p class="text-green-700 mb-4">All handover tasks have been completed. You can now complete the handover process.</p>
+                <button class="action-button btn-complete" onclick="completeHandover()" style="width: 100%;">
+                    🎉 Complete Handover Process
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete Task Modal -->
+    <div class="modal-overlay" id="completeTaskModal">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">✅ Complete Handover Task</h3>
+            <form id="completeTaskForm">
+                <div class="form-group">
+                    <label class="form-label">Task</label>
+                    <div id="taskDescription" class="p-3 bg-gray-100 rounded-lg"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Completion Photo *</label>
+                    <button type="button" class="action-button btn-view" onclick="captureCompletionPhoto()">
+                        📷 Capture Completion Photo
+                    </button>
+                    <div id="completionPhoto"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Completion Notes</label>
+                    <textarea class="form-textarea" id="completionNotes" 
+                              placeholder="Describe how the task was completed..."></textarea>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit" class="action-button btn-complete" style="flex: 1;">
+                        ✅ Mark as Completed
+                    </button>
+                    <button type="button" class="action-button" onclick="closeModal('completeTaskModal')" style="flex: 1;">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Finding Modal -->
+    <div class="modal-overlay" id="addFindingModal">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">🔍 Add New Finding</h3>
+            <form id="addFindingForm">
+                <div class="form-group">
+                    <label class="form-label">Finding Description *</label>
+                    <textarea class="form-textarea" id="findingDescription" 
+                              placeholder="Describe the finding or observation..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Task Type *</label>
+                    <select class="form-select" id="findingType" required>
+                        <option value="">Select type...</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="sanitation">Sanitation</option>
+                        <option value="production">Production</option>
+                        <option value="contractor">Contractor</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Photo *</label>
+                    <button type="button" class="action-button btn-view" onclick="captureFindingPhoto()">
+                        📷 Capture Finding Photo
+                    </button>
+                    <div id="findingPhoto"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Priority</label>
+                    <select class="form-select" id="findingPriority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit" class="action-button btn-add" style="flex: 1;">
+                        ➕ Add Finding
+                    </button>
+                    <button type="button" class="action-button" onclick="closeModal('addFindingModal')" style="flex: 1;">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Photo View Modal -->
+    <div class="modal-overlay" id="photoModal">
+        <div class="modal-content">
+            <div class="text-center">
+                <img id="modalPhoto" src="" alt="Task Photo" style="max-width: 100%; border-radius: 12px;">
+                <div class="mt-4">
+                    <button type="button" class="action-button" onclick="closeModal('photoModal')">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Scripts -->
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/face-detection.js"></script>
+    <script src="js/camera-integration.js"></script>
+
+    <script>
+        class HandoverManagementSystem {
+            constructor() {
+                this.supabase = window.supabaseClient;
+                this.currentUser = null;
+                this.handoverTasks = [];
+                this.findings = [];
+                this.completionPhoto = null;
+                this.findingPhoto = null;
+                this.currentTaskId = null;
+            }
+
+            async initialize() {
+                try {
+                    // Load current user
+                    const userData = localStorage.getItem('currentUser');
+                    if (userData) {
+                        this.currentUser = JSON.parse(userData);
+                    }
+
+                    // Setup form handlers
+                    this.setupFormHandlers();
+                    
+                    // Load handover tasks and findings
+                    await this.loadHandoverData();
+                    
+                    // Update progress
+                    this.updateProgress();
+                    
+                } catch (error) {
+                    console.error('Failed to initialize handover system:', error);
+                }
+            }
+
+            setupFormHandlers() {
+                // Complete task form
+                document.getElementById('completeTaskForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitTaskCompletion();
+                });
+
+                // Add finding form
+                document.getElementById('addFindingForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitNewFinding();
+                });
+
+                // Close modals on overlay click
+                document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                    overlay.addEventListener('click', (e) => {
+                        if (e.target === overlay) {
+                            this.closeModal(overlay.id);
+                        }
+                    });
+                });
+            }
+
+            async loadHandoverData() {
+                try {
+                    const lineId = await this.getLineId();
+                    
+                    // Load handover tasks
+                    const { data: tasks, error: taskError } = await this.supabase
+                        .from('handover_tasks')
+                        .select('*')
+                        .eq('line_id', lineId)
+                        .order('created_at', { ascending: false });
+
+                    if (taskError) throw taskError;
+                    this.handoverTasks = tasks || [];
+
+                    // Load findings (reports with type 'Finding')
+                    const { data: findings, error: findingError } = await this.supabase
+                        .from('reports')
+                        .select('*')
+                        .eq('line_id', lineId)
+                        .eq('type', 'Finding')
+                        .order('created_at', { ascending: false });
+
+                    if (findingError) throw findingError;
+                    this.findings = findings || [];
+
+                    // Display data
+                    this.displayHandoverTasks();
+                    this.displayFindings();
+                    
+                } catch (error) {
+                    console.error('Failed to load handover data:', error);
+                }
+            }
+
+            async getLineId() {
+                const { data, error } = await this.supabase
+                    .from('lines')
+                    .select('id')
+                    .eq('name', 'MACY Production Line')
+                    .single();
+                
+                return data?.id;
+            }
+
+            displayHandoverTasks() {
+                const container = document.getElementById('postCleanHandovers');
+                
+                if (!this.handoverTasks || this.handoverTasks.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📋</div>
+                            <p>No post-cleaning handovers found</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const tasksHtml = this.handoverTasks.map(task => `
+                    <div class="task-card ${task.status === 'Completed' ? 'completed' : 'pending'}">
+                        <div class="flex items-start gap-4">
+                            <div class="task-type-icon type-${task.task_type.toLowerCase()}">
+                                ${this.getTaskTypeIcon(task.task_type)}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="font-semibold text-lg">${task.task_description}</h3>
+                                    <span class="status-badge status-${task.status.toLowerCase()}">${task.status}</span>
+                                </div>
+                                <div class="flex items-center gap-4 text-sm text-gray-500 mb-2">
+                                    <span>Type: ${task.task_type}</span>
+                                    <span>Created by: ${task.created_by}</span>
+                                    <span>${new Date(task.created_at).toLocaleString()}</span>
+                                </div>
+                                ${task.completion_photo_url ? `
+                                    <div class="mb-2">
+                                        <img src="${task.completion_photo_url}" alt="Completion photo" 
+                                             class="task-photo" onclick="handoverSystem.viewPhoto('${task.completion_photo_url}')">
+                                    </div>
+                                ` : ''}
+                                ${task.completion_notes ? `
+                                    <div class="text-sm text-gray-600 mb-2">
+                                        <strong>Completion notes:</strong> ${task.completion_notes}
+                                    </div>
+                                ` : ''}
+                                <div class="flex gap-2">
+                                    ${task.status === 'Pending' ? `
+                                        <button class="action-button btn-complete" onclick="handoverSystem.completeTask('${task.id}', '${task.task_description}')">
+                                            ✅ Complete Task
+                                        </button>
+                                    ` : ''}
+                                    <button class="action-button btn-view" onclick="handoverSystem.viewTaskDetails('${task.id}')">
+                                        👁️ View Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                container.innerHTML = tasksHtml;
+            }
+
+            displayFindings() {
+                const container = document.getElementById('findingsSection');
+                
+                if (!this.findings || this.findings.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔍</div>
+                            <p>No additional findings</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const findingsHtml = this.findings.map(finding => `
+                    <div class="task-card ${finding.status === 'Closed' ? 'completed' : 'pending'}">
+                        <div class="flex items-start gap-4">
+                            <div class="task-type-icon type-${finding.severity.toLowerCase()}">
+                                🔍
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="font-semibold text-lg">${finding.description}</h3>
+                                    <span class="status-badge status-${finding.status.toLowerCase()}">${finding.status}</span>
+                                </div>
+                                <div class="flex items-center gap-4 text-sm text-gray-500 mb-2">
+                                    <span>Severity: ${finding.severity}</span>
+                                    <span>Reported by: ${finding.reported_by}</span>
+                                    <span>${new Date(finding.created_at).toLocaleString()}</span>
+                                </div>
+                                ${finding.photo_urls && finding.photo_urls.length > 0 ? `
+                                    <div class="mb-2">
+                                        <img src="${finding.photo_urls[0]}" alt="Finding photo" 
+                                             class="task-photo" onclick="handoverSystem.viewPhoto('${finding.photo_urls[0]}')">
+                                    </div>
+                                ` : ''}
+                                <div class="flex gap-2">
+                                    ${finding.status === 'Open' ? `
+                                        <button class="action-button btn-complete" onclick="handoverSystem.closeFinding('${finding.id}')">
+                                            ✅ Close Finding
+                                        </button>
+                                    ` : ''}
+                                    <button class="action-button btn-view" onclick="handoverSystem.viewFindingDetails('${finding.id}')">
+                                        👁️ View Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                container.innerHTML = findingsHtml;
+            }
+
+            getTaskTypeIcon(type) {
+                const icons = {
+                    'Maintenance': '🔧',
+                    'Sanitation': '🧹',
+                    'Production': '⚙️',
+                    'Contractor': '👷'
+                };
+                return icons[type] || '📋';
+            }
+
+            updateProgress() {
+                const totalTasks = this.handoverTasks.length + this.findings.length;
+                const completedTasks = this.handoverTasks.filter(t => t.status === 'Completed').length + 
+                                    this.findings.filter(f => f.status === 'Closed').length;
+                
+                const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+                
+                document.getElementById('progressFill').style.width = `${percentage}%`;
+                document.getElementById('progressText').textContent = `${percentage}% Complete`;
+                document.getElementById('pendingCount').textContent = `${totalTasks - completedTasks} Pending`;
+                document.getElementById('completedCount').textContent = `${completedTasks} Completed`;
+                
+                // Show complete section if all tasks are done
+                const completeSection = document.getElementById('completeSection');
+                if (percentage === 100 && totalTasks > 0) {
+                    completeSection.style.display = 'block';
+                } else {
+                    completeSection.style.display = 'none';
+                }
+            }
+
+            completeTask(taskId, taskDescription) {
+                this.currentTaskId = taskId;
+                document.getElementById('taskDescription').textContent = taskDescription;
+                this.openModal('completeTaskModal');
+            }
+
+            async captureCompletionPhoto() {
+                try {
+                    const photos = await window.cameraIntegration.showCaptureInterface(
+                        'Capture Completion Photo',
+                        false
+                    );
+
+                    if (photos && photos.length > 0) {
+                        this.completionPhoto = photos[0];
+                        this.displayCompletionPhoto();
+                    }
+                } catch (error) {
+                    console.error('Failed to capture completion photo:', error);
+                    alert('Failed to capture photo. Please try again.');
+                }
+            }
+
+            displayCompletionPhoto() {
+                const container = document.getElementById('completionPhoto');
+                container.innerHTML = `
+                    <div class="photo-item">
+                        <img src="${this.completionPhoto.dataUrl}" alt="Completion photo">
+                        <div class="photo-timestamp">${new Date(this.completionPhoto.timestamp).toLocaleString()}</div>
+                        <button class="remove-photo" onclick="handoverSystem.removeCompletionPhoto()">&times;</button>
+                    </div>
+                `;
+            }
+
+            removeCompletionPhoto() {
+                this.completionPhoto = null;
+                document.getElementById('completionPhoto').innerHTML = '';
+            }
+
+            async submitTaskCompletion() {
+                try {
+                    if (!this.completionPhoto) {
+                        alert('Please capture a completion photo');
+                        return;
+                    }
+
+                    const notes = document.getElementById('completionNotes').value;
+
+                    // Upload completion photo
+                    const uploadResult = await window.cameraIntegration.uploadPhoto(
+                        this.completionPhoto.blob,
+                        `completion-${Date.now()}.jpg`
+                    );
+
+                    // Update task
+                    const { error } = await this.supabase
+                        .from('handover_tasks')
+                        .update({
+                            status: 'Completed',
+                            completed_by: this.currentUser?.name || 'Unknown',
+                            completion_photo_url: uploadResult.url,
+                            completion_notes: notes,
+                            completed_at: new Date().toISOString()
+                        })
+                        .eq('id', this.currentTaskId);
+
+                    if (error) throw error;
+
+                    this.closeModal('completeTaskModal');
+                    await this.loadHandoverData();
+                    this.updateProgress();
+                    alert('Task completed successfully!');
+                    
+                } catch (error) {
+                    console.error('Failed to complete task:', error);
+                    alert('Failed to complete task. Please try again.');
+                }
+            }
+
+            openAddFinding() {
+                this.openModal('addFindingModal');
+            }
+
+            async captureFindingPhoto() {
+                try {
+                    const photos = await window.cameraIntegration.showCaptureInterface(
+                        'Capture Finding Photo',
+                        false
+                    );
+
+                    if (photos && photos.length > 0) {
+                        this.findingPhoto = photos[0];
+                        this.displayFindingPhoto();
+                    }
+                } catch (error) {
+                    console.error('Failed to capture finding photo:', error);
+                    alert('Failed to capture photo. Please try again.');
+                }
+            }
+
+            displayFindingPhoto() {
+                const container = document.getElementById('findingPhoto');
+                container.innerHTML = `
+                    <div class="photo-item">
+                        <img src="${this.findingPhoto.dataUrl}" alt="Finding photo">
+                        <div class="photo-timestamp">${new Date(this.findingPhoto.timestamp).toLocaleString()}</div>
+                        <button class="remove-photo" onclick="handoverSystem.removeFindingPhoto()">&times;</button>
+                    </div>
+                `;
+            }
+
+            removeFindingPhoto() {
+                this.findingPhoto = null;
+                document.getElementById('findingPhoto').innerHTML = '';
+            }
+
+            async submitNewFinding() {
+                try {
+                    const description = document.getElementById('findingDescription').value.trim();
+                    const type = document.getElementById('findingType').value;
+                    const priority = document.getElementById('findingPriority').value;
+
+                    if (!description || !type || !this.findingPhoto) {
+                        alert('Please fill in all required fields and capture a photo');
+                        return;
+                    }
+
+                    // Upload finding photo
+                    const uploadResult = await window.cameraIntegration.uploadPhoto(
+                        this.findingPhoto.blob,
+                        `finding-${Date.now()}.jpg`
+                    );
+
+                    // Create finding report
+                    const { error } = await this.supabase
+                        .from('reports')
+                        .insert({
+                            type: 'Finding',
+                            description: description,
+                            severity: priority,
+                            photo_urls: [uploadResult.url],
+                            reported_by: this.currentUser?.name || 'Unknown',
+                            line_id: await this.getLineId()
+                        });
+
+                    if (error) throw error;
+
+                    // Reset form
+                    document.getElementById('addFindingForm').reset();
+                    this.removeFindingPhoto();
+                    
+                    this.closeModal('addFindingModal');
+                    await this.loadHandoverData();
+                    this.updateProgress();
+                    alert('Finding added successfully!');
+                    
+                } catch (error) {
+                    console.error('Failed to add finding:', error);
+                    alert('Failed to add finding. Please try again.');
+                }
+            }
+
+            async completeHandover() {
+                try {
+                    // Update line status to indicate handover completion
+                    const { error } = await this.supabase
+                        .from('lines')
+                        .update({
+                            status: 'verification',
+                            locked_by: null,
+                            lock_timestamp: null
+                        })
+                        .eq('name', 'MACY Production Line');
+
+                    if (error) throw error;
+
+                    alert('Handover process completed successfully!');
+                    window.location.href = 'macy-production-enhanced.html';
+                    
+                } catch (error) {
+                    console.error('Failed to complete handover:', error);
+                    alert('Failed to complete handover. Please try again.');
+                }
+            }
+
+            viewPhoto(photoUrl) {
+                document.getElementById('modalPhoto').src = photoUrl;
+                this.openModal('photoModal');
+            }
+
+            viewTaskDetails(taskId) {
+                // Implementation for detailed task view
+                alert('Task details view coming soon!');
+            }
+
+            viewFindingDetails(findingId) {
+                // Implementation for detailed finding view
+                alert('Finding details view coming soon!');
+            }
+
+            closeFinding(findingId) {
+                // Similar to complete task but for findings
+                alert('Close finding feature coming soon!');
+            }
+
+            openModal(modalId) {
+                document.getElementById(modalId).classList.add('active');
+            }
+
+            closeModal(modalId) {
+                document.getElementById(modalId).classList.remove('active');
+            }
+        }
+
+        // Global instance
+        let handoverSystem;
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            handoverSystem = new HandoverManagementSystem();
+            handoverSystem.initialize();
+        });
+
+        // Global functions
+        function captureCompletionPhoto() {
+            handoverSystem.captureCompletionPhoto();
+        }
+
+        function captureFindingPhoto() {
+            handoverSystem.captureFindingPhoto();
+        }
+
+        function openAddFinding() {
+            handoverSystem.openAddFinding();
+        }
+
+        function completeHandover() {
+            handoverSystem.completeHandover();
+        }
+
+        function closeModal(modalId) {
+            handoverSystem.closeModal(modalId);
+        }
+
+        function goBack() {
+            window.location.href = 'macy-production-enhanced.html';
+        }
+    </script>
+</body>
+</html>

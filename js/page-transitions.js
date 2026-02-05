@@ -1,13 +1,14 @@
 // ======================================================
-   SANIXPERT PAGE TRANSITION FIXES
-   Prevents blank areas, blinking, and ensures smooth scrolling
-   ======================================================
+// SANIXPERT PAGE TRANSITION FIXES
+// Prevents blank areas, blinking, and ensures smooth scrolling
+// ======================================================
 
 class SanixpertPageTransitions {
   constructor() {
     this.isInitialized = false;
     this.scrollPosition = 0;
     this.transitionTimeout = null;
+    this.dateTimeUpdateInterval = null;
   }
 
   // Initialize page transition fixes
@@ -87,8 +88,13 @@ class SanixpertPageTransitions {
     // Update all date/time inputs immediately
     this.updateAllDateTimes();
     
+    // Clear existing interval if any
+    if (this.dateTimeUpdateInterval) {
+      clearInterval(this.dateTimeUpdateInterval);
+    }
+    
     // Set up continuous updates
-    setInterval(() => {
+    this.dateTimeUpdateInterval = setInterval(() => {
       this.updateAllDateTimes();
     }, 1000);
     
@@ -98,6 +104,21 @@ class SanixpertPageTransitions {
         this.updateAllDateTimes();
       }
     });
+  }
+
+  // Cleanup method to prevent memory leaks
+  cleanup() {
+    if (this.transitionTimeout) {
+      clearTimeout(this.transitionTimeout);
+      this.transitionTimeout = null;
+    }
+    
+    if (this.dateTimeUpdateInterval) {
+      clearInterval(this.dateTimeUpdateInterval);
+      this.dateTimeUpdateInterval = null;
+    }
+    
+    this.isInitialized = false;
   }
 
   // Update all date/time inputs
@@ -189,12 +210,17 @@ class SanixpertPageTransitions {
       this.addLoadingState(element);
     });
     
-    // Prevent content flash
-    document.body.style.opacity = '0';
-    setTimeout(() => {
-      document.body.style.transition = 'opacity 0.3s ease';
-      document.body.style.opacity = '1';
-    }, 100);
+    // Prevent content flash without forcing a double-blink
+    if (!document.body.dataset.pageTransitionFadeApplied) {
+      document.body.dataset.pageTransitionFadeApplied = '1';
+      const currentOpacity = parseFloat(getComputedStyle(document.body).opacity || '1');
+      if (currentOpacity < 1) {
+        document.body.style.transition = 'opacity 0.3s ease';
+        requestAnimationFrame(() => {
+          document.body.style.opacity = '1';
+        });
+      }
+    }
   }
 
   // Add loading state to element

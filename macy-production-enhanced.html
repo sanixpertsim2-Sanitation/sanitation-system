@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MACY Production - Sanixpert</title>
+    
+    <!-- External Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Local Styles -->
+    <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+    
+    <style>
+        .workflow-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .status-card {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            color: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-ready { background: linear-gradient(135deg, #059669, #10b981); }
+        .status-pre-clean { background: linear-gradient(135deg, #d97706, #f59e0b); }
+        .status-post-clean { background: linear-gradient(135deg, #dc2626, #ef4444); }
+        .status-verification { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
+        .status-released { background: linear-gradient(135deg, #065f46, #10b981); }
+        
+        .action-button {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 8px 0;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .action-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+        
+        .action-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .action-button.danger {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+        }
+        
+        .action-button.success {
+            background: linear-gradient(135deg, #059669, #10b981);
+        }
+        
+        .action-button.warning {
+            background: linear-gradient(135deg, #d97706, #f59e0b);
+        }
+        
+        .user-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .progress-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        
+        .progress-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        
+        .progress-step::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            right: -50%;
+            height: 2px;
+            background: #e5e7eb;
+            z-index: 0;
+        }
+        
+        .progress-step:last-child::before {
+            display: none;
+        }
+        
+        .progress-step.completed::before {
+            background: #10b981;
+        }
+        
+        .progress-dot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .progress-step.completed .progress-dot {
+            background: #10b981;
+            color: white;
+        }
+        
+        .progress-step.active .progress-dot {
+            background: #3b82f6;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .unlock-section {
+            margin-top: 16px;
+            padding: 16px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .unlock-button {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .unlock-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="workflow-container">
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">MACY Production Line</h1>
+                    <p class="text-gray-600">Sanixpert Digital Sanitation Intelligence</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-500">Give & Go Facility</div>
+                    <div id="currentDateTime" class="text-lg font-semibold text-gray-900"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Progress Indicator -->
+        <div class="progress-indicator" id="progressIndicator">
+            <div class="progress-step" data-step="ready">
+                <div class="progress-dot">🏁</div>
+                <div class="text-sm font-medium">Ready</div>
+            </div>
+            <div class="progress-step" data-step="pre-clean">
+                <div class="progress-dot">🧹</div>
+                <div class="text-sm font-medium">Pre-Clean</div>
+            </div>
+            <div class="progress-step" data-step="post-clean">
+                <div class="progress-dot">✨</div>
+                <div class="text-sm font-medium">Post-Clean</div>
+            </div>
+            <div class="progress-step" data-step="verification">
+                <div class="progress-dot">✅</div>
+                <div class="text-sm font-medium">Verification</div>
+            </div>
+            <div class="progress-step" data-step="released">
+                <div class="progress-dot">🚀</div>
+                <div class="text-sm font-medium">Released</div>
+            </div>
+        </div>
+
+        <!-- Status Card -->
+        <div class="status-card status-ready" id="statusCard">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-2">Line Status: Ready</h2>
+                    <p class="opacity-90">Sanitation process not started. Ready to begin pre-cleaning.</p>
+                </div>
+                <div class="text-4xl">🏁</div>
+            </div>
+        </div>
+
+        <!-- Current User Info -->
+        <div class="user-info" id="currentUserInfo" style="display: none;">
+            <div class="user-avatar" id="userAvatar">?</div>
+            <div class="flex-1">
+                <div class="font-semibold text-gray-900" id="userName">Loading...</div>
+                <div class="text-sm text-gray-600" id="userRole">Loading...</div>
+            </div>
+            <div class="text-sm text-gray-500" id="sessionTime">Loading...</div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-4" id="actionButtons">
+            <button class="action-button" id="preCleanBtn" onclick="startPreClean()">
+                🧹 Begin Pre-Cleaning
+            </button>
+            <button class="action-button danger" id="damageBtn" onclick="openDamageReport()">
+                🚨 Report Damage
+            </button>
+        </div>
+
+        <!-- Unlock Section (Hidden by default) -->
+        <div class="unlock-section" id="unlockSection" style="display: none;">
+            <h3 class="text-lg font-semibold mb-4">Need to modify completed work?</h3>
+            <p class="text-sm text-gray-600 mb-4">Use supervisor unlock to access completed checklists.</p>
+            <button class="unlock-button" onclick="requestUnlock()">
+                🔓 Request Supervisor Unlock
+            </button>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="mt-8" id="recentActivity" style="display: none;">
+            <h3 class="text-lg font-semibold mb-4">Recent Activity</h3>
+            <div class="space-y-2" id="activityList"></div>
+        </div>
+    </div>
+
+    <!-- External Scripts -->
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/face-detection.js"></script>
+    <script src="js/camera-integration.js"></script>
+
+    <script>
+        class MacyProductionWorkflow {
+            constructor() {
+                this.supabase = window.supabaseClient;
+                this.currentUser = null;
+                this.lineStatus = 'ready';
+                this.sessionData = null;
+                this.pollingInterval = null;
+            }
+
+            async initialize() {
+                try {
+                    // Load current user
+                    const userData = localStorage.getItem('currentUser');
+                    if (userData) {
+                        this.currentUser = JSON.parse(userData);
+                        this.displayUserInfo();
+                    }
+
+                    // Get line status
+                    await this.updateLineStatus();
+                    
+                    // Start real-time updates
+                    this.startPolling();
+                    
+                    // Update date/time
+                    this.updateDateTime();
+                    setInterval(() => this.updateDateTime(), 1000);
+                    
+                } catch (error) {
+                    console.error('Failed to initialize workflow:', error);
+                }
+            }
+
+            displayUserInfo() {
+                if (!this.currentUser) return;
+                
+                const userInfoDiv = document.getElementById('currentUserInfo');
+                const userName = document.getElementById('userName');
+                const userRole = document.getElementById('userRole');
+                const userAvatar = document.getElementById('userAvatar');
+                
+                userInfoDiv.style.display = 'flex';
+                userName.textContent = this.currentUser.name;
+                userRole.textContent = this.currentUser.role;
+                userAvatar.textContent = this.currentUser.name.charAt(0).toUpperCase();
+            }
+
+            async updateLineStatus() {
+                try {
+                    const { data, error } = await this.supabase
+                        .from('lines')
+                        .select('*')
+                        .eq('name', 'MACY Production Line')
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    this.lineStatus = data.status || 'ready';
+                    this.sessionData = data.current_session_id;
+                    
+                    this.updateUI();
+                    
+                } catch (error) {
+                    console.error('Failed to update line status:', error);
+                }
+            }
+
+            updateUI() {
+                const statusCard = document.getElementById('statusCard');
+                const actionButtons = document.getElementById('actionButtons');
+                const unlockSection = document.getElementById('unlockSection');
+                const progressIndicator = document.getElementById('progressIndicator');
+                
+                // Update status card
+                this.updateStatusCard(statusCard);
+                
+                // Update progress indicator
+                this.updateProgressIndicator(progressIndicator);
+                
+                // Update action buttons based on status
+                actionButtons.innerHTML = this.getActionButtons();
+                
+                // Show/hide unlock section
+                unlockSection.style.display = this.shouldShowUnlock() ? 'block' : 'none';
+                
+                // Load recent activity
+                this.loadRecentActivity();
+            }
+
+            updateStatusCard(card) {
+                const statusConfig = {
+                    ready: {
+                        class: 'status-ready',
+                        title: 'Line Status: Ready',
+                        description: 'Sanitation process not started. Ready to begin pre-cleaning.',
+                        icon: '🏁'
+                    },
+                    'pre-clean': {
+                        class: 'status-pre-clean',
+                        title: 'Line Status: Pre-Cleaning in Progress',
+                        description: `Pre-cleaning is currently in progress by ${this.getLockedByUser()}`,
+                        icon: '🧹'
+                    },
+                    'post-clean': {
+                        class: 'status-post-clean',
+                        title: 'Line Status: Post-Cleaning Required',
+                        description: 'Pre-cleaning completed. Ready for post-cleaning verification.',
+                        icon: '✨'
+                    },
+                    verification: {
+                        class: 'status-verification',
+                        title: 'Line Status: Area Lead Verification',
+                        description: 'Post-cleaning completed. Waiting for area lead verification.',
+                        icon: '✅'
+                    },
+                    released: {
+                        class: 'status-released',
+                        title: 'Line Status: Released for Production',
+                        description: 'Sanitation process completed. Line is ready for production.',
+                        icon: '🚀'
+                    }
+                };
+
+                const config = statusConfig[this.lineStatus] || statusConfig.ready;
+                
+                card.className = `status-card ${config.class}`;
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold mb-2">${config.title}</h2>
+                            <p class="opacity-90">${config.description}</p>
+                        </div>
+                        <div class="text-4xl">${config.icon}</div>
+                    </div>
+                `;
+            }
+
+            updateProgressIndicator(indicator) {
+                const steps = indicator.querySelectorAll('.progress-step');
+                const stepOrder = ['ready', 'pre-clean', 'post-clean', 'verification', 'released'];
+                const currentIndex = stepOrder.indexOf(this.lineStatus);
+                
+                steps.forEach((step, index) => {
+                    const stepName = step.dataset.step;
+                    step.classList.remove('completed', 'active');
+                    
+                    if (index < currentIndex) {
+                        step.classList.add('completed');
+                    } else if (index === currentIndex) {
+                        step.classList.add('active');
+                    }
+                });
+            }
+
+            getActionButtons() {
+                const buttons = [];
+                
+                switch (this.lineStatus) {
+                    case 'ready':
+                        buttons.push(`
+                            <button class="action-button" onclick="workflow.startPreClean()">
+                                🧹 Begin Pre-Cleaning
+                            </button>
+                        `);
+                        break;
+                        
+                    case 'pre-clean':
+                        if (this.isLockedByCurrentUser()) {
+                            buttons.push(`
+                                <button class="action-button" onclick="workflow.continuePreClean()">
+                                    🧹 Continue Pre-Cleaning
+                                </button>
+                            `);
+                        } else {
+                            buttons.push(`
+                                <button class="action-button" disabled>
+                                    🔒 Pre-Cleaning in Progress (${this.getLockedByUser()})
+                                </button>
+                            `);
+                        }
+                        break;
+                        
+                    case 'post-clean':
+                        buttons.push(`
+                            <button class="action-button" onclick="workflow.startPostClean()">
+                                ✨ Begin Post-Cleaning
+                            </button>
+                        `);
+                        break;
+                        
+                    case 'verification':
+                        buttons.push(`
+                            <button class="action-button success" onclick="workflow.startVerification()">
+                                ✅ Area Lead Verification
+                            </button>
+                        `);
+                        break;
+                        
+                    case 'released':
+                        buttons.push(`
+                            <button class="action-button success" onclick="workflow.submitFindings()">
+                                📝 Submit Findings
+                            </button>
+                        `);
+                        break;
+                }
+                
+                // Damage report is always available
+                buttons.push(`
+                    <button class="action-button danger" onclick="workflow.openDamageReport()">
+                        🚨 Report Damage
+                    </button>
+                `);
+                
+                // Handover button for specific statuses
+                if (['post-clean', 'verification'].includes(this.lineStatus)) {
+                    buttons.push(`
+                        <button class="action-button warning" onclick="workflow.openHandover()">
+                            📋 Handover Tasks
+                        </button>
+                    `);
+                }
+                
+                return buttons.join('');
+            }
+
+            shouldShowUnlock() {
+                return ['pre-clean', 'post-clean'].includes(this.lineStatus);
+            }
+
+            getLockedByUser() {
+                // This would come from the database
+                return localStorage.getItem('lockedByUser') || 'Unknown User';
+            }
+
+            isLockedByCurrentUser() {
+                return this.getLockedByUser() === this.currentUser?.name;
+            }
+
+            async startPreClean() {
+                try {
+                    // Check if line is already locked
+                    if (this.lineStatus === 'pre-clean' && !this.isLockedByCurrentUser()) {
+                        alert('Pre-cleaning is already in progress by another user.');
+                        return;
+                    }
+
+                    // Lock the line
+                    await this.lockLine('pre-clean');
+                    
+                    // Navigate to pre-clean page
+                    window.location.href = 'macy-production-preclean-enhanced.html';
+                    
+                } catch (error) {
+                    console.error('Failed to start pre-clean:', error);
+                    alert('Failed to start pre-cleaning. Please try again.');
+                }
+            }
+
+            async lockLine(status) {
+                try {
+                    const { error } = await this.supabase
+                        .from('lines')
+                        .update({
+                            status: status,
+                            locked_by: this.currentUser.name,
+                            lock_timestamp: new Date().toISOString()
+                        })
+                        .eq('name', 'MACY Production Line');
+                    
+                    if (error) throw error;
+                    
+                    // Store lock info locally
+                    localStorage.setItem('lockedByUser', this.currentUser.name);
+                    
+                } catch (error) {
+                    console.error('Failed to lock line:', error);
+                    throw error;
+                }
+            }
+
+            async openDamageReport() {
+                window.location.href = 'damage-report-enhanced.html';
+            }
+
+            async openHandover() {
+                window.location.href = 'handover-enhanced.html';
+            }
+
+            async loadRecentActivity() {
+                try {
+                    const { data, error } = await this.supabase
+                        .from('system_logs')
+                        .select('*')
+                        .eq('line_name', 'MACY Production Line')
+                        .order('created_at', { ascending: false })
+                        .limit(5);
+                    
+                    if (error) throw error;
+                    
+                    this.displayRecentActivity(data);
+                    
+                } catch (error) {
+                    console.error('Failed to load recent activity:', error);
+                }
+            }
+
+            displayRecentActivity(activities) {
+                const activityDiv = document.getElementById('recentActivity');
+                const activityList = document.getElementById('activityList');
+                
+                if (!activities || activities.length === 0) {
+                    activityDiv.style.display = 'none';
+                    return;
+                }
+                
+                activityDiv.style.display = 'block';
+                
+                const activityHtml = activities.map(activity => `
+                    <div class="flex items-center justify-between p-3 bg-white rounded-lg border">
+                        <div class="flex items-center gap-3">
+                            <div class="text-2xl">${this.getActivityIcon(activity.event_type)}</div>
+                            <div>
+                                <div class="font-medium">${activity.description}</div>
+                                <div class="text-sm text-gray-500">${activity.user_name}</div>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            ${new Date(activity.created_at).toLocaleString()}
+                        </div>
+                    </div>
+                `).join('');
+                
+                activityList.innerHTML = activityHtml;
+            }
+
+            getActivityIcon(eventType) {
+                const icons = {
+                    'LINE_LOCK': '🔒',
+                    'LINE_UNLOCK': '🔓',
+                    'PRE_CLEAN_SUBMIT': '🧹',
+                    'POST_CLEAN_SUBMIT': '✨',
+                    'DAMAGE_REPORT': '🚨',
+                    'HANDOVER_CREATED': '📋'
+                };
+                return icons[eventType] || '📝';
+            }
+
+            updateDateTime() {
+                const dateTimeDiv = document.getElementById('currentDateTime');
+                if (dateTimeDiv) {
+                    dateTimeDiv.textContent = new Date().toLocaleString();
+                }
+            }
+
+            startPolling() {
+                // Update line status every 30 seconds
+                this.pollingInterval = setInterval(() => {
+                    this.updateLineStatus();
+                }, 30000);
+            }
+
+            stopPolling() {
+                if (this.pollingInterval) {
+                    clearInterval(this.pollingInterval);
+                    this.pollingInterval = null;
+                }
+            }
+        }
+
+        // Global workflow instance
+        let workflow;
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            workflow = new MacyProductionWorkflow();
+            await workflow.initialize();
+        });
+
+        // Global functions
+        function startPreClean() {
+            workflow.startPreClean();
+        }
+
+        function openDamageReport() {
+            workflow.openDamageReport();
+        }
+
+        function requestUnlock() {
+            // Implement supervisor unlock logic
+            alert('Supervisor unlock feature coming soon!');
+        }
+    </script>
+</body>
+</html>

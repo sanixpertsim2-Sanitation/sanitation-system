@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Damage Report - MACY Production</title>
+    
+    <!-- External Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Local Styles -->
+    <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+    
+    <style>
+        .damage-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .severity-high {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            border-left: 4px solid #991b1b;
+        }
+        
+        .severity-medium {
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            border-left: 4px solid #d97706;
+        }
+        
+        .severity-low {
+            background: linear-gradient(135deg, #3b82f6, #60a5fa);
+            border-left: 4px solid #2563eb;
+        }
+        
+        .damage-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .damage-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .damage-photo {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        .damage-photo:hover {
+            transform: scale(1.05);
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-open {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+        
+        .status-handover {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        
+        .status-closed {
+            background: #f0fdf4;
+            color: #059669;
+        }
+        
+        .action-button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 4px;
+        }
+        
+        .btn-handover {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-handover:hover {
+            background: #d97706;
+        }
+        
+        .btn-close {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-close:hover {
+            background: #059669;
+        }
+        
+        .btn-view {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-view:hover {
+            background: #2563eb;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .photo-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 1;
+        }
+        
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .photo-timestamp {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 10px;
+            padding: 4px;
+            text-align: center;
+        }
+        
+        .remove-photo {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .severity-selector {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        
+        .severity-option {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .severity-option.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        
+        .severity-high.selected {
+            border-color: #dc2626;
+            background: #fef2f2;
+        }
+        
+        .severity-medium.selected {
+            border-color: #f59e0b;
+            background: #fef3c7;
+        }
+        
+        .severity-low.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="damage-container">
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Damage Report</h1>
+                    <p class="text-gray-600">MACY Production Line - Find and Report Issues</p>
+                </div>
+                <button class="action-button btn-view" onclick="goBack()">
+                    ← Back to Workflow
+                </button>
+            </div>
+        </header>
+
+        <!-- New Damage Report Form -->
+        <div class="damage-card">
+            <h2 class="text-xl font-bold mb-4">🚨 Report New Damage</h2>
+            <form id="damageForm">
+                <div class="form-group">
+                    <label class="form-label">Damage Description *</label>
+                    <textarea class="form-textarea" id="damageDescription" 
+                              placeholder="Describe the damage in detail..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Severity Level *</label>
+                    <div class="severity-selector">
+                        <div class="severity-option severity-low" data-severity="low">
+                            <div style="font-size: 24px;">🟢</div>
+                            <div style="font-weight: 600;">Low</div>
+                            <div style="font-size: 12px; color: #6b7280;">Minor issue</div>
+                        </div>
+                        <div class="severity-option severity-medium selected" data-severity="medium">
+                            <div style="font-size: 24px;">🟡</div>
+                            <div style="font-weight: 600;">Medium</div>
+                            <div style="font-size: 12px; color: #6b7280;">Needs attention</div>
+                        </div>
+                        <div class="severity-option severity-high" data-severity="high">
+                            <div style="font-size: 24px;">🔴</div>
+                            <div style="font-weight: 600;">High</div>
+                            <div style="font-size: 12px; color: #6b7280;">Urgent - Email Alert</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Photos *</label>
+                    <button type="button" class="action-button btn-view" onclick="captureDamagePhotos()">
+                        📷 Capture Photos
+                    </button>
+                    <div id="damagePhotos" class="photo-grid"></div>
+                </div>
+
+                <button type="submit" class="action-button btn-handover" style="width: 100%; padding: 16px;">
+                    🚨 Submit Damage Report
+                </button>
+            </form>
+        </div>
+
+        <!-- Existing Damage Reports -->
+        <div class="mb-6">
+            <h2 class="text-xl font-bold mb-4">📋 Existing Damage Reports</h2>
+            <div id="damageList"></div>
+        </div>
+    </div>
+
+    <!-- Handover Modal -->
+    <div class="modal-overlay" id="handoverModal">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">📋 Handover Damage Report</h3>
+            <form id="handoverForm">
+                <div class="form-group">
+                    <label class="form-label">Handover Reason *</label>
+                    <select class="form-select" id="handoverReason" required>
+                        <option value="">Select reason...</option>
+                        <option value="night_shift">Handover to Night Shift</option>
+                        <option value="maintenance">Requires Maintenance</option>
+                        <option value="production">Production Issue</option>
+                        <option value="contractor">Contractor Required</option>
+                        <option value="time_needed">Not Resolved - Need Time</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Department *</label>
+                    <select class="form-select" id="handoverDepartment" required>
+                        <option value="">Select department...</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="production">Production</option>
+                        <option value="sanitation">Sanitation</option>
+                        <option value="contractor">Contractor</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Assigned To *</label>
+                    <input type="text" class="form-input" id="assignedTo" 
+                           placeholder="Name of person responsible" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Additional Notes</label>
+                    <textarea class="form-textarea" id="handoverNotes" 
+                              placeholder="Any additional information..."></textarea>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit" class="action-button btn-handover" style="flex: 1;">
+                        📋 Submit Handover
+                    </button>
+                    <button type="button" class="action-button" onclick="closeModal('handoverModal')" style="flex: 1;">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Close Modal -->
+    <div class="modal-overlay" id="closeModal">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">✅ Close Damage Report</h3>
+            <form id="closeForm">
+                <div class="form-group">
+                    <label class="form-label">Resolution Department *</label>
+                    <select class="form-select" id="closeDepartment" required>
+                        <option value="">Select department...</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="production">Production</option>
+                        <option value="sanitation">Sanitation</option>
+                        <option value="contractor">Contractor</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Resolved By *</label>
+                    <input type="text" class="form-input" id="resolvedBy" 
+                           placeholder="Name of person who resolved" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Resolution Photo *</label>
+                    <button type="button" class="action-button btn-view" onclick="captureResolutionPhoto()">
+                        📷 Capture Resolution Photo
+                    </button>
+                    <div id="resolutionPhoto"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Resolution Notes</label>
+                    <textarea class="form-textarea" id="resolutionNotes" 
+                              placeholder="Describe how the damage was resolved..."></textarea>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit" class="action-button btn-close" style="flex: 1;">
+                        ✅ Mark as Resolved
+                    </button>
+                    <button type="button" class="action-button" onclick="closeModal('closeModal')" style="flex: 1;">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Photo View Modal -->
+    <div class="modal-overlay" id="photoModal">
+        <div class="modal-content">
+            <div class="text-center">
+                <img id="modalPhoto" src="" alt="Damage Photo" style="max-width: 100%; border-radius: 12px;">
+                <div class="mt-4">
+                    <button type="button" class="action-button" onclick="closeModal('photoModal')">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Scripts -->
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/face-detection.js"></script>
+    <script src="js/camera-integration.js"></script>
+
+    <script>
+        class DamageReportSystem {
+            constructor() {
+                this.supabase = window.supabaseClient;
+                this.currentUser = null;
+                this.damagePhotos = [];
+                this.resolutionPhoto = null;
+                this.currentDamageId = null;
+                this.selectedSeverity = 'medium';
+            }
+
+            async initialize() {
+                try {
+                    // Load current user
+                    const userData = localStorage.getItem('currentUser');
+                    if (userData) {
+                        this.currentUser = JSON.parse(userData);
+                    }
+
+                    // Setup form handlers
+                    this.setupFormHandlers();
+                    
+                    // Load existing damage reports
+                    await this.loadDamageReports();
+                    
+                } catch (error) {
+                    console.error('Failed to initialize damage report system:', error);
+                }
+            }
+
+            setupFormHandlers() {
+                // Damage form submission
+                document.getElementById('damageForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitDamageReport();
+                });
+
+                // Handover form submission
+                document.getElementById('handoverForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitHandover();
+                });
+
+                // Close form submission
+                document.getElementById('closeForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitClose();
+                });
+
+                // Severity selection
+                document.querySelectorAll('.severity-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        document.querySelectorAll('.severity-option').forEach(opt => 
+                            opt.classList.remove('selected'));
+                        option.classList.add('selected');
+                        this.selectedSeverity = option.dataset.severity;
+                    });
+                });
+
+                // Close modals on overlay click
+                document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                    overlay.addEventListener('click', (e) => {
+                        if (e.target === overlay) {
+                            this.closeModal(overlay.id);
+                        }
+                    });
+                });
+            }
+
+            async captureDamagePhotos() {
+                try {
+                    const photos = await window.cameraIntegration.showCaptureInterface(
+                        'Capture Damage Photos',
+                        true
+                    );
+
+                    if (photos && photos.length > 0) {
+                        this.damagePhotos = photos;
+                        this.displayDamagePhotos();
+                    }
+                } catch (error) {
+                    console.error('Failed to capture photos:', error);
+                    alert('Failed to capture photos. Please try again.');
+                }
+            }
+
+            displayDamagePhotos() {
+                const container = document.getElementById('damagePhotos');
+                container.innerHTML = this.damagePhotos.map((photo, index) => `
+                    <div class="photo-item">
+                        <img src="${photo.dataUrl}" alt="Damage photo ${index + 1}">
+                        <div class="photo-timestamp">${new Date(photo.timestamp).toLocaleString()}</div>
+                        <button class="remove-photo" onclick="damageSystem.removePhoto(${index})">&times;</button>
+                    </div>
+                `).join('');
+            }
+
+            removePhoto(index) {
+                this.damagePhotos.splice(index, 1);
+                this.displayDamagePhotos();
+            }
+
+            async captureResolutionPhoto() {
+                try {
+                    const photos = await window.cameraIntegration.showCaptureInterface(
+                        'Capture Resolution Photo',
+                        false
+                    );
+
+                    if (photos && photos.length > 0) {
+                        this.resolutionPhoto = photos[0];
+                        this.displayResolutionPhoto();
+                    }
+                } catch (error) {
+                    console.error('Failed to capture resolution photo:', error);
+                    alert('Failed to capture photo. Please try again.');
+                }
+            }
+
+            displayResolutionPhoto() {
+                const container = document.getElementById('resolutionPhoto');
+                container.innerHTML = `
+                    <div class="photo-item">
+                        <img src="${this.resolutionPhoto.dataUrl}" alt="Resolution photo">
+                        <div class="photo-timestamp">${new Date(this.resolutionPhoto.timestamp).toLocaleString()}</div>
+                        <button class="remove-photo" onclick="damageSystem.removeResolutionPhoto()">&times;</button>
+                    </div>
+                `;
+            }
+
+            removeResolutionPhoto() {
+                this.resolutionPhoto = null;
+                document.getElementById('resolutionPhoto').innerHTML = '';
+            }
+
+            async submitDamageReport() {
+                try {
+                    const description = document.getElementById('damageDescription').value.trim();
+                    
+                    if (!description) {
+                        alert('Please provide damage description');
+                        return;
+                    }
+
+                    if (this.damagePhotos.length === 0) {
+                        alert('Please capture at least one photo');
+                        return;
+                    }
+
+                    // Upload photos and get URLs
+                    const photoUrls = [];
+                    for (const photo of this.damagePhotos) {
+                        const uploadResult = await window.cameraIntegration.uploadPhoto(
+                            photo.blob,
+                            `damage-${Date.now()}.jpg`
+                        );
+                        photoUrls.push(uploadResult.url);
+                    }
+
+                    // Create damage report
+                    const { data, error } = await this.supabase
+                        .from('reports')
+                        .insert({
+                            type: 'Damage',
+                            description: description,
+                            severity: this.selectedSeverity,
+                            photo_urls: photoUrls,
+                            reported_by: this.currentUser?.name || 'Unknown',
+                            line_id: await this.getLineId()
+                        });
+
+                    if (error) throw error;
+
+                    // Send email notification for high severity
+                    if (this.selectedSeverity === 'high') {
+                        await this.sendHighSeverityEmail(description, photoUrls);
+                    }
+
+                    // Reset form
+                    this.resetDamageForm();
+                    
+                    // Reload damage reports
+                    await this.loadDamageReports();
+                    
+                    alert('Damage report submitted successfully!');
+                    
+                } catch (error) {
+                    console.error('Failed to submit damage report:', error);
+                    alert('Failed to submit damage report. Please try again.');
+                }
+            }
+
+            async getLineId() {
+                const { data, error } = await this.supabase
+                    .from('lines')
+                    .select('id')
+                    .eq('name', 'MACY Production Line')
+                    .single();
+                
+                return data?.id;
+            }
+
+            async sendHighSeverityEmail(description, photoUrls) {
+                // This would be implemented via Supabase Edge Function
+                console.log('High severity email notification sent:', {
+                    description,
+                    photoUrls,
+                    severity: 'high'
+                });
+            }
+
+            resetDamageForm() {
+                document.getElementById('damageForm').reset();
+                this.damagePhotos = [];
+                this.displayDamagePhotos();
+                this.selectedSeverity = 'medium';
+                
+                // Reset severity selection
+                document.querySelectorAll('.severity-option').forEach(opt => 
+                    opt.classList.remove('selected'));
+                document.querySelector('.severity-option[data-severity="medium"]').classList.add('selected');
+            }
+
+            async loadDamageReports() {
+                try {
+                    const lineId = await this.getLineId();
+                    
+                    const { data, error } = await this.supabase
+                        .from('reports')
+                        .select('*')
+                        .eq('line_id', lineId)
+                        .eq('type', 'Damage')
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+
+                    this.displayDamageReports(data);
+                    
+                } catch (error) {
+                    console.error('Failed to load damage reports:', error);
+                }
+            }
+
+            displayDamageReports(reports) {
+                const container = document.getElementById('damageList');
+                
+                if (!reports || reports.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center">No damage reports found.</p>';
+                    return;
+                }
+
+                const reportsHtml = reports.map(report => `
+                    <div class="damage-card">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                ${report.photo_urls && report.photo_urls.length > 0 ? 
+                                    `<img src="${report.photo_urls[0]}" alt="Damage" class="damage-photo" 
+                                         onclick="damageSystem.viewPhoto('${report.photo_urls[0]}')">` :
+                                    '<div class="damage-photo bg-gray-200 flex items-center justify-center">📷</div>'
+                                }
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="font-semibold text-lg">Damage Report</h3>
+                                    <span class="status-badge status-${report.status}">${report.status}</span>
+                                </div>
+                                <p class="text-gray-700 mb-2">${report.description}</p>
+                                <div class="flex items-center gap-4 text-sm text-gray-500">
+                                    <span>Severity: <strong class="severity-${report.severity}">${report.severity.toUpperCase()}</strong></span>
+                                    <span>Reported by: ${report.reported_by}</span>
+                                    <span>${new Date(report.created_at).toLocaleString()}</span>
+                                </div>
+                                ${report.photo_urls && report.photo_urls.length > 1 ? 
+                                    `<div class="mt-2">
+                                        <span class="text-sm text-gray-500">${report.photo_urls.length} photos</span>
+                                    </div>` : ''
+                                }
+                                <div class="mt-4 flex gap-2">
+                                    ${report.status === 'Open' ? `
+                                        <button class="action-button btn-handover" onclick="damageSystem.openHandover('${report.id}')">
+                                            📋 Handover
+                                        </button>
+                                        <button class="action-button btn-close" onclick="damageSystem.openClose('${report.id}')">
+                                            ✅ Close
+                                        </button>
+                                    ` : ''}
+                                    <button class="action-button btn-view" onclick="damageSystem.viewDetails('${report.id}')">
+                                        👁️ View Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                container.innerHTML = reportsHtml;
+            }
+
+            openHandover(damageId) {
+                this.currentDamageId = damageId;
+                this.openModal('handoverModal');
+            }
+
+            openClose(damageId) {
+                this.currentDamageId = damageId;
+                this.openModal('closeModal');
+            }
+
+            async submitHandover() {
+                try {
+                    const reason = document.getElementById('handoverReason').value;
+                    const department = document.getElementById('handoverDepartment').value;
+                    const assignedTo = document.getElementById('assignedTo').value;
+                    const notes = document.getElementById('handoverNotes').value;
+
+                    const { error } = await this.supabase
+                        .from('reports')
+                        .update({
+                            status: 'Handover',
+                            assigned_to: assignedTo,
+                            handover_reason: reason,
+                            handover_department: department,
+                            handover_notes: notes,
+                            handover_at: new Date().toISOString()
+                        })
+                        .eq('id', this.currentDamageId);
+
+                    if (error) throw error;
+
+                    this.closeModal('handoverModal');
+                    await this.loadDamageReports();
+                    alert('Damage report handed over successfully!');
+                    
+                } catch (error) {
+                    console.error('Failed to submit handover:', error);
+                    alert('Failed to submit handover. Please try again.');
+                }
+            }
+
+            async submitClose() {
+                try {
+                    if (!this.resolutionPhoto) {
+                        alert('Please capture a resolution photo');
+                        return;
+                    }
+
+                    const department = document.getElementById('closeDepartment').value;
+                    const resolvedBy = document.getElementById('resolvedBy').value;
+                    const notes = document.getElementById('resolutionNotes').value;
+
+                    // Upload resolution photo
+                    const uploadResult = await window.cameraIntegration.uploadPhoto(
+                        this.resolutionPhoto.blob,
+                        `resolution-${Date.now()}.jpg`
+                    );
+
+                    const { error } = await this.supabase
+                        .from('reports')
+                        .update({
+                            status: 'Closed',
+                            resolved_by: resolvedBy,
+                            resolution_department: department,
+                            resolution_photo_url: uploadResult.url,
+                            resolution_notes: notes,
+                            resolved_at: new Date().toISOString()
+                        })
+                        .eq('id', this.currentDamageId);
+
+                    if (error) throw error;
+
+                    this.closeModal('closeModal');
+                    await this.loadDamageReports();
+                    alert('Damage report closed successfully!');
+                    
+                } catch (error) {
+                    console.error('Failed to close damage report:', error);
+                    alert('Failed to close damage report. Please try again.');
+                }
+            }
+
+            viewPhoto(photoUrl) {
+                document.getElementById('modalPhoto').src = photoUrl;
+                this.openModal('photoModal');
+            }
+
+            viewDetails(damageId) {
+                // Implementation for detailed view
+                alert('Detailed view coming soon!');
+            }
+
+            openModal(modalId) {
+                document.getElementById(modalId).classList.add('active');
+            }
+
+            closeModal(modalId) {
+                document.getElementById(modalId).classList.remove('active');
+            }
+        }
+
+        // Global instance
+        let damageSystem;
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            damageSystem = new DamageReportSystem();
+            damageSystem.initialize();
+        });
+
+        // Global functions
+        function captureDamagePhotos() {
+            damageSystem.captureDamagePhotos();
+        }
+
+        function captureResolutionPhoto() {
+            damageSystem.captureResolutionPhoto();
+        }
+
+        function closeModal(modalId) {
+            damageSystem.closeModal(modalId);
+        }
+
+        function goBack() {
+            window.location.href = 'macy-production-enhanced.html';
+        }
+    </script>
+</body>
+</html>
