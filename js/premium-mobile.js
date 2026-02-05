@@ -283,31 +283,11 @@ class PremiumMobileExperience {
 
   // Setup scroll behavior
   setupScrollBehavior() {
-    const appContent = document.querySelector('.app-content');
-    if (!appContent) return;
-
+    // Prevent overscroll and elastic scrolling
+    document.body.style.overscrollBehavior = 'none';
+    
     // Smooth scroll behavior
-    appContent.style.scrollBehavior = 'smooth';
-
-    // Handle scroll events
-    appContent.addEventListener('scroll', () => {
-      this.handleScroll();
-    }, { passive: true });
-
-    // Momentum scroll for iOS
-    if (this.isIOS) {
-      this.setupMomentumScroll(appContent);
-    }
-  }
-
-  // Setup momentum scroll for iOS
-  setupMomentumScroll(element) {
-    let startY = 0;
-    let startTime = 0;
-    let scrollY = 0;
-    let scrollVelocity = 0;
-
-    element.addEventListener('touchstart', (e) => {
+    document.documentElement.style.scrollBehavior = 'smooth';
       startY = e.touches[0].clientY;
       startTime = Date.now();
       scrollY = element.scrollTop;
