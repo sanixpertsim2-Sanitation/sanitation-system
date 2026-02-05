@@ -371,7 +371,7 @@ class FaceDetectionSystem {
     }
 
     /**
-     * Authenticate with PIN fallback
+     * Authenticate with PIN fallback using employee ID
      */
     async authenticateWithPIN() {
         return new Promise((resolve) => {
@@ -380,8 +380,13 @@ class FaceDetectionSystem {
             dialog.innerHTML = `
                 <div class="pin-dialog">
                     <h3>PIN Authentication</h3>
-                    <p>Enter your PIN code:</p>
-                    <input type="password" id="pinInput" maxlength="4" placeholder="****">
+                    <p>Enter your Employee ID and PIN:</p>
+                    <div class="form-group">
+                        <input type="text" id="employeeIdInput" maxlength="6" placeholder="Employee ID (6 digits)">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="pinInput" maxlength="4" placeholder="PIN (4 digits)">
+                    </div>
                     <div class="dialog-buttons">
                         <button id="submitPIN" class="btn-primary">Submit</button>
                         <button id="cancelPIN" class="btn-secondary">Cancel</button>
@@ -391,29 +396,60 @@ class FaceDetectionSystem {
             
             document.body.appendChild(dialog);
             
+            const employeeIdInput = dialog.querySelector('#employeeIdInput');
             const pinInput = dialog.querySelector('#pinInput');
             const submitBtn = dialog.querySelector('#submitPIN');
             const cancelBtn = dialog.querySelector('#cancelPIN');
             
-            pinInput.focus();
+            employeeIdInput.focus();
+            
+            // Auto-focus PIN when employee ID is complete
+            employeeIdInput.addEventListener('input', (e) => {
+                if (e.target.value.length === 6) {
+                    pinInput.focus();
+                }
+            });
             
             const submitPIN = async () => {
+                const employeeId = employeeIdInput.value.trim();
                 const pin = pinInput.value;
+                
+                if (employeeId.length !== 6) {
+                    this.showNotification('Please enter a valid 6-digit Employee ID', 'error');
+                    employeeIdInput.focus();
+                    return;
+                }
+                
+                if (pin.length !== 4) {
+                    this.showNotification('Please enter a valid 4-digit PIN', 'error');
+                    pinInput.focus();
+                    return;
+                }
                 
                 // Get valid PIN from environment or configuration
                 const validPIN = window.SANIXPERT_CONFIG?.ADMIN_PIN || '2451'; // Fallback for development
                 
                 if (pin === validPIN) {
-                    // Valid PIN - get user name
-                    const userName = await this.getUserName();
+                    // Lookup employee name automatically
+                    const employeeName = await this.lookupEmployee(employeeId, null, null);
+                    
+                    if (!employeeName) {
+                        this.showNotification('Employee ID not found. Please contact HR.', 'error');
+                        employeeIdInput.value = '';
+                        pinInput.value = '';
+                        employeeIdInput.focus();
+                        return;
+                    }
+                    
                     if (dialog && dialog.parentNode) {
                         document.body.removeChild(dialog);
                     }
                     resolve({
                         success: true,
                         user: {
-                            name: userName || 'PIN User',
-                            role: 'sanitation'
+                            name: employeeName,
+                            role: 'sanitation',
+                            employeeId: employeeId
                         }
                     });
                 } else {
@@ -424,6 +460,14 @@ class FaceDetectionSystem {
             };
             
             submitBtn.addEventListener('click', submitPIN);
+            
+            // Handle Enter key on both inputs
+            employeeIdInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && employeeIdInput.value.length === 6) {
+                    pinInput.focus();
+                }
+            });
+            
             pinInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') submitPIN();
             });
@@ -438,7 +482,7 @@ class FaceDetectionSystem {
     }
 
     /**
-     * Show first-time registration
+     * Show first-time registration with employee ID lookup
      */
     async showFirstTimeRegistration() {
         return new Promise((resolve) => {
@@ -447,13 +491,13 @@ class FaceDetectionSystem {
             dialog.innerHTML = `
                 <div class="registration-dialog">
                     <h3>Welcome to Sanixpert!</h3>
-                    <p>First time setup - Please register:</p>
+                    <p>First time setup - Enter your Employee ID:</p>
                     <div class="form-group">
-                        <label>Your Name:</label>
-                        <input type="text" id="userName" placeholder="Enter your name">
+                        <label>Employee ID:</label>
+                        <input type="text" id="employeeId" placeholder="Enter your employee ID" maxlength="6">
                     </div>
                     <div class="form-group">
-                        <label>Your Role:</label>
+                        <label>Department:</label>
                         <select id="userRole">
                             <option value="sanitation">Sanitation</option>
                             <option value="maintenance">Maintenance</option>
@@ -462,43 +506,110 @@ class FaceDetectionSystem {
                         </select>
                     </div>
                     <div class="dialog-buttons">
-                        <button id="registerUser" class="btn-primary">Register</button>
+                        <button id="lookupEmployee" class="btn-primary">Lookup & Register</button>
+                    </div>
+                    <div id="employeeInfo" style="display: none; margin-top: 16px; padding: 12px; background: #f0f9ff; border-radius: 8px;">
+                        <p id="employeeName"></p>
                     </div>
                 </div>
             `;
             
             document.body.appendChild(dialog);
             
-            const userNameInput = dialog.querySelector('#userName');
+            const employeeIdInput = dialog.querySelector('#employeeId');
             const userRoleSelect = dialog.querySelector('#userRole');
-            const registerBtn = dialog.querySelector('#registerUser');
+            const lookupBtn = dialog.querySelector('#lookupEmployee');
+            const employeeInfoDiv = dialog.querySelector('#employeeInfo');
+            const employeeNameP = dialog.querySelector('#employeeName');
             
-            userNameInput.focus();
+            employeeIdInput.focus();
             
-            registerBtn.addEventListener('click', async () => {
-                const userName = userNameInput.value.trim();
+            // Auto-lookup when 6 digits entered
+            employeeIdInput.addEventListener('input', async (e) => {
+                const employeeId = e.target.value.trim();
+                if (employeeId.length === 6) {
+                    await this.lookupEmployee(employeeId, employeeNameP, employeeInfoDiv);
+                } else {
+                    employeeInfoDiv.style.display = 'none';
+                }
+            });
+            
+            lookupBtn.addEventListener('click', async () => {
+                const employeeId = employeeIdInput.value.trim();
                 const userRole = userRoleSelect.value;
                 
-                if (!userName) {
-                    this.showNotification('Please enter your name', 'error');
+                if (!employeeId || employeeId.length !== 6) {
+                    this.showNotification('Please enter a valid 6-digit Employee ID', 'error');
                     return;
                 }
                 
-                // Try to register face
-                const faceRegistered = await this.registerUser(userName, userRole);
+                // Lookup employee first
+                const employeeName = await this.lookupEmployee(employeeId, employeeNameP, employeeInfoDiv);
+                if (!employeeName) {
+                    this.showNotification('Employee ID not found. Please contact HR.', 'error');
+                    return;
+                }
+                
+                // Try to register face with auto-identified name
+                const faceRegistered = await this.registerUser(employeeName, userRole);
                 
                 // Save user to database
-                await this.saveUserData(userName, userRole);
+                await this.saveUserData(employeeName, userRole, employeeId);
                 
                 if (dialog && dialog.parentNode) {
                     document.body.removeChild(dialog);
                 }
                 resolve({
                     success: true,
-                    user: { name: userName, role: userRole }
+                    user: { name: employeeName, role: userRole, employeeId: employeeId }
                 });
             });
         });
+    }
+
+    /**
+     * Lookup employee by ID
+     */
+    async lookupEmployee(employeeId, nameElement = null, infoDiv = null) {
+        try {
+            // Use employee database if available
+            if (window.SANIXPERT_EMPLOYEES) {
+                const employee = window.SANIXPERT_EMPLOYEES.getEmployee(employeeId);
+                
+                if (employee && nameElement && infoDiv) {
+                    nameElement.textContent = `Found: ${employee.name} - ${employee.role}`;
+                    infoDiv.style.display = 'block';
+                }
+                
+                return employee ? employee.name : null;
+            }
+            
+            // Fallback to mock database for development
+            const employeeDatabase = {
+                '100001': 'John Smith',
+                '100002': 'Sarah Johnson', 
+                '100003': 'Mike Davis',
+                '100004': 'Emily Wilson',
+                '100005': 'David Brown',
+                '100006': 'Lisa Anderson',
+                '100007': 'James Taylor',
+                '100008': 'Maria Garcia',
+                '100009': 'Robert Martinez',
+                '100010': 'Jennifer Lee'
+            };
+            
+            const employeeName = employeeDatabase[employeeId];
+            
+            if (employeeName && nameElement && infoDiv) {
+                nameElement.textContent = `Found: ${employeeName}`;
+                infoDiv.style.display = 'block';
+            }
+            
+            return employeeName || null;
+        } catch (error) {
+            console.error('Employee lookup failed:', error);
+            return null;
+        }
     }
 
     /**
@@ -529,22 +640,29 @@ class FaceDetectionSystem {
     /**
      * Save user data to database
      */
-    async saveUserData(userName, userRole) {
+    async saveUserData(userName, userRole, employeeId = null) {
         try {
             // Check if Supabase client is available
             if (!window.supabaseClient) {
                 throw new Error('Supabase client not initialized');
             }
 
+            const userData = {
+                name: userName,
+                role: userRole,
+                is_active: true,
+                first_login_at: new Date().toISOString(),
+                last_login_at: new Date().toISOString()
+            };
+
+            // Add employee ID if provided
+            if (employeeId) {
+                userData.employee_id = employeeId;
+            }
+
             const { data, error } = await window.supabaseClient
                 .from('user_registry')
-                .upsert({
-                    name: userName,
-                    role: userRole,
-                    is_active: true,
-                    first_login_at: new Date().toISOString(),
-                    last_login_at: new Date().toISOString()
-                });
+                .upsert(userData);
                 
             if (error) throw error;
         } catch (error) {
@@ -574,17 +692,6 @@ class FaceDetectionSystem {
             console.error('Failed to load user data:', error);
             return [];
         }
-    }
-
-    /**
-     * Get user name from session
-     */
-    async getUserName() {
-        const storedName = localStorage.getItem('currentUserName');
-        if (storedName) return storedName;
-        
-        // Fallback to prompt
-        return prompt('Enter your name:') || 'Unknown User';
     }
 
     /**
@@ -765,10 +872,32 @@ const faceDetectionCSS = `
     background: #3b82f6;
 }
 
-#pinInput {
+#pinInput, #employeeIdInput {
     text-align: center;
-    font-size: 24px;
-    letter-spacing: 8px;
+    font-size: 20px;
+    letter-spacing: 4px;
+}
+
+#employeeIdInput {
+    letter-spacing: 2px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 16px;
+    text-align: center;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #3b82f6;
 }
 `;
 

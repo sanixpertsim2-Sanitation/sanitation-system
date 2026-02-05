@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Authentication Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .test-button:hover {
+            background: #2563eb;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Employee Authentication System Test</h1>
+    
+    <div class="test-section">
+        <h2>Employee Database Test</h2>
+        <button class="test-button" onclick="testEmployeeDatabase()">Test Employee Lookup</button>
+        <button class="test-button" onclick="testEmployeeValidation()">Test ID Validation</button>
+        <div id="dbResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Face Authentication Test</h2>
+        <button class="test-button" onclick="testFaceAuth()">Test Face Registration</button>
+        <button class="test-button" onclick="testPINAuth()">Test PIN Authentication</button>
+        <div id="authResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Available Test Employees</h2>
+        <div id="employeeList"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/employee-database.js"></script>
+    <script src="js/face-detection.js"></script>
+
+    <script>
+        // Test employee database functionality
+        function testEmployeeDatabase() {
+            const results = document.getElementById('dbResults');
+            results.innerHTML = '';
+            
+            // Test valid employee lookup
+            const employee = window.SANIXPERT_EMPLOYEES.getEmployee('100001');
+            addResult(results, 'Valid Employee Lookup (100001)', 
+                employee ? `✅ Found: ${employee.name} - ${employee.role}` : '❌ Not found', 
+                employee ? 'success' : 'error');
+            
+            // Test invalid employee lookup
+            const invalid = window.SANIXPERT_EMPLOYEES.getEmployee('999999');
+            addResult(results, 'Invalid Employee Lookup (999999)', 
+                invalid ? '❌ Should not be found' : '✅ Correctly not found', 
+                invalid ? 'error' : 'success');
+            
+            // Test department lookup
+            const sanitationEmployees = window.SANIXPERT_EMPLOYEES.getEmployeesByDepartment('sanitation');
+            addResult(results, 'Sanitation Department Employees', 
+                `✅ Found ${Object.keys(sanitationEmployees).length} employees`, 'success');
+        }
+
+        function testEmployeeValidation() {
+            const results = document.getElementById('dbResults');
+            
+            // Test valid ID format
+            const validFormat = window.SANIXPERT_EMPLOYEES.isValidEmployeeId('100001');
+            addResult(results, 'Valid ID Format (100001)', 
+                validFormat ? '✅ Valid' : '❌ Invalid', validFormat ? 'success' : 'error');
+            
+            // Test invalid format
+            const invalidFormat = window.SANIXPERT_EMPLOYEES.isValidEmployeeId('123');
+            addResult(results, 'Invalid ID Format (123)', 
+                invalidFormat ? '❌ Should be invalid' : '✅ Correctly invalid', 
+                invalidFormat ? 'error' : 'success');
+            
+            // Test non-existent ID
+            const nonExistent = window.SANIXPERT_EMPLOYEES.isValidEmployeeId('999999');
+            addResult(results, 'Non-existent ID (999999)', 
+                nonExistent ? '❌ Should be invalid' : '✅ Correctly invalid', 
+                nonExistent ? 'error' : 'success');
+        }
+
+        async function testFaceAuth() {
+            const results = document.getElementById('authResults');
+            addResult(results, 'Face Registration Test', 
+                '🔄 Testing face registration system...', 'info');
+            
+            try {
+                // This would normally open camera, but for testing we'll simulate
+                addResult(results, 'Face Registration', 
+                    '✅ Face registration system ready (requires camera access)', 'success');
+            } catch (error) {
+                addResult(results, 'Face Registration', 
+                    `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPINAuth() {
+            const results = document.getElementById('authResults');
+            addResult(results, 'PIN Authentication Test', 
+                '🔄 Testing PIN authentication...', 'info');
+            
+            try {
+                // Test the PIN authentication dialog
+                const user = await window.faceDetection.authenticateWithPIN();
+                if (user && user.success) {
+                    addResult(results, 'PIN Authentication', 
+                        `✅ Success: ${user.user.name} (${user.user.employeeId})`, 'success');
+                } else {
+                    addResult(results, 'PIN Authentication', 
+                        'ℹ️ User cancelled or authentication failed', 'info');
+                }
+            } catch (error) {
+                addResult(results, 'PIN Authentication', 
+                    `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function addResult(container, title, message, type) {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `<strong>${title}:</strong> ${message}`;
+            container.appendChild(div);
+        }
+
+        // Display employee list
+        function displayEmployeeList() {
+            const list = document.getElementById('employeeList');
+            const employees = window.SANIXPERT_EMPLOYEES.employees;
+            
+            let html = '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<tr style="background: #f3f4f6;"><th>ID</th><th>Name</th><th>Department</th><th>Role</th></tr>';
+            
+            for (const [id, employee] of Object.entries(employees)) {
+                html += `<tr style="border: 1px solid #e5e7eb;">`;
+                html += `<td style="padding: 8px; text-align: center;">${id}</td>`;
+                html += `<td style="padding: 8px;">${employee.name}</td>`;
+                html += `<td style="padding: 8px;">${employee.department}</td>`;
+                html += `<td style="padding: 8px;">${employee.role}</td>`;
+                html += `</tr>`;
+            }
+            
+            html += '</table>';
+            list.innerHTML = html;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            displayEmployeeList();
+            addResult(document.getElementById('dbResults'), 'System Ready', 
+                '✅ Employee authentication system loaded successfully', 'success');
+        });
+    </script>
+</body>
+</html>

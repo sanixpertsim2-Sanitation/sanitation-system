@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Area Lead Verification - MACY Production</title>
+    
+    <!-- External Libraries -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Local Styles -->
+    <link rel="stylesheet" href="css/mobile-next-enhanced.css">
+    
+    <style>
+        .verification-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .verification-header {
+            background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+            color: white;
+            padding: 24px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .verification-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .verification-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .question-item {
+            border-left: 4px solid #e5e7eb;
+            padding: 20px;
+            margin-bottom: 16px;
+            border-radius: 0 12px 12px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .question-item.verified {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+        
+        .question-item.not-verified {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        
+        .question-item.pending {
+            border-left-color: #f59e0b;
+            background: #fef3c7;
+        }
+        
+        .verification-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 12px 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .verification-option:hover {
+            transform: translateX(4px);
+        }
+        
+        .verification-radio {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #d1d5db;
+            border-radius: 50%;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        
+        .verification-radio.selected {
+            border-color: #3b82f6;
+            background: #3b82f6;
+        }
+        
+        .verification-radio.selected::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: white;
+        }
+        
+        .action-button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 8px 0;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .photo-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 1;
+        }
+        
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .photo-timestamp {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 10px;
+            padding: 4px;
+            text-align: center;
+        }
+        
+        .add-photo-btn {
+            background: #f3f4f6;
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .add-photo-btn:hover {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+        }
+        
+        .signature-pad {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            cursor: crosshair;
+        }
+        
+        .user-info-card {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #3b82f6;
+            margin-right: 16px;
+        }
+        
+        .progress-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .progress-bar {
+            background: #e5e7eb;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #10b981, #059669);
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .damage-summary {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .handover-summary {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="verification-container">
+        <!-- Header -->
+        <header class="verification-header">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">✅ Area Lead Verification</h1>
+                    <p class="opacity-90">MACY Production Line - Final Sanitation Verification</p>
+                </div>
+                <button class="action-button" style="background: rgba(255, 255, 255, 0.2);" onclick="goBack()">
+                    ← Back to Workflow
+                </button>
+            </div>
+        </header>
+
+        <!-- User Information -->
+        <div class="user-info-card" id="userInfo">
+            <div class="flex items-center">
+                <div class="user-avatar" id="userAvatar">?</div>
+                <div class="flex-1">
+                    <div class="text-xl font-semibold" id="userName">Loading...</div>
+                    <div class="opacity-90" id="userRole">Area Lead</div>
+                    <div class="text-sm opacity-75" id="verificationTime">Loading...</div>
+                </div>
+                <button class="action-button" style="background: rgba(255, 255, 255, 0.2);" onclick="authenticateUser()">
+                    🔐 Verify Identity
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Overview -->
+        <div class="progress-section">
+            <h3 class="text-lg font-semibold mb-4">Verification Progress</h3>
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-600">Completion Status</span>
+                <span class="text-sm font-semibold" id="progressText">0% Complete</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-sm text-gray-500 mt-2">
+                <span id="verifiedCount">0 Verified</span>
+                <span id="remainingCount">0 Remaining</span>
+            </div>
+        </div>
+
+        <!-- Damage Report Summary -->
+        <div class="damage-summary" id="damageSummary">
+            <h3 class="text-lg font-semibold text-yellow-800 mb-2">🚨 Damage Reports</h3>
+            <div id="damageList"></div>
+        </div>
+
+        <!-- Handover Task Summary -->
+        <div class="handover-summary" id="handoverSummary">
+            <h3 class="text-lg font-semibold text-blue-800 mb-2">📋 Handover Tasks</h3>
+            <div id="handoverList"></div>
+        </div>
+
+        <!-- Verification Questions -->
+        <div class="verification-card">
+            <h2 class="text-xl font-bold mb-6">🔍 Sanitation Verification Checklist</h2>
+            <div id="verificationQuestions"></div>
+        </div>
+
+        <!-- Declaration Section -->
+        <div class="verification-card">
+            <h2 class="text-xl font-bold mb-6">✍️ Final Declaration</h2>
+            <div class="form-group">
+                <label class="form-label">Digital Signature</label>
+                <canvas id="signaturePad" class="signature-pad" width="400" height="200"></canvas>
+                <div class="mt-2">
+                    <button type="button" class="action-button" onclick="clearSignature()">Clear Signature</button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="declarationCheckbox" class="mr-2">
+                    I declare that I have thoroughly verified all sanitation procedures and confirm that the MACY Production line meets all safety and quality standards for production.
+                </label>
+            </div>
+            
+            <button class="action-button btn-success" onclick="submitVerification()" id="submitBtn" disabled>
+                ✅ Submit Area Lead Verification
+            </button>
+        </div>
+    </div>
+
+    <!-- Photo Capture Modal -->
+    <div class="modal-overlay" id="photoModal">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">📷 Capture Verification Photo</h3>
+            <div id="photoContainer"></div>
+            <div class="mt-4">
+                <button type="button" class="action-button btn-primary" onclick="captureVerificationPhoto()">
+                    📷 Capture Photo
+                </button>
+                <button type="button" class="action-button" onclick="closeModal('photoModal')" class="ml-2">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Scripts -->
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/face-detection.js"></script>
+    <script src="js/camera-integration.js"></script>
+
+    <script>
+        class AreaLeadVerification {
+            constructor() {
+                this.supabase = window.supabaseClient;
+                this.currentUser = null;
+                this.verificationData = {};
+                this.photos = {};
+                this.currentQuestion = null;
+                this.signaturePad = null;
+                this.isDrawing = false;
+            }
+
+            async initialize() {
+                try {
+                    // Initialize signature pad
+                    this.initializeSignaturePad();
+                    
+                    // Setup form handlers
+                    this.setupFormHandlers();
+                    
+                    // Load verification data
+                    await this.loadVerificationData();
+                    
+                    // Display questions
+                    this.displayVerificationQuestions();
+                    
+                    // Update progress
+                    this.updateProgress();
+                    
+                } catch (error) {
+                    console.error('Failed to initialize verification:', error);
+                }
+            }
+
+            initializeSignaturePad() {
+                const canvas = document.getElementById('signaturePad');
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas size
+                canvas.width = canvas.offsetWidth;
+                canvas.height = 200;
+                
+                // Setup drawing
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                
+                canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+                canvas.addEventListener('mousemove', (e) => this.draw(e));
+                canvas.addEventListener('mouseup', () => this.stopDrawing());
+                canvas.addEventListener('mouseout', () => this.stopDrawing());
+                
+                // Touch events for mobile
+                canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    canvas.dispatchEvent(mouseEvent);
+                });
+                
+                canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    canvas.dispatchEvent(mouseEvent);
+                });
+                
+                canvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    const mouseEvent = new MouseEvent('mouseup', {});
+                    canvas.dispatchEvent(mouseEvent);
+                });
+            }
+
+            startDrawing(e) {
+                this.isDrawing = true;
+                const canvas = document.getElementById('signaturePad');
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            }
+
+            draw(e) {
+                if (!this.isDrawing) return;
+                
+                const canvas = document.getElementById('signaturePad');
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
+
+            stopDrawing() {
+                this.isDrawing = false;
+            }
+
+            clearSignature() {
+                const canvas = document.getElementById('signaturePad');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+
+            setupFormHandlers() {
+                // Declaration checkbox
+                document.getElementById('declarationCheckbox').addEventListener('change', (e) => {
+                    this.checkSubmitButton();
+                });
+            }
+
+            async loadVerificationData() {
+                try {
+                    const lineId = await this.getLineId();
+                    
+                    // Load damage reports
+                    const { data: damageReports, error: damageError } = await this.supabase
+                        .from('reports')
+                        .select('*')
+                        .eq('line_id', lineId)
+                        .eq('type', 'Damage')
+                        .in('status', ['Open', 'Handover']);
+
+                    if (damageError) throw damageError;
+                    this.displayDamageReports(damageReports || []);
+
+                    // Load handover tasks
+                    const { data: handoverTasks, error: handoverError } = await this.supabase
+                        .from('handover_tasks')
+                        .select('*')
+                        .eq('line_id', lineId)
+                        .eq('status', 'Pending');
+
+                    if (handoverError) throw handoverError;
+                    this.displayHandoverTasks(handoverTasks || []);
+                    
+                } catch (error) {
+                    console.error('Failed to load verification data:', error);
+                }
+            }
+
+            async getLineId() {
+                const { data, error } = await this.supabase
+                    .from('lines')
+                    .select('id')
+                    .eq('name', 'MACY Production Line')
+                    .single();
+                
+                return data?.id;
+            }
+
+            displayDamageReports(reports) {
+                const container = document.getElementById('damageList');
+                
+                if (!reports || reports.length === 0) {
+                    container.innerHTML = '<p class="text-yellow-700">No open damage reports</p>';
+                    return;
+                }
+
+                const reportsHtml = reports.map(report => `
+                    <div class="flex items-center justify-between p-2 bg-yellow-50 rounded">
+                        <div class="flex-1">
+                            <div class="font-medium text-yellow-800">${report.description}</div>
+                            <div class="text-sm text-yellow-600">Severity: ${report.severity} | Reported by: ${report.reported_by}</div>
+                        </div>
+                        <button class="action-button btn-warning" onclick="verificationSystem.acknowledgeDamage('${report.id}')">
+                            Acknowledge
+                        </button>
+                    </div>
+                `).join('');
+
+                container.innerHTML = reportsHtml;
+            }
+
+            displayHandoverTasks(tasks) {
+                const container = document.getElementById('handoverList');
+                
+                if (!tasks || tasks.length === 0) {
+                    container.innerHTML = '<p class="text-blue-700">No pending handover tasks</p>';
+                    return;
+                }
+
+                const tasksHtml = tasks.map(task => `
+                    <div class="flex items-center justify-between p-2 bg-blue-50 rounded">
+                        <div class="flex-1">
+                            <div class="font-medium text-blue-800">${task.task_description}</div>
+                            <div class="text-sm text-blue-600">Type: ${task.task_type} | Created by: ${task.created_by}</div>
+                        </div>
+                        <button class="action-button btn-primary" onclick="verificationSystem.verifyHandover('${task.id}')">
+                            Verify
+                        </button>
+                    </div>
+                `).join('');
+
+                container.innerHTML = tasksHtml;
+            }
+
+            displayVerificationQuestions() {
+                const questions = [
+                    {
+                        id: 'bags_cleared',
+                        question: 'Verify all bags in the line are cleared off',
+                        category: 'bag_verification'
+                    },
+                    {
+                        id: 'equipment_clean',
+                        question: 'All equipment properly cleaned and sanitized',
+                        category: 'equipment'
+                    },
+                    {
+                        id: 'surfaces_clean',
+                        question: 'All surfaces (floors, walls, tables) cleaned and sanitized',
+                        category: 'surfaces'
+                    },
+                    {
+                        id: 'tools_stored',
+                        question: 'Cleaning tools properly stored and maintained',
+                        category: 'tools'
+                    },
+                    {
+                        id: 'waste_disposed',
+                        question: 'All waste and debris properly disposed',
+                        category: 'waste'
+                    },
+                    {
+                        id: 'safety_check',
+                        question: 'Safety equipment and protocols verified',
+                        category: 'safety'
+                    }
+                ];
+
+                const container = document.getElementById('verificationQuestions');
+                
+                const questionsHtml = questions.map(q => `
+                    <div class="question-item" id="question-${q.id}">
+                        <div class="font-semibold text-lg mb-3">${q.question}</div>
+                        <div class="space-y-2">
+                            <div class="verification-option" onclick="verificationSystem.selectOption('${q.id}', 'verified')">
+                                <div class="verification-radio" id="option-${q.id}-verified"></div>
+                                <span>✅ Verified - Pass</span>
+                            </div>
+                            <div class="verification-option" onclick="verificationSystem.selectOption('${q.id}', 'pending')">
+                                <div class="verification-radio" id="option-${q.id}-pending"></div>
+                                <span>⏰ Pending - Needs Attention</span>
+                            </div>
+                            <div class="verification-option" onclick="verificationSystem.selectOption('${q.id}', 'not_verified')">
+                                <div class="verification-radio" id="option-${q.id}-not-verified"></div>
+                                <span>❌ Not Verified - Re-clean Required</span>
+                            </div>
+                        </div>
+                        <div class="mt-3" id="photos-${q.id}" style="display: none;">
+                            <div class="photo-grid" id="photo-grid-${q.id}"></div>
+                            <button type="button" class="action-button btn-primary mt-2" onclick="verificationSystem.addPhoto('${q.id}')">
+                                📷 Add Photo
+                            </button>
+                        </div>
+                        <div class="mt-3" id="notes-${q.id}" style="display: none;">
+                            <textarea class="form-textarea" placeholder="Add notes about this verification..." 
+                                      id="notes-text-${q.id}"></textarea>
+                        </div>
+                    </div>
+                `).join('');
+
+                container.innerHTML = questionsHtml;
+            }
+
+            selectOption(questionId, option) {
+                // Update radio buttons
+                ['verified', 'pending', 'not_verified'].forEach(opt => {
+                    const radio = document.getElementById(`option-${questionId}-${opt}`);
+                    radio.classList.toggle('selected', opt === option);
+                });
+
+                // Update question data
+                this.verificationData[questionId] = {
+                    status: option,
+                    photos: this.photos[questionId] || [],
+                    notes: document.getElementById(`notes-text-${questionId}`)?.value || ''
+                };
+
+                // Update question styling
+                const questionElement = document.getElementById(`question-${questionId}`);
+                questionElement.classList.remove('verified', 'pending', 'not-verified');
+                questionElement.classList.add(option);
+
+                // Show/hide additional fields
+                const photosDiv = document.getElementById(`photos-${questionId}`);
+                const notesDiv = document.getElementById(`notes-${questionId}`);
+                
+                if (option === 'not_verified') {
+                    photosDiv.style.display = 'block';
+                    notesDiv.style.display = 'block';
+                } else if (option === 'pending') {
+                    photosDiv.style.display = 'block';
+                    notesDiv.style.display = 'block';
+                } else {
+                    photosDiv.style.display = 'none';
+                    notesDiv.style.display = 'none';
+                }
+
+                this.updateProgress();
+                this.checkSubmitButton();
+            }
+
+            async addPhoto(questionId) {
+                try {
+                    const photos = await window.cameraIntegration.showCaptureInterface(
+                        'Verification Photo',
+                        true
+                    );
+
+                    if (photos && photos.length > 0) {
+                        if (!this.photos[questionId]) {
+                            this.photos[questionId] = [];
+                        }
+                        
+                        // Upload photos
+                        for (const photo of photos) {
+                            const uploadResult = await window.cameraIntegration.uploadPhoto(
+                                photo.blob,
+                                `verification-${questionId}-${Date.now()}.jpg`
+                            );
+                            this.photos[questionId].push(uploadResult.url);
+                        }
+                        
+                        this.updateVerificationData(questionId);
+                        this.displayPhotos(questionId);
+                    }
+                } catch (error) {
+                    console.error('Failed to capture photos:', error);
+                    alert('Failed to capture photos. Please try again.');
+                }
+            }
+
+            displayPhotos(questionId) {
+                const container = document.getElementById(`photo-grid-${questionId}`);
+                const photos = this.photos[questionId] || [];
+                
+                const photosHtml = photos.map((photoUrl, index) => `
+                    <div class="photo-item">
+                        <img src="${photoUrl}" alt="Verification photo">
+                        <button class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs" 
+                                onclick="verificationSystem.removePhoto('${questionId}', ${index})">&times;</button>
+                    </div>
+                `).join('');
+
+                container.innerHTML = photosHtml;
+            }
+
+            removePhoto(questionId, index) {
+                this.photos[questionId].splice(index, 1);
+                this.updateVerificationData(questionId);
+                this.displayPhotos(questionId);
+            }
+
+            updateVerificationData(questionId) {
+                if (this.verificationData[questionId]) {
+                    this.verificationData[questionId].photos = this.photos[questionId] || [];
+                }
+            }
+
+            updateProgress() {
+                const totalQuestions = Object.keys(this.verificationData).length || 6;
+                const answeredQuestions = Object.keys(this.verificationData).filter(key => 
+                    this.verificationData[key] && this.verificationData[key].status
+                ).length;
+                
+                const percentage = Math.round((answeredQuestions / totalQuestions) * 100);
+                
+                document.getElementById('progressFill').style.width = `${percentage}%`;
+                document.getElementById('progressText').textContent = `${percentage}% Complete`;
+                document.getElementById('verifiedCount').textContent = `${answeredQuestions} Verified`;
+                document.getElementById('remainingCount').textContent = `${totalQuestions - answeredQuestions} Remaining`;
+            }
+
+            checkSubmitButton() {
+                const declarationChecked = document.getElementById('declarationCheckbox').checked;
+                const hasSignature = this.hasSignature();
+                const allQuestionsAnswered = Object.keys(this.verificationData).length === 6;
+                
+                const submitBtn = document.getElementById('submitBtn');
+                submitBtn.disabled = !(declarationChecked && hasSignature && allQuestionsAnswered);
+            }
+
+            hasSignature() {
+                const canvas = document.getElementById('signaturePad');
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // Check if canvas has any non-transparent pixels
+                for (let i = 3; i < data.length; i += 4) {
+                    if (data[i] > 0) return true;
+                }
+                return false;
+            }
+
+            async authenticateUser() {
+                try {
+                    const user = await window.faceDetection.authenticateUser();
+                    
+                    if (user) {
+                        this.currentUser = user;
+                        this.displayUserInfo();
+                    }
+                } catch (error) {
+                    console.error('Authentication failed:', error);
+                    alert('Authentication failed. Please try again.');
+                }
+            }
+
+            displayUserInfo() {
+                if (!this.currentUser) return;
+                
+                document.getElementById('userName').textContent = this.currentUser.name;
+                document.getElementById('userRole').textContent = this.currentUser.role;
+                document.getElementById('userAvatar').textContent = this.currentUser.name.charAt(0).toUpperCase();
+                document.getElementById('verificationTime').textContent = new Date().toLocaleString();
+            }
+
+            async submitVerification() {
+                try {
+                    if (!this.currentUser) {
+                        alert('Please authenticate first');
+                        return;
+                    }
+
+                    // Get signature data
+                    const canvas = document.getElementById('signaturePad');
+                    const signatureData = canvas.toDataURL();
+
+                    // Submit verification
+                    const { error } = await this.supabase
+                        .from('area_verification')
+                        .insert({
+                            line_id: await this.getLineId(),
+                            area_lead_id: this.currentUser.name,
+                            verification_data: this.verificationData,
+                            signature_url: signatureData,
+                            submitted_at: new Date().toISOString()
+                        });
+
+                    if (error) throw error;
+
+                    // Update line status
+                    await this.supabase
+                        .from('lines')
+                        .update({
+                            status: 'Released',
+                            locked_by: null,
+                            lock_timestamp: null
+                        })
+                        .eq('name', 'MACY Production Line');
+
+                    alert('Area lead verification completed successfully!');
+                    window.location.href = 'macy-production-enhanced.html';
+                    
+                } catch (error) {
+                    console.error('Failed to submit verification:', error);
+                    alert('Failed to submit verification. Please try again.');
+                }
+            }
+
+            acknowledgeDamage(damageId) {
+                // Implementation for damage acknowledgment
+                alert('Damage acknowledgment feature coming soon!');
+            }
+
+            verifyHandover(taskId) {
+                // Implementation for handover verification
+                alert('Handover verification feature coming soon!');
+            }
+        }
+
+        // Global instance
+        let verificationSystem;
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            verificationSystem = new AreaLeadVerification();
+            verificationSystem.initialize();
+        });
+
+        // Global functions
+        function authenticateUser() {
+            verificationSystem.authenticateUser();
+        }
+
+        function clearSignature() {
+            verificationSystem.clearSignature();
+        }
+
+        function submitVerification() {
+            verificationSystem.submitVerification();
+        }
+
+        function goBack() {
+            window.location.href = 'macy-production-enhanced.html';
+        }
+    </script>
+</body>
+</html>
