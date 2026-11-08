@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+
+import { fromDamageRow, insertDamageReport, persistDamageUpdate, mergeDamageReports } from "@/lib/damagePersistence.mjs";
 
 const STORAGE_KEY = "sanixpertState";
 
@@ -64,9 +66,9 @@ const AppContext = createContext(null);
 
 const loadState = () => {
   if (typeof window === "undefined") return defaultState;
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (!stored) return defaultState;
   try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (!stored) return defaultState;
     return { ...defaultState, ...JSON.parse(stored) };
   } catch {
     return defaultState;
@@ -75,48 +77,54 @@ const loadState = () => {
 
 export function AppProvider({ children }) {
   const [state, setState] = useState(defaultState);
+  const [hydrated, setHydrated] = useState(false);
+  const [damageLoadError, setDamageLoadError] = useState("");
+  const damageRevision = useRef(0);
+  const damageWrites = useRef(new Map());
 
   useEffect(() => {
     setState(loadState());
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    if (!hydrated || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      console.warn("Device cache could not be saved. Confirmed database reports remain saved.");
+    }
+  }, [state, hydrated]);
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!hydrated) return;
+    if (!supabase) {
+      setDamageLoadError("Database is not configured. Reports cannot be saved or updated.");
+      return;
+    }
+    let cancelled = false;
+    const revision = damageRevision.current;
     const loadDamageReports = async () => {
-      const { data, error } = await supabase
-        .from("damage_reports")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error || !data) return;
-      setState((prev) => ({
-        ...prev,
-        damageReports: data.map((report) => ({
-          id: report.id,
-          lineName: report.line_name,
-          equipmentArea: report.equipment_area,
-          description: report.description,
-          severity: report.severity,
-          status: report.status,
-          reportedBy: report.reported_by,
-          createdAt: report.created_at,
-          photo: report.photo_data
-            ? { dataUrl: report.photo_data, timestamp: report.created_at }
-            : null,
-          fixedBy: report.fixed_by,
-          closedAt: report.closed_at,
-          closePhoto: report.close_photo_data
-            ? { dataUrl: report.close_photo_data, timestamp: report.closed_at }
-            : null,
-        })),
-      }));
+      try {
+        const { data, error } = await supabase.from("damage_reports").select("*").order("created_at", { ascending: false });
+        if (error || !data) throw new Error("load failed");
+        if (cancelled) return;
+        setState((prev) => ({
+          ...prev,
+          damageReports: mergeDamageReports(prev.damageReports, data.map((row) => {
+            const local = prev.damageReports.find((report) => report.id === row.id);
+            return local && (damageWrites.current.get(row.id) || 0) > revision
+              ? local : fromDamageRow(row);
+          })),
+        }));
+        setDamageLoadError("");
+      } catch {
+        if (!cancelled) setDamageLoadError("Database reports could not be loaded. Showing device cache, which may be incomplete or out of date.");
+      }
     };
     loadDamageReports();
-  }, []);
+    return () => { cancelled = true; };
+  }, [hydrated]);
 
   const registerEmployee = ({ name, role, faceId }) => {
     setState((prev) => ({
@@ -281,53 +289,27 @@ export function AppProvider({ children }) {
     }));
   };
 
-  const addDamageReport = (report) => {
-    if (supabase) {
-      supabase.from("damage_reports").insert([
-        {
-          line_name: report.lineName,
-          equipment_area: report.equipmentArea,
-          description: report.description,
-          severity: report.severity,
-          status: report.status,
-          reported_by: report.reportedBy,
-          created_at: report.createdAt,
-          photo_data: report.photo?.dataUrl || null,
-        },
-      ]);
-    }
+  const addDamageReport = async (report) => {
+    const saved = await insertDamageReport(supabase, report);
+    damageRevision.current += 1;
+    damageWrites.current.set(saved.id, damageRevision.current);
     setState((prev) => ({
       ...prev,
-      damageReports: [report, ...prev.damageReports],
-      activityFeed: [
-        {
-          id: `feed-${Date.now()}`,
-          text: `${report.reportedBy} reported damage (${report.severity})`,
-          timestamp: new Date().toISOString(),
-        },
-        ...prev.activityFeed,
-      ],
+      damageReports: [saved, ...prev.damageReports.filter((item) => item.id !== saved.id)],
+      activityFeed: [{ id: `feed-${Date.now()}`, text: `${saved.reportedBy} reported damage (${saved.severity})`, timestamp: saved.createdAt }, ...prev.activityFeed],
     }));
+    return saved;
   };
 
-  const updateDamageReport = (id, updates) => {
-    if (supabase) {
-      supabase
-        .from("damage_reports")
-        .update({
-          status: updates.status,
-          fixed_by: updates.fixedBy,
-          closed_at: updates.closedAt,
-          close_photo_data: updates.closePhoto?.dataUrl || null,
-        })
-        .eq("id", id);
-    }
+  const updateDamageReport = async (id, updates) => {
+    const saved = await persistDamageUpdate(supabase, id, updates);
+    damageRevision.current += 1;
+    damageWrites.current.set(saved.id, damageRevision.current);
     setState((prev) => ({
       ...prev,
-      damageReports: prev.damageReports.map((report) =>
-        report.id === id ? { ...report, ...updates } : report
-      ),
+      damageReports: prev.damageReports.map((report) => report.id === id ? saved : report),
     }));
+    return saved;
   };
 
   const logEvent = (eventType, payload) => {
@@ -355,6 +337,7 @@ export function AppProvider({ children }) {
   const value = useMemo(
     () => ({
       state,
+      damageLoadError,
       registerEmployee,
       setCurrentUser,
       completePreClean,
@@ -368,7 +351,7 @@ export function AppProvider({ children }) {
       updateDamageReport,
       resetStages,
     }),
-    [state]
+    [state, damageLoadError]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -381,3 +364,4 @@ export const useApp = () => {
   }
   return ctx;
 };
+
