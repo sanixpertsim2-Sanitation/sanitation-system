@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import CameraCapture from "./CameraCapture";
 import LiveDateTime from "@/components/Layout/LiveDateTime";
+
+import { sendDamageNotification } from "@/lib/damageNotifications.mjs";
 
 const severityOptions = ["Low", "Medium", "High"];
 const statusOptions = ["Open", "Handover", "Closed"];
 
 export default function DamageReport({ lineName = "MACY Production" }) {
-  const { state, addDamageReport, updateDamageReport } = useApp();
+  const { state, damageLoadError, addDamageReport, updateDamageReport } = useApp();
   const [equipmentArea, setEquipmentArea] = useState("");
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState("Medium");
@@ -21,52 +23,66 @@ export default function DamageReport({ lineName = "MACY Production" }) {
   const [fixedBy, setFixedBy] = useState("");
   const [fixPhoto, setFixPhoto] = useState(null);
 
+  const busyRef = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [cameraKey, setCameraKey] = useState(0);
+
   const resetForm = () => {
     setEquipmentArea("");
     setDescription("");
     setSeverity("Medium");
     setStatus("Open");
     setPhoto(null);
-  };
-
-  const sendDamageAlert = async (reportData) => {
-    if (!["High", "Medium"].includes(reportData.severity)) return;
-    await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: "adarsh@sanixeprts.ca",
-        subject: `${reportData.severity} severity damage reported from ${reportData.lineName}`,
-        description: reportData.description,
-        photoUrl: reportData.photo?.dataUrl,
-        timestamp: reportData.photo?.timestamp,
-        equipmentArea: reportData.equipmentArea,
-        reporter: reportData.reportedBy,
-        severity: reportData.severity,
-      }),
-    });
+    setCameraKey((key) => key + 1);
   };
 
   const handleSubmit = async () => {
-    if (!equipmentArea || !description || !photo) return;
-    const reportData = {
-      id: `damage-${Date.now()}`,
-      lineName,
-      equipmentArea,
-      description,
-      severity,
-      status,
-      photo,
-      reportedBy: state.currentUser?.name || "Unknown",
-      createdAt: new Date().toISOString(),
-    };
-    addDamageReport(reportData);
-    await sendDamageAlert(reportData);
-    resetForm();
+    if (busyRef.current || !equipmentArea.trim() || !description.trim() || !photo) return;
+    busyRef.current = true;
+    setBusy(true);
+    setMessage("");
+    try {
+      const saved = await addDamageReport({
+        lineName, equipmentArea: equipmentArea.trim(), description: description.trim(), severity, status, photo,
+        reportedBy: state.currentUser?.name || "Unknown", createdAt: new Date().toISOString(),
+      });
+      resetForm();
+      const needsEmail = ["High", "Medium"].includes(saved.severity);
+      const sent = needsEmail ? await sendDamageNotification(saved) : false;
+      setMessage(!needsEmail ? "Report saved to database. No email is required for Low severity."
+        : sent ? "Report saved to database. Alert accepted by the email server."
+        : "Report saved to database, but email notification was not confirmed. Contact management directly. Do not resubmit this report.");
+    } catch (error) {
+      setMessage(error.message || "Save was not confirmed. Keep these details and check the report log before retrying.");
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
+
+  const handleUpdate = async (updates) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setMessage("");
+    try {
+      const saved = await updateDamageReport(activeReport.id, updates);
+      setActiveReport(saved);
+      setCloseMode(null);
+      setFixedBy("");
+      setFixPhoto(null);
+      setMessage("Report update saved to database.");
+    } catch (error) {
+      setMessage(error.message || "Update was not confirmed. Your closure details have been kept.");
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
   };
 
   const openReports = state.damageReports.filter(
-    (report) => report.status === "Open"
+    (report) => report.status !== "Closed"
   );
   const closedReports = state.damageReports.filter(
     (report) => report.status === "Closed"
@@ -86,6 +102,7 @@ export default function DamageReport({ lineName = "MACY Production" }) {
         </p>
       </div>
 
+      <fieldset disabled={busy} className="space-y-4">
       <div className="rounded-xl border border-red-500/20 bg-slate-950/60 p-3">
         <label className="text-xs uppercase tracking-[0.2em] text-red-200/70">
           Equipment / Area
@@ -99,6 +116,7 @@ export default function DamageReport({ lineName = "MACY Production" }) {
       </div>
 
       <CameraCapture
+        key={cameraKey}
         label="Damage Photo (Camera Only)"
         required
         onCapture={setPhoto}
@@ -149,11 +167,16 @@ export default function DamageReport({ lineName = "MACY Production" }) {
 
       <button
         onClick={handleSubmit}
-        disabled={!equipmentArea || !description || !photo}
+        disabled={busy || !equipmentArea.trim() || !description.trim() || !photo}
         className="w-full rounded-2xl bg-red-600 py-3 text-sm font-bold uppercase tracking-[0.2em] text-white transition hover:bg-red-500"
       >
-        Submit Damage Report
+        {busy ? "Saving…" : "Submit Damage Report"}
       </button>
+
+      </fieldset>
+
+      {damageLoadError && <p role="alert">{damageLoadError}</p>}
+      {message && <p role="status">{message}</p>}
 
       {state.damageReports.length > 0 && (
         <div className="rounded-2xl border border-red-500/20 bg-slate-950/70 p-4 text-xs text-slate-200">
@@ -184,6 +207,7 @@ export default function DamageReport({ lineName = "MACY Production" }) {
               .map((report) => (
                 <button
                   key={report.id}
+                  disabled={busy}
                   onClick={() => {
                     setActiveReport(report);
                     setCloseMode(null);
@@ -221,12 +245,14 @@ export default function DamageReport({ lineName = "MACY Production" }) {
                 {activeReport.equipmentArea}
               </h3>
               <button
+                disabled={busy}
                 onClick={() => setActiveReport(null)}
                 className="text-xs uppercase tracking-[0.2em] text-slate-400"
               >
                 Close
               </button>
             </div>
+            {message && <p role="status">{message}</p>}
             <p className="text-xs text-slate-400">
               {new Date(activeReport.createdAt).toLocaleString()}
             </p>
@@ -242,14 +268,8 @@ export default function DamageReport({ lineName = "MACY Production" }) {
             {activeReport.status !== "Closed" && (
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => {
-                    updateDamageReport(activeReport.id, {
-                      status: "Handover",
-                    });
-                    setActiveReport((prev) =>
-                      prev ? { ...prev, status: "Handover" } : prev
-                    );
-                  }}
+                  disabled={busy}
+                  onClick={() => handleUpdate({ status: "Handover" })}
                   className="rounded-full border border-amber-400/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-200"
                 >
                   Mark Handover
@@ -264,7 +284,7 @@ export default function DamageReport({ lineName = "MACY Production" }) {
             )}
 
             {closeMode === "close" && (
-              <div className="space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
+              <fieldset disabled={busy} className="space-y-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
                 <p className="text-xs uppercase tracking-[0.2em] text-emerald-200">
                   Closure Details
                 </p>
@@ -280,34 +300,13 @@ export default function DamageReport({ lineName = "MACY Production" }) {
                   onCapture={setFixPhoto}
                 />
                 <button
-                  onClick={() => {
-                    if (!fixedBy || !fixPhoto) return;
-                    updateDamageReport(activeReport.id, {
-                      status: "Closed",
-                      fixedBy,
-                      closePhoto: fixPhoto,
-                      closedAt: new Date().toISOString(),
-                    });
-                    setActiveReport((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            status: "Closed",
-                            fixedBy,
-                            closePhoto: fixPhoto,
-                            closedAt: new Date().toISOString(),
-                          }
-                        : prev
-                    );
-                    setCloseMode(null);
-                    setFixedBy("");
-                    setFixPhoto(null);
-                  }}
+                  disabled={busy || !fixedBy.trim() || !fixPhoto}
+                  onClick={() => handleUpdate({ status: "Closed", fixedBy: fixedBy.trim(), closePhoto: fixPhoto, closedAt: new Date().toISOString() })}
                   className="w-full rounded-xl bg-emerald-500 py-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-900"
                 >
                   Submit Closure
                 </button>
-              </div>
+              </fieldset>
             )}
             {activeReport.photo?.dataUrl && (
               <img
@@ -322,3 +321,4 @@ export default function DamageReport({ lineName = "MACY Production" }) {
     </section>
   );
 }
+
